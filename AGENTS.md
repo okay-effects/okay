@@ -740,9 +740,10 @@ force, all already practiced, none previously written down:
   the diagnostic it is. Also: every cats lane pays `unsafeRunSync`'s
   7.6 µs thread handoff (§0 of docs/benchmarks.md) and no okay lane
   does — quote it where a cats number is close.
-- `organization` is `io.github.sergey-scherbina` (build.sbt is the
-  decision in force; `dev.okay` until 2026-09-29, and may return once a
-  domain is settled — specs/modules-infra.md, "Publishing").
+- `organization` is `io.github.okay-effects` (build.sbt is the
+  decision in force since 2026-10-18, when the repository moved to the
+  GitHub organization okay-effects; `io.github.sergey-scherbina` from
+  2026-09-29, `dev.okay` before — specs/modules-infra.md, "Publishing").
 - **Three JDKs, three jobs** (specs/jdk-compatibility.md). sbt
   COMPILES on 25 (`.sdkmanrc`, since java-gatherers 2026-09-23 —
   okay-java needs JDK 24's `Gatherer` API at compile time). Tests

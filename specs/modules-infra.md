@@ -28,10 +28,12 @@ they are written in the classic.
 - `compare` — internal benchmark module, never published.
 
 ## Publishing
-- groupId `io.github.sergey-scherbina` (operator, 2026-09-29: "Делай пока
+- groupId `io.github.okay-effects` (operator, 2026-10-18: the repositories
+  moved to the GitHub organization okay-effects, and the groupId with them).
+  Before it `io.github.sergey-scherbina` (operator, 2026-09-29: "Делай пока
   везде io.github.sergey-scherbina - потом будем думать про dev.okay").
-  Maven Central verifies an `io.github.<user>` namespace through the
-  GitHub account itself, so it needs no domain; `dev.okay` would need
+  Maven Central verifies an `io.github.<user or organization>` namespace
+  through GitHub itself, so it needs no domain; `dev.okay` would need
   proof of owning `okay.dev`, and `io.sergiy-shcherbyna` before it had
   the same problem. Revisited when a domain is settled — a groupId move
   after a public release is a relocation POM per artifact, so the

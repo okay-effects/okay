@@ -73,7 +73,7 @@ Contents:
 ## 1. The build
 
 ```sbt
-libraryDependencies += "io.github.sergey-scherbina" %% "okay2" % "<version>"
+libraryDependencies += "io.github.okay-effects" %% "okay2" % "<version>"
 ```
 
 That is all: `okay2` is a Scala 2.13 artifact with no dependencies.
@@ -88,7 +88,7 @@ published for Scala.js and Scala Native: the core, `okay2-data`,
 the cross way:
 
 ```sbt
-libraryDependencies += "io.github.sergey-scherbina" %%% "okay2" % "<version>"
+libraryDependencies += "io.github.okay-effects" %%% "okay2" % "<version>"
 ```
 
 Every one of their suites runs on all three platforms. Only the tests

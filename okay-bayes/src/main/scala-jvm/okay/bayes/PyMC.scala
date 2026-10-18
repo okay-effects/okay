@@ -29,7 +29,7 @@ object PyMC extends Sampler:
     try { Class.forName("okay.foreign.PyEnv", false, getClass.getClassLoader); None }
     catch case _: ClassNotFoundException => Some(
       "okay.bayes.PyMC needs okay-py, an optional dependency of okay-bayes (okay.foreign.PyEnv is not on the classpath): " +
-        "add io.github.sergey-scherbina::okay-py — or use okay.bayes.Sampler.Okay, the default, which needs none of it")
+        "add io.github.okay-effects::okay-py — or use okay.bayes.Sampler.Okay, the default, which needs none of it")
 
   private lazy val worker: ForeignWorker =
     missing.foreach(why => throw IllegalStateException(why))

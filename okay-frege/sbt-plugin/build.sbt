@@ -6,4 +6,4 @@
 // compiler comes from the build's own classpath (okay-frege brings it).
 sbtPlugin := true
 name := "okay-frege-sbt"
-organization := "io.github.sergey-scherbina"
+organization := "io.github.okay-effects"

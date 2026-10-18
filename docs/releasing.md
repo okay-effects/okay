@@ -24,16 +24,16 @@ scope only on published modules. `releaseWaveCheck` fails otherwise, and
 it lists any third-party compile dependency a wave module has. Today
 there is none beyond Scala's, Scala.js's and Scala Native's own runtime.
 
-Coordinates: groupId `io.github.sergey-scherbina`, artifact `okay` for the
+Coordinates: groupId `io.github.okay-effects`, artifact `okay` for the
 core, so a user writes:
 
 ```
-libraryDependencies += "io.github.sergey-scherbina" %% "okay" % "0.2.0"
+libraryDependencies += "io.github.okay-effects" %% "okay" % "0.2.0"
 ```
 
 The groupId is decided in specs/modules-infra.md, "Publishing". Central
-verifies an `io.github.<user>` namespace through the GitHub account, so
-no domain is needed. `dev.okay` stays possible later, at the price of a
+verifies an `io.github.<user or organization>` namespace through GitHub,
+so no domain is needed. `dev.okay` stays possible later, at the price of a
 relocation POM per artifact once something is public.
 
 ## GitHub Pages: a Maven repository without Central
@@ -43,8 +43,8 @@ branch of this repository. No account, token or signing key is needed, on
 either side. A user adds one resolver line:
 
 ```
-resolvers += "okay" at "https://sergey-scherbina.github.io/okay/maven"
-libraryDependencies += "io.github.sergey-scherbina" %% "okay" % "0.2.0"
+resolvers += "okay" at "https://okay-effects.github.io/okay/maven"
+libraryDependencies += "io.github.okay-effects" %% "okay" % "0.2.0"
 ```
 
 `scripts/pages-publish.sh` builds it:
@@ -79,9 +79,10 @@ State example against `okay` and printed `(40,42)`.
 
 ## Once: accounts and keys
 
-1. Sign in at central.sonatype.com with the GitHub account
-   `sergey-scherbina`. The namespace `io.github.sergey-scherbina` is
-   verified by that sign-in.
+1. Sign in at central.sonatype.com and add the namespace
+   `io.github.okay-effects`. Central verifies a GitHub organization's
+   namespace by a public repository, named with the key it shows, made in
+   the organization okay-effects for the check and deleted after.
 2. In the Portal, generate a user token (Account, "Generate User Token").
    It is a username and password pair for uploads, not the login.
 3. Make a signing key and publish its public half:

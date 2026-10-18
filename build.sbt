@@ -213,7 +213,7 @@ def multiRelease(variantId: String, n: Int): Seq[Setting[_]] = Seq(
   },
 )
 
-ThisBuild / organization := "io.github.sergey-scherbina"
+ThisBuild / organization := "io.github.okay-effects"
 ThisBuild / licenses := Seq("Apache-2.0" -> url("https://www.apache.org/licenses/LICENSE-2.0"))
 ThisBuild / homepage := Some(url("https://github.com/okay-effects/okay"))
 ThisBuild / versionScheme := Some("early-semver")
