@@ -1,21 +1,22 @@
 - [ ] okay-laminar — okay in Laminar (https://laminar.dev) and in Airstream
-      (https://github.com/raquo/Airstream), its reactive layer: a page written
+      (https://github.com/raquo/Airstream), its reactive layer, and in
+      Waypoint (https://github.com/raquo/Waypoint), its router: a page written
       in Laminar uses okay's effects and okay-ui's views, an okay program
       drives a Laminar page, and Airstream's streams and okay's streams cross
       both ways, with no hand-written glue between them.
       ASKED 2026-10-18 by the operator ("сделать okay-laminar для
       https://laminar.dev/"; then "https://github.com/raquo/Airstream тоже
-      туда же в этот же проект").
+      туда же в этот же проект"; then Waypoint, the same day).
       WHY LAMINAR: it is THE Scala.js UI library, reactive through
       Airstream (`EventStream`, `Signal`, `Var`, `Observer`, an `Owner` per
       mounted element), and the frontend most Scala teams already have.
       okay-ui reaches the browser today through React (`React.elem`,
       `ReactJs.host`) and the DOM host (`okay.ui.Dom`); a Scala.js team on
       Laminar has no seam to come in by.
-      THE SHAPE, three pieces, one module `okay-laminar` (Scala.js only), two
+      THE SHAPE, four pieces, one module `okay-laminar` (Scala.js only), three
       artifacts: `okay-airstream` (piece 1, depending on Airstream alone, for
-      the projects that use Airstream without Laminar) and `okay-laminar`
-      (pieces 2 and 3, over `okay-airstream`):
+      the projects that use Airstream without Laminar), `okay-laminar`
+      (pieces 2 and 3, over `okay-airstream`) and `okay-waypoint` (piece 4):
       1. STREAMS BOTH WAYS (okay-airstream). An Airstream `EventStream[A]` / `Signal[A]` as an
          okay `Source[A]`, subscribed when the loop subscribes and released
          when it ends (the bracket shape, like `Terminal.raw` and
@@ -34,6 +35,14 @@
          a full re-render, the user's events turned into okay-ui `Event`s,
          so one okay-ui application runs inside a Laminar page beside its
          own Laminar components.
+      4. ROUTES AS AN EFFECT (okay-waypoint). Navigation is an operation a
+         program performs (`Navigate(page)`, `Back`), and Waypoint's
+         `Router` is its handler: `pushState`/`replaceState`, the URL
+         encoded by the router's routes. The current page, Waypoint's
+         `currentPageSignal`, is an okay `Source`, so an okay-ui app or an
+         okay program reacts to it like any other source. A program that
+         navigates is then tested with a handler that records the pages it
+         asked for, no browser history, and audited like any other effect.
       TESTS: okay-airstream's bridges with Airstream alone (no DOM): a
       stream crossed twice is the same stream, a `Signal`'s current value is
       the first element, release on loop end; the effect bridge under Laminar's own test setup
@@ -41,10 +50,11 @@
       subscribe and cancel exactly once; the Host against the DOM battery
       okay-ui's other hosts pass; ONE end-to-end page in
       `okay-demo-e2e-browser`.
-      NOT HERE: routing, styling, server-side rendering. Laminar's own
-      `Waypoint` and CSS stay Laminar's.
-      CHECK FIRST: Laminar's and Airstream's current versions (Airstream is
-      versioned with Laminar) and the Scala 3 version they are published for (a library on our Scala 3 reads it, not the other way
+      NOT HERE: styling and server-side rendering; Waypoint's route syntax
+      (url-dsl) is used as it is, not wrapped.
+      CHECK FIRST: Laminar's, Airstream's and Waypoint's current versions
+      (Airstream is versioned with Laminar), what Waypoint itself depends on
+      (Airstream only, or Laminar too: it decides what okay-waypoint sits on) and the Scala 3 version they are published for (a library on our Scala 3 reads it, not the other way
       round); how `ReactJs.host` and `Dom.host` take the browser's globals
       as parameters, to do the same; whether `Ui.run`'s `external` merges
       a `Source[Event]` or a `Source[Msg]` (the same question as
