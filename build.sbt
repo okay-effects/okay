@@ -215,7 +215,7 @@ def multiRelease(variantId: String, n: Int): Seq[Setting[_]] = Seq(
 
 ThisBuild / organization := "io.github.sergey-scherbina"
 ThisBuild / licenses := Seq("Apache-2.0" -> url("https://www.apache.org/licenses/LICENSE-2.0"))
-ThisBuild / homepage := Some(url("https://github.com/sergey-scherbina/okay"))
+ThisBuild / homepage := Some(url("https://github.com/okay-effects/okay"))
 ThisBuild / versionScheme := Some("early-semver")
 // WHAT MAVEN CENTRAL ASKS OF A POM, and where it goes (release-first-wave,
 // 2026-09-29; docs/releasing.md). Central refuses a bundle without an
@@ -226,15 +226,15 @@ ThisBuild / versionScheme := Some("early-semver")
 // WHAT is published is project/ReleaseWave.scala's first wave; every
 // other module is `publish / skip` and keeps `publishLocal`.
 ThisBuild / scmInfo := Some(ScmInfo(
-  url("https://github.com/sergey-scherbina/okay"),
-  "scm:git:https://github.com/sergey-scherbina/okay.git"))
+  url("https://github.com/okay-effects/okay"),
+  "scm:git:https://github.com/okay-effects/okay.git"))
 ThisBuild / developers := List(Developer(
   "sergey-scherbina", "Sergiy Shcherbyna", "sergey.scherbina@gmail.com",
   url("https://github.com/sergey-scherbina")))
 // OKAY_PAGES_REPO set: a Maven repository in that directory instead
 // (pages-maven-repo, 2026-09-29). scripts/pages-publish.sh points it at
 // the `maven/` folder of a gh-pages worktree, and GitHub Pages serves it
-// as https://sergey-scherbina.github.io/okay/maven -- a repository a user
+// as https://okay-effects.github.io/okay/maven -- a repository a user
 // adds with one resolver line and no token, unsigned, Central not needed.
 ThisBuild / publishTo := {
   sys.env.get("OKAY_PAGES_REPO").filter(_.nonEmpty) match {

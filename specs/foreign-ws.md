@@ -4,7 +4,7 @@
 
 foreign-server (specs/foreign-server.md) gave the okay wire a host that
 ACCEPTS far sides, but only on plain TCP, and a browser cannot open a TCP
-socket. A program in a page (okay-ts, github.com/sergey-scherbina/okay-ts)
+socket. A program in a page (okay-ts, github.com/okay-effects/okay-ts)
 reaches its server through a WebSocket. The same holds for a program behind
 a proxy that passes HTTP and nothing else. polyglot-one-wire.md names this
 "WebSocket over okay-http … a later stage". This is that stage.

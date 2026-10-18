@@ -13,7 +13,7 @@ polyglot-one-wire.md says about it.
 That leaves out the case the operator asked for (2026-10-15, okay-ts
 interop): a program written ELSEWHERE whose sensitive effects are handled
 HERE. Examples are a TypeScript program in a Node process or on another
-machine, or okay-ts (github.com/sergey-scherbina/okay-ts), whose programs are
+machine, or okay-ts (github.com/okay-effects/okay-ts), whose programs are
 data with a many-shot `k` and so are a far side as they are. The program
 connects to an okay server. The server runs it under Scala callbacks:
 answering its operations, auditing them and refusing them, with the policy

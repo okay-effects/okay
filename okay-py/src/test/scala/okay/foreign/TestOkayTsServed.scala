@@ -7,7 +7,7 @@ import okay.{%, !, pure}
 import okay.std.Writer
 
 /**
- * okay-ts (github.com/sergey-scherbina/okay-ts), a far side that CONNECTS by
+ * okay-ts (github.com/okay-effects/okay-ts), a far side that CONNECTS by
  * itself (foreign-server): its programs as data and generators, started by
  * this host over a connection its `ForeignServer` accepted. LIVE — node and an
  * okay-ts checkout (`OKAY_TS`, its directory) — and skipped where either is

@@ -3,4 +3,4 @@
 	url = ../agent-plugins
 [submodule "okay-core"]
 	path = okay-core
-	url = https://github.com/sergey-scherbina/okay-core.git
+	url = https://github.com/okay-effects/okay-core.git

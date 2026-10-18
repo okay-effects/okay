@@ -50,7 +50,7 @@ object App:
   final case class About(what: String = "", copyright: String = "", site: String = "",
                          library: Option[(String, String)] = Some(Library))
 
-  val Library: (String, String) = ("Developed with the Okay! library", "https://github.com/sergey-scherbina/okay")
+  val Library: (String, String) = ("Developed with the Okay! library", "https://github.com/okay-effects/okay")
 
   /** what a menu item does */
   enum Act:

@@ -7,7 +7,7 @@
 #   --snapshot                             # allow a -SNAPSHOT version (refused by default)
 #
 # The repository is the `maven/` folder of the gh-pages branch, served as
-# https://sergey-scherbina.github.io/okay/maven once Pages is switched on for
+# https://okay-effects.github.io/okay/maven once Pages is switched on for
 # that branch (repository Settings, Pages). A user adds one resolver line and
 # needs no token; nothing is signed and Maven Central is not involved.
 #
@@ -84,7 +84,7 @@ touch "$site/.nojekyll"
 {
   echo '<!doctype html><meta charset="utf-8"><title>okay Maven repository</title>'
   echo '<h1>okay</h1><p>A Maven repository on GitHub Pages. In <code>build.sbt</code>:</p>'
-  echo '<pre>resolvers += "okay" at "https://sergey-scherbina.github.io/okay/maven"'
+  echo '<pre>resolvers += "okay" at "https://okay-effects.github.io/okay/maven"'
   echo "libraryDependencies += \"$org\" %% \"okay\" % \"$version\"</pre>"
   echo '<h2>Artifacts</h2><ul>'
   for d in "$repo/$orgpath"/*/; do
@@ -92,7 +92,7 @@ touch "$site/.nojekyll"
     vs=$(for v in "$d"*/; do [ -d "$v" ] && basename "$v"; done | sort | tr '\n' ' ')
     echo "<li><code>$(basename "$d")</code>: $vs</li>"
   done
-  echo '</ul><p>Source: <a href="https://github.com/sergey-scherbina/okay">sergey-scherbina/okay</a></p>'
+  echo '</ul><p>Source: <a href="https://github.com/okay-effects/okay">okay-effects/okay</a></p>'
 } > "$site/index.html"
 
 # ---- one commit per publish, on gh-pages only (its own worktree)
@@ -103,7 +103,7 @@ touch "$site/.nojekyll"
 
 if [ "$push" -eq 1 ]; then
   git -C "$site" push -u origin gh-pages
-  echo "pages: pushed. Served at https://sergey-scherbina.github.io/okay/maven once Pages is on for gh-pages."
+  echo "pages: pushed. Served at https://okay-effects.github.io/okay/maven once Pages is on for gh-pages."
 else
   echo "pages: NOT pushed (run with --push). Look first: git -C .work/pages show --stat"
 fi
