@@ -57,7 +57,7 @@ CHANGELOG: changelog.d/ (one file per landed lane; CHANGELOG.md is the archive)
   does, and `status` names what is stale. "Every reference" means every
   one in the index. Answers carry their token cost; a long one comes
   compressed with an archive id `more` pages. Guide:
-  github.com/sergey-scherbina/symdex, GUIDE.md.
+  github.com/okay-effects/symdex, GUIDE.md.
 - Both are bound to THIS project by `.mcp.json`, whose URL carries
   `?project=` — do not drop it. rozum serves every project from one
   daemon and picks the project from that query; without it the daemon

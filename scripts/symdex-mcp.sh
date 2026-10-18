@@ -16,7 +16,7 @@ if [ ! -x "$home/bin/symdex" ]; then
   mkdir -p "$dir"
   zip="$dir/symdex-$version.zip"
   echo "symdex-mcp: downloading symdex $version into $dir" >&2
-  curl -fsSL "https://github.com/sergey-scherbina/symdex/releases/download/v$version/symdex-$version.zip" -o "$zip"
+  curl -fsSL "https://github.com/okay-effects/symdex/releases/download/v$version/symdex-$version.zip" -o "$zip"
   unzip -qo "$zip" -d "$dir" >&2
   rm -f "$zip"
   chmod +x "$dir/symdex/bin/"*

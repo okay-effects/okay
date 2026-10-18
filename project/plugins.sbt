@@ -15,5 +15,5 @@ lazy val root = (project in file("."))
 // symdex (scripts/symdex-mcp.sh, AGENTS.md "Skills"): SemanticDB on for the build, so symdex can
 // answer structural questions from the compiler's own output; JVM only (project/SemanticdbJvmOnly.scala).
 // Served from GitHub Pages, no Maven Central.
-resolvers += Resolver.url("symdex", url("https://sergey-scherbina.github.io/symdex"))(Resolver.ivyStylePatterns)
+resolvers += Resolver.url("symdex", url("https://okay-effects.github.io/symdex"))(Resolver.ivyStylePatterns)
 addSbtPlugin("io.github.sergey-scherbina" % "sbt-symdex" % "0.5.2")
