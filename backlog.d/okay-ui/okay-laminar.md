@@ -1,19 +1,21 @@
 - [ ] okay-laminar — okay in Laminar (https://laminar.dev) and in Airstream
       (https://github.com/raquo/Airstream), its reactive layer, and in
-      Waypoint (https://github.com/raquo/Waypoint), its router: a page written
+      Waypoint (https://github.com/raquo/Waypoint), its router, with the
+      vocabulary of scala-dom-types (https://github.com/raquo/scala-dom-types): a page written
       in Laminar uses okay's effects and okay-ui's views, an okay program
       drives a Laminar page, and Airstream's streams and okay's streams cross
       both ways, with no hand-written glue between them.
       ASKED 2026-10-18 by the operator ("сделать okay-laminar для
       https://laminar.dev/"; then "https://github.com/raquo/Airstream тоже
-      туда же в этот же проект"; then Waypoint, the same day).
+      туда же в этот же проект"; then Waypoint and scala-dom-types, the same
+      day).
       WHY LAMINAR: it is THE Scala.js UI library, reactive through
       Airstream (`EventStream`, `Signal`, `Var`, `Observer`, an `Owner` per
       mounted element), and the frontend most Scala teams already have.
       okay-ui reaches the browser today through React (`React.elem`,
       `ReactJs.host`) and the DOM host (`okay.ui.Dom`); a Scala.js team on
       Laminar has no seam to come in by.
-      THE SHAPE, four pieces, one module `okay-laminar` (Scala.js only), three
+      THE SHAPE, five pieces, one module `okay-laminar` (Scala.js only), three
       artifacts: `okay-airstream` (piece 1, depending on Airstream alone, for
       the projects that use Airstream without Laminar), `okay-laminar`
       (pieces 2 and 3, over `okay-airstream`) and `okay-waypoint` (piece 4):
@@ -43,6 +45,17 @@
          okay program reacts to it like any other source. A program that
          navigates is then tested with a handler that records the pages it
          asked for, no browser history, and audited like any other effect.
+      5. A TYPED DOM VOCABULARY (scala-dom-types). scala-dom-types is the
+         listing of HTML and SVG tags, attributes, properties, CSS and DOM
+         events, each with its value type, that Laminar generates its own
+         API from. okay-ui's `Ui` names its elements, attributes and events
+         by strings today; generated from the same listing, okay-ui gets
+         typed tags, attributes and events (`onClick`, `value`, `disabled`
+         with their types), checked by the compiler, and the Laminar host of
+         piece 3 maps okay-ui's names to Laminar's by the same listing, not
+         by a hand-kept table. The generation runs at build time, as
+         Laminar's does; it adds no runtime dependency, so it serves every
+         okay-ui host (DOM, React, Laminar), not only this module.
       TESTS: okay-airstream's bridges with Airstream alone (no DOM): a
       stream crossed twice is the same stream, a `Signal`'s current value is
       the first element, release on loop end; the effect bridge under Laminar's own test setup
@@ -54,7 +67,10 @@
       (url-dsl) is used as it is, not wrapped.
       CHECK FIRST: Laminar's, Airstream's and Waypoint's current versions
       (Airstream is versioned with Laminar), what Waypoint itself depends on
-      (Airstream only, or Laminar too: it decides what okay-waypoint sits on) and the Scala 3 version they are published for (a library on our Scala 3 reads it, not the other way
+      (Airstream only, or Laminar too: it decides what okay-waypoint sits on);
+      how scala-dom-types' generator is driven (its `DomDefsGenerator` and
+      code-gen hooks, as Laminar uses them) and how okay-ui's `Ui` keys
+      attributes and events now, to keep the existing hosts working and the Scala 3 version they are published for (a library on our Scala 3 reads it, not the other way
       round); how `ReactJs.host` and `Dom.host` take the browser's globals
       as parameters, to do the same; whether `Ui.run`'s `external` merges
       a `Source[Event]` or a `Source[Msg]` (the same question as
