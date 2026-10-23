@@ -1,6 +1,7 @@
 package okay.ui
 
-import okay.{Applicative, Source, Async, CanBlock, Plate, Scheduler, Affine, Channel, Traversal, async, merge, modify, toVector}
+import okay.{Applicative, Source, Async, CanBlock, Plate, Scheduler, Affine, Channel, Traversal, Pause, Wait, async, merge,
+  mergeReady, modify, toVector}
 import okay.*
 import okay.std.*
 import okay.given
@@ -661,6 +662,34 @@ object Ui {
                (update: (S, Event) => (S, Vector[Event ! Async]))
                (host: Host, external: Source[Event] = pure(()))
                (using Scheduler, CanBlock): S ! Async =
+    looped(init)(view)(update)(host, host.events merge external)
+
+  /**
+   * THE LOOP WHERE NOTHING MAY BLOCK (ui-run-ready, specs/ui.md "The
+   * loop on Scala.js"): `run` with the host's events and the world joined
+   * by READINESS (`mergeReady`, on this program's own thread of control,
+   * no fiber per side) instead of the buffered `merge`, which needs
+   * `CanBlock` — and Scala.js has none, by design. The same fold, the same
+   * frames, the same ending; the browser's DOM host runs it as it is.
+   */
+  def runReady[S](init: S)(view: S => Ui)(update: (S, Event) => S)
+                 (host: Host, external: Source[Event] = pure(()))
+                 (using Scheduler, Wait, Pause): S ! Async =
+    runCmdReady(init)(view)((s, e) => (update(s, e), Vector.empty))(host, external)
+
+  /** `runCmd` where nothing may block: the commands as in `runCmd`, the
+   * sources joined by readiness as in `runReady` */
+  def runCmdReady[S](init: S)(view: S => Ui)
+                    (update: (S, Event) => (S, Vector[Event ! Async]))
+                    (host: Host, external: Source[Event] = pure(()))
+                    (using Scheduler, Wait, Pause): S ! Async =
+    looped(init)(view)(update)(host, host.events mergeReady external)
+
+  /** the loop itself, over the events already joined: `runCmd`'s and `runCmdReady`'s one body */
+  private def looped[S](init: S)(view: S => Ui)
+                       (update: (S, Event) => (S, Vector[Event ! Async]))
+                       (host: Host, merged: Source[Event])
+                       (using Scheduler): S ! Async =
     // ONE channel carries everything: a feeder drains the merged
     // upstream into it, command answers join it, and it CLOSES when
     // the upstream has ended and no command is still in flight — so
@@ -692,7 +721,7 @@ object Ui {
         case Left(_) => pure(())
         case Right((e, more)) => async(offer(e)).flatMap(_ => drain(more))
       }
-    Async.spawn(drain(host.events merge external)).onComplete { _ =>
+    Async.spawn(drain(merged)).onComplete { _ =>
       bump(_.copy(upstreamDone = true))
     }
 

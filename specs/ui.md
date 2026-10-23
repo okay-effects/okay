@@ -443,6 +443,26 @@ Behavior:
 - [x] a command that throws forfeits its answer and the loop
       continues undisturbed; a command may Close the app
 
+## The loop on Scala.js (ui-run-ready, 2026-10-23)
+
+`run`/`runCmd` join the host's events and the world with the buffered
+`merge`, which asks for `CanBlock`; Scala.js has none, by design (the
+platform split), so a browser program could not call the loop at all
+and wrote its own fold (okay-watch's Coinpath page, BUGS
+coinpath-ui-browser-loop). `runReady`/`runCmdReady` are the same loop
+with the sources joined by READINESS — `mergeReady`, on the program's
+own thread of control, no fiber per side, waiting by the given `Wait`
+(which on JS gives up at once and registers) — so they ask only
+`Scheduler, Wait, Pause`. One body: both pairs call the same private
+fold over the joined source, so the frames, the commands and the
+ending (`Closed`, or the upstream ended with nothing in flight) are
+one code. On the JVM either pair runs; the buffered one stays the
+default there, where its measured throughput is.
+
+- [x] `Ui.runCmdReady` compiles and runs on Scala.js with no `CanBlock`
+      in scope: a click on the DOM host, a command's answer and the
+      world's event fold in one loop, and `Closed` ends it (TestDom).
+
 ## Out of scope (v1)
 - native toolkits (GTK/Cocoa/Win32) — satellites once the seam has
   proven itself on three free backends; Native runs the terminal host

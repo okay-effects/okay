@@ -183,6 +183,31 @@ class TestDom extends munit.FunSuite {
     assertEquals(got(3), Event.Chosen("pick", 1))
   }
 
+  test("Ui.runCmdReady on Scala.js, no CanBlock: a click, a command's answer and the world's event fold; Closed ends it") {
+    import scala.concurrent.ExecutionContext.Implicits.global
+    import okay.given
+    val doc = FakeDoc()
+    val root = FakeNode("root")
+    val host = Dom.host(doc.asInstanceOf[js.Dynamic], root.asInstanceOf[js.Dynamic])
+    val world = Channel[Event]()
+    def view(n: Int): Ui = Column(Vector(Text(s"n=$n"), Button("inc", "inc")), "app")
+    def update(n: Int, e: Event): (Int, Vector[Event ! Async]) = e match
+      case Event.Pressed("inc") => (n + 1, Vector(pure(Event.Pressed("echo"))))
+      case Event.Pressed("echo") => (n + 10, Vector.empty)
+      case Event.Pressed("world") => (n + 100, Vector.empty)
+      case _ => (n, Vector.empty)
+    val done = Async.runAsync(Ui.runCmdReady(0)(view)(update)(host, Writer.of(world)))
+    assertEquals(root.childNodes(0).childNodes(0).textContent, "n=0", "the first frame, before any event")
+    root.fire("click", root.childNodes(0).childNodes(1))
+    val _ = world.offer(Event.Pressed("world"))
+    // the end only after the rest has had its turns on the event loop
+    Async.runAsync(Async.sleep(50)).foreach(_ => { val _ = world.offer(Event.Closed) })
+    done.map { n =>
+      assertEquals(n, 111)
+      assertEquals(root.childNodes(0).childNodes(0).textContent, "n=111")
+    }
+  }
+
   test("Dom.host lowers with the host's OWN vocabulary — the table survives to the document") {
     val doc = FakeDoc()
     val root = FakeNode("root")
