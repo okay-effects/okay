@@ -68,6 +68,13 @@ def lift[A](p: A ! Async): Program[A]
   off. cats-effect-laws' "onCancel associates over uncancelable
   boundary" failed on exactly that (231 of 232 passed). The walk makes
   one operation exactly its IO and one bind exactly one `flatMap`.
+  On the kernel (cf9c3aa2d) the walk is okay's `Walk`, which has no
+  last-operation form: every operation is followed by a `flatMap`, the
+  last one's into `IO.pure` — the same trailing bind, and the same law
+  failing every run from 2026-10-16 (cats-js-oncancel-law). Since
+  2026-10-23 a program that IS one operation — the kernel's `Perform`
+  with no rest, which every combinator of the instance is — is not
+  walked: `Walking.single` answers it as exactly its IO.
 
 ## Results
 

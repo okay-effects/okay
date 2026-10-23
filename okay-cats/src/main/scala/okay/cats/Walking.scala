@@ -9,11 +9,28 @@ import _root_.cats.effect.IO
  * the next step inside IO's own `flatMap`, so the walk is as stack-safe as IO's loop.
  *
  * The walk has no "last operation" form: the last operation is followed by one `flatMap` into `IO.pure`, where
- * okay-freer's walk ended on the operation itself.
+ * okay-freer's walk ended on the operation itself — so a program that IS one operation is not walked (`single`).
  */
 private[cats] object Walking:
-  def toIO[E[_], A](p: A ! E + Async)(step: [X] => E[X] => IO[X])(using okay.KeyOf[E]): IO[A] =
-    outer(Walk.view(Walk.next[E, A, E + Async](p)), step)
+  def toIO[E[_], A](p: A ! E + Async)(step: [X] => E[X] => IO[X])(using k: okay.KeyOf[E]): IO[A] =
+    single(p, step).getOrElse(outer(Walk.view(Walk.next[E, A, E + Async](p)), step))
+
+  /**
+   * A PROGRAM THAT IS ONE OPERATION, as exactly its IO (cats-js-oncancel-law): `effect(op)` is the kernel's `Perform`
+   * with no rest, and a walk would follow it with one `flatMap` into `IO.pure` — a cancellation point after the
+   * operation, outside its mask. cats-effect's "onCancel associates over uncancelable boundary" fails on exactly
+   * that (specs/cats-effect-instances.md): `onCancel(uncancelable(fa), fin)` saw a cancel between the mask and its
+   * `pure` that `uncancelable(onCancel(fa, fin))` cannot. The instance's every combinator is one such operation.
+   */
+  private def single[E[_], A](p: A ! E + Async, step: [X] => E[X] => IO[X])(using k: okay.KeyOf[E]): Option[IO[A]] =
+    okay.Run.kernel[A, E + Async, okay.one.row.Pure](p) match
+      case pf: okay.one.Cont.Perform[?, ?, ?, ?] =>
+        // THE CASTS, and why they are sound: a `Perform` with no rest answers its operation's value, `A`; its place
+        // says whose operation it is — `E`'s by `E`'s key, else the row's other effect, `Async`
+        if Walk.own(pf.in, k.ref) then Some(step(pf.op.asInstanceOf[E[A]]))
+        else if Walk.own(pf.in, summon[okay.KeyOf[Async]].ref) then Some(CatsEffect.asyncIO(pf.op.asInstanceOf[Async[A]]))
+        else None
+      case _ => None
 
   private def outer[E[_], A](s: Walk.Step[Async, Walk.Step[E, A, E + Async], Async], step: [X] => E[X] => IO[X])
       (using okay.KeyOf[E]): IO[A] =
