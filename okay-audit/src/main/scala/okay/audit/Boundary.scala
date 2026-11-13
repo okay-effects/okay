@@ -21,23 +21,32 @@ enum Layer:
 final case class Rule(api: String, why: String, use: String = ""):
   def isPackage: Boolean = api.endsWith(".") || api.endsWith(".*")
 
+  // the api read once: a prefix, a class (and its dotted member), or an owner, a name and a descriptor's start
+  private lazy val hash = api.indexOf('#')
+  private lazy val prefix: String =
+    if api.endsWith(".*") then api.dropRight(1) else if api.endsWith(".") then api else ""
+  private lazy val nested = api + "$"
+  private lazy val dot = api.lastIndexOf('.')
+  private lazy val parts: (String, String, String) =
+    if hash < 0 then (if dot > 0 then api.substring(0, dot) else "", if dot > 0 then api.substring(dot + 1) else "", "")
+    else
+      val rest = api.substring(hash + 1)
+      rest.indexOf('(') match
+        case -1 => (api.substring(0, hash), rest, "")
+        case p => (api.substring(0, hash), rest.substring(0, p), rest.substring(p))
+  private def owner = parts._1
+  private def name = parts._2
+  private def desc = parts._3
+  private lazy val namePrefix: Option[String] = Option.when(name.endsWith("*"))(name.dropRight(1))
+
   def matches(r: Ref): Boolean =
-    api.indexOf('#') match
-      case -1 =>
-        if api.endsWith(".*") then r.owner.startsWith(api.dropRight(1))
-        else if api.endsWith(".") then r.owner.startsWith(api)
-        else r.owner == api || r.owner.startsWith(api + "$") || {
-          val d = api.lastIndexOf('.')
-          d > 0 && r.name.nonEmpty && r.owner == api.substring(0, d) && r.name == api.substring(d + 1)
-        }
-      case h =>
-        val owner = api.substring(0, h)
-        val rest = api.substring(h + 1)
-        val (name, desc) = rest.indexOf('(') match
-          case -1 => (rest, "")
-          case p => (rest.substring(0, p), rest.substring(p))
-        r.name.nonEmpty && r.owner == owner && desc.forall(_ => r.descriptor.startsWith(desc)) &&
-          (if name.endsWith("*") then r.name.startsWith(name.dropRight(1)) else r.name == name)
+    if hash < 0 then
+      if prefix.nonEmpty then r.owner.startsWith(prefix)
+      else r.owner == api || r.owner.startsWith(nested) ||
+        (dot > 0 && r.name.nonEmpty && r.owner == owner && r.name == name)
+    else
+      r.name.nonEmpty && r.owner == owner && (desc.isEmpty || r.descriptor.startsWith(desc)) &&
+        namePrefix.fold(r.name == name)(r.name.startsWith)
 
   /** the same, the owner's superclasses and interfaces tried too (`supers(owner)` starts with the owner): a
     * subclass of `Thread` is a `Thread`, `String#wait` is `Object#wait`. A package rule reads the owner alone */

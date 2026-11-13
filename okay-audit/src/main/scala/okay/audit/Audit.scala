@@ -150,6 +150,10 @@ object Audit:
     // what each row holds, for the boundary on types: business classes with their code, host classes' headers
     val business = Vector.newBuilder[(String, ClassInfo)]
     val hosts = Vector.newBuilder[(String, ClassInfo)]
+    // a reference is matched once, whichever class makes it: the rules up the owner's hierarchy are the costly part
+    val matched = scala.collection.mutable.HashMap.empty[Ref, Option[Rule]]
+    def ruleOf(r: Ref): Option[Rule] =
+      matched.getOrElseUpdate(r.copy(from = ""), rules.find(_.matchesUp(r, classes.supers)))
     def report(module: String, f: Finding): Unit =
       boundary.allows.find(_.matches(module, f.ref)) match
         case Some(a) => used += a; allowed += ((a, f))
@@ -181,7 +185,7 @@ object Audit:
               rs.foreach { r =>
                 val rule =
                   if r.kind == Ref.Kind.Native then Some(Boundary.Native)
-                  else rules.find(_.matchesUp(r, classes.supers)).orElse(boundary.allowlist.flatMap { list =>
+                  else ruleOf(r).orElse(boundary.allowlist.flatMap { list =>
                     if own(r.owner) then None
                     else classLayer.get(r.owner) match
                       case Some(Layer.Runtime) => None
