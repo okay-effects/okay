@@ -27,11 +27,10 @@ final case class Report(
     suggestions: Vector[(String, Int)] = Vector.empty):  // `types.data` candidates and how many findings name them
   def passed: Boolean = findings.isEmpty
 
-  /** findings read from a JAR (a library under a business row), by jar: how many, by the rule's group */
-  def jars: Vector[(String, Int, Vector[(String, Int)])] =
-    findings.filter(f => f.source.endsWith(".jar")).groupBy(_.source).toVector.sortBy(_._1).map { (jar, fs) =>
-      (jar, fs.size, fs.groupBy(f => Audit.group(f.rule)).view.mapValues(_.size).toVector.sortBy(g => (-g._2, g._1)))
-    }
+  /** findings read from a JAR (a library under a business row), by jar */
+  def jars: Vector[JarRollup] = Report.rollup(findings)
+  /** the same of what is said */
+  def saidJars: Vector[JarRollup] = Report.rollup(said)
 
   def text: String =
     val sb = StringBuilder()
@@ -44,7 +43,7 @@ final case class Report(
       s"forwarders (C#m calling C$$#m)" +
       (if Presets.PureNet.nonEmpty then s"; pure values under java.net.: ${Presets.PureNet.mkString(", ")}" else "") +
       "\n\n"
-    val jarred = jars.map(_._1).toSet
+    val jarred = (jars ++ saidJars).map(_.jar).toSet
     if findings.nonEmpty then
       sb ++= "FINDINGS\n"
       findings.filterNot(f => jarred(f.source)).groupBy(_.module).toVector.sortBy(_._1).foreach { (m, fs) =>
@@ -54,18 +53,15 @@ final case class Report(
             s"${f.rule.hint}]\n"
         }
       }
-      if jarred.nonEmpty then
-        sb ++= "  in libraries (by jar; every finding is in report.json)\n"
-        jars.foreach { (jar, n, groups) =>
-          sb ++= s"    $jar: $n — ${groups.map((g, k) => s"$g $k").mkString(", ")}\n"
-        }
+      Report.libraries(sb, jars)
       sb ++= "\n"
     if said.nonEmpty then
       sb ++= "SAID (listed, not failed)\n"
-      said.sortBy(f => (f.module, f.ref.from, f.ref.member, f.at)).foreach { f =>
+      said.filterNot(f => jarred(f.source)).sortBy(f => (f.module, f.ref.from, f.ref.member, f.at)).foreach { f =>
         sb ++= s"  ${f.module}: ${f.ref.from} -> ${f.ref.member}${f.place}  [${f.rule.api}: ${f.rule.why}" +
           s"${f.rule.hint}]\n"
       }
+      Report.libraries(sb, saidJars)
       sb ++= "\n"
     if suggestions.nonEmpty then
       sb ++= "SUGGESTED types.data (each is final with final fields; add it if you vouch it is an immutable value)\n"
@@ -128,14 +124,37 @@ final case class Report(
     val splits = jpms.splits.map(x => s"""{"package":${s(x.name)},"inputs":[${x.inputs.map(s).mkString(",") }]}""")
     val el = elsewhere.sortBy(_._1).map((m, l) => s"""{"module":${s(m)},"layer":${s(l.toString.toLowerCase)}}""")
     val sg = suggestions.map((c, n) => s"""{"class":${s(c)},"findings":$n}""")
-    val js = jars.map((j, n, gs) =>
-      s"""{"jar":${s(j)},"findings":$n,"groups":{${gs.map((g, k) => s"${s(g)}:$k").mkString(",")}}}""")
+    def roll(js: Vector[JarRollup]) = js.map(j => s"""{"jar":${s(j.jar)},"distinct":${j.distinct},""" +
+      s""""modules":${j.modules},"groups":{${j.groups.map((g, k) => s"${s(g)}:$k").mkString(",")}}}""")
+    val js = roll(jars)
+    val sj = roll(saidJars)
     s"""{"passed":$passed,"bootstraps":[${Boundary.Bootstraps.map(s).mkString(",")}],"findings":[${fs.mkString(",")}],"said":[${sd.mkString(",")}],""" +
       s""""allowed":[${al.mkString(",")}],"unusedAllows":[${un.mkString(",")}],"inventory":[${inv.mkString(",")}],""" +
       s""""elsewhere":[${el.mkString(",")}],"suggestions":[${sg.mkString(",")}],"jars":[${js.mkString(",")}],""" +
+      s""""saidJars":[${sj.mkString(",")}],""" +
       s""""untracked":[${untracked.sorted.map(s).mkString(",")}],"inputs":[${ins.mkString(",")}],"jpms":{"modules":[${jm.mkString(",")}],"splits":[${splits.mkString(",")}],"launcherOptions":[${jpms.launcherOptions.map(s).mkString(",")}]}}"""
 
   private def desc(r: Ref) = if r.kind == Ref.Kind.Native then " (native method)" else ""
+
+/** a library's findings (or said lines) in one line: `distinct` reaches (a jar on five business rows is scanned five
+  * times; a reach is counted once), the `modules` it was scanned under, and the distinct ones by the rule's group */
+final case class JarRollup(jar: String, distinct: Int, modules: Int, groups: Vector[(String, Int)])
+
+object Report:
+  def rollup(fs: Vector[Finding]): Vector[JarRollup] =
+    fs.filter(_.source.endsWith(".jar")).groupBy(_.source).toVector.sortBy(_._1).map { (jar, xs) =>
+      val one = xs.distinctBy(f => (f.ref.from, f.ref.member, f.ref.descriptor, f.rule.api, f.rule.why))
+      JarRollup(jar, one.size, xs.map(_.module).distinct.size,
+        one.groupBy(f => Audit.group(f.rule)).view.mapValues(_.size).toVector.sortBy(g => (-g._2, g._1)))
+    }
+
+  private[audit] def libraries(sb: StringBuilder, js: Vector[JarRollup]): Unit =
+    if js.nonEmpty then
+      sb ++= "  in libraries (by jar, each reach once; every line is in report.json)\n"
+      js.foreach { j =>
+        val in = if j.modules > 1 then s" (on ${j.modules} business rows)" else ""
+        sb ++= s"    ${j.jar}: ${j.distinct}$in — ${j.groups.map((g, k) => s"$g $k").mkString(", ")}\n"
+      }
 
 object Audit:
   def runtime(): RuntimeEvidence = Jpms.runtime()

@@ -64,14 +64,15 @@ object Code:
             // HELD COLLECTIONS: a field of a mutable collection's type loaded (or read through an object's accessor),
             // then a mutating call on that type, outside the owner's initializer
             s.op match
-              case Site.GetStatic | Site.GetField if !lazyStorage(s.ref.name) =>
+              case Site.GetStatic | Site.GetField if !lazyStorage(s.ref.name) && s.ref.name != "MODULE$" =>
                 if !initializing then field.map(f => typeName(f.descriptor)).filter(mutable(_, classes))
                   .foreach(t => held = Some((owner, s.ref.name, t, s.op == Site.GetStatic || module)))
               case _ if s.ref.descriptor.startsWith("()") && module && !initializing =>
                 held = classes.field(owner, s.ref.name).filterNot(_.isStatic).map(f => typeName(f.descriptor))
                   .filter(mutable(_, classes)).map(t => (owner, s.ref.name, t, true)).orElse(held)
               case _ if Mutating(s.ref.name) && mutable(owner, classes) =>
-                held.foreach { (o, f, t, global) =>
+                // the call is on the held field's type (or a supertype of it): another collection's call is not its
+                held.filter((_, _, t, _) => classes.supers(t).contains(owner)).foreach { (o, f, t, global) =>
                   out += Hit(info.name, m.name, m.descriptor, s.line, s, Presets.held(stateRule, o, f, t, global),
                     said = !global)
                   held = None
@@ -94,7 +95,8 @@ object Code:
     "java.util.concurrent.")
 
   def mutable(name: String, classes: Classes): Boolean =
-    name.nonEmpty && classes.supers(name).exists(n => MutableJdk(n) || MutablePrefixes.exists(n.startsWith))
+    name.nonEmpty && !name.endsWith("$") &&   // a companion object (`mutable.Map$`) is a factory, not a collection
+      classes.supers(name).exists(n => MutableJdk(n) || MutablePrefixes.exists(n.startsWith))
 
   /** the methods that change a collection or a cell in place */
   val Mutating: Set[String] = Set("put", "putAll", "putIfAbsent", "remove", "removeIf", "removeAll", "retainAll", "add",
