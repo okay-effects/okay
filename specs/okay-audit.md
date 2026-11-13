@@ -446,3 +446,74 @@ Decisions:
   the scanned classes — whole-program, so sound for what is given, as okay-safe's check is for its TASTy.
 - **The seal's JVM options are data the launcher may check by reading the arguments (`verifyJvm`) or by trying the
   effect**: okay-safe tries (`Unsafe` refused), which is stronger and skips `java.management`'s start cost.
+
+## The first real-world run (2026-11-13, audit-real-world)
+
+okay-audit 0.1.0 was run, read-only, over twenty repositories of the okay-effects family
+(`~/work/my/okay-audit-report/REPORT.md`, its per-repo `report*/` folders and the scala-cli `tools/` that wrote the
+manifests). Only two passed; most of the rest were real reaches, but ten false-positive classes and four limitations
+made the reports hard to read and two modes (allowlist, libs) unusable. This section is what the module learned.
+
+### Behavior
+
+- [ ] **Scala 3.3's lazy val** (`LazyVals$.getOffsetStatic(C.class.getDeclaredField("x$lzyN"))` in the class's
+  initializer) is carved out like 3.8's VarHandle idiom: a `Class#getDeclaredField` site whose string is
+  `…$lzyN` and whose next call is `scala.runtime.LazyVals$#getOffsetStatic` is not a reach; any other
+  `getDeclaredField` (another name, or the field used for anything else) stays a finding. The type rule does not
+  read a lazy val's cell (`x$lzyN`, `bitmap$N`) as "a var" (the state rule already did not)
+- [ ] a `packages` key names a class as well as a package: `okay.http.JdkHttp` covers `okay.http.JdkHttp$`,
+  `okay.http.JdkHttp$JdkClient`, `okay.http.JdkHttp$$anon$1` (`Cls$…`), not `okay.http.JdkHttpX`
+- [ ] the allowlist mode allows a reference to any class of a business or runtime row (another business module of
+  the build, a dependency marked business or runtime); a handlers class is still "names a handler", an untracked
+  or unknown one is still checked against the list
+- [ ] randomness: `java.util.Random#<init>(J)`, `scala.util.Random#<init>(J)` (and `SplittableRandom(J)`) — a
+  seeded generator, deterministic — and calls on such an instance are not findings; `new Random()`, the
+  `scala.util.Random` object, `ThreadLocalRandom`, `SecureRandom`, `UUID#randomUUID`, `Math#random` are
+- [ ] `java.net.URLEncoder`, `java.net.URLDecoder` and `java.net.URI` (string codecs and a value) are out of the
+  `java.net.` rule, `URI#toURL` is not; a rule carries its exceptions (`Rule.except`) so the carve-out is listed
+  with the rule, in the report's header
+- [ ] the type rule, precision: (a) a host calling `unapply`, `unapplySeq`, `copy`, `copy$default$N`, `_N`,
+  `productElement`, `equals`, `hashCode`, `toString`, `canEqual` of a business class, or a business trait's own
+  implementation for itself (`$init$`, a static `m$` the host's class inherits), is not "the host gives";
+  (b) `types.programs` (default: okay-scala's `okay.scala3.Prog`, okay.rows' `okay.rows.Comp`, okay-safe's
+  `okay.safe.Comp`, okay-java's `okay.core.Eff`, nested classes with them) are programs: a value the host gives,
+  not a function; (c) a `java.lang.Object` in a SCALA class's descriptor or signature (a union, an opaque type, a
+  boxed type argument, `Any` — erased, and only TASTy could say which) is "unknown (erased)": said, not failed; in a
+  Java class it stays a finding; (d) one type finding per (class, target, reason) with its occurrence count;
+  (e) the report suggests `types.data` entries: a final business or runtime class with final fields that fails only
+  through a leaf (an array, `Object`, a library class) and is named in two or more findings
+- [ ] `nested-run` is its own preset, NOT in `pure` (decision below); `runIsolated` (okay-scala's
+  `Prog$package$`/`Cek$`), `okay.rows.Effects#runIsolated`/`#stepIsolated`, okay-java's `okay.core.Eff#runIsolated`
+  — the sanctioned run of a closed sub-program — never match it
+- [ ] a Scala static forwarder (a static method `m` of class `C` calling `C$#m`, `X$package` → `X$package$`) is not
+  where a reach is made: its reference is not a finding of `C`, the module class's own is
+- [ ] every finding carries `at` — the method and the LineNumberTable line of its first site, and how many sites
+  (`count`); a reference no code makes (a class header, InnerClasses) says `class header`
+- [ ] the state rule, held collections: a business method that loads a static field or a Scala object's field whose
+  type is a mutable collection (`scala.collection.mutable.`, `scala.collection.concurrent.`, `java.util.` maps,
+  lists, sets, queues and their concurrent kinds, `java.util.concurrent.atomic.`) and calls a mutating method on that
+  type (put, add, update, remove, clear, `+=`, compareAndSet, …) outside the owner's initializer is a finding; the
+  same through an instance field of a business class is said. `scala.concurrent.Promise` is in `async`
+- [ ] a module may be `"audited": "elsewhere"`: its classes inform the hierarchy, the allowlist and the type rule
+  under its layer, its own findings, said lines and inventory are not repeated — it is listed once, by layer
+- [ ] findings in a jar (a third-party library under a business row) are rolled up in the text report, one line per
+  jar: how many, by group (network, files, escape hatch, …); the JSON keeps every finding, with its `source` input
+- [ ] getting the inputs: `okay-audit/tools/export.scala` (scala-cli, no Python) writes, for any sbt build, one line
+  per project — name, class directory, runtime classpath — and a skeleton manifest with every project `untracked`;
+  `specs/audit-cli-standalone.md` documents it and the by-hand `export` recipe
+
+### Decisions
+
+- **nested-run out of `pure`, into its own preset.** Whether a run's program is closed (`A ! Pure`) is not
+  decidable at the call site from bytecode: the call's descriptor is erased (`Prog`), and the callee's `Signature`
+  is the same for every call. In okay-scala `run` exists ONLY for `Prog[Pure, A]` (Cek.scala), so "closed" exempts
+  every call there and the kernel itself refuses a nested run while a program runs (`NestedRun`). What a static
+  check can tell is only that a run happens in business code — a design rule, worth selecting, not a reach past
+  the boundary; the real cases met (proof search in okay-proof, a price table in coinpath) were runs of closed
+  computations. `runIsolated` is the kernels' name for the deliberate one and never matches.
+- **TASTy is not read for the erased `Object`**: a TASTy reader is a second format the size of the class-file
+  reader, and okay-safe already reads TASTy where it is the whole check. The bytecode check says what it cannot
+  know instead of failing on it.
+- **Held collections by load-then-mutate in one method**, not data flow: a method that loads the field and calls a
+  mutating method on its type is counted; it over-approximates (another receiver of the same type in the same
+  method) and says so in the finding's why.
