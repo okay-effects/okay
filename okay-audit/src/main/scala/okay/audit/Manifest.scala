@@ -6,7 +6,10 @@ import java.nio.file.{Files, Path, Paths}
   * command accepts, rather than a general JSON model: no dependency belongs
   * on an audit tool's runtime classpath. */
 final case class Manifest(layers: Map[String, Layer], modules: Map[String, Seq[Path]],
-                          packages: Map[String, Map[String, Layer]], allows: Vector[Allow], jvmOptions: Vector[String] = Vector.empty)
+                          packages: Map[String, Map[String, Layer]], allows: Vector[Allow], jvmOptions: Vector[String] = Vector.empty,
+                          rules: Vector[Rule] = Boundary.Default, allowlist: Option[Allowlist] = None,
+                          types: Option[Types] = None):
+  def boundary: Boundary = Boundary(layers, rules, allows, packages, allowlist, types)
 
 object Manifest:
   private enum Token:
@@ -71,6 +74,9 @@ object Manifest:
       var modules: Option[Vector[(String, Layer, Seq[Path], Map[String, Layer])]] = None
       var allows: Option[Vector[Allow]] = None
       var jvmOptions: Option[Vector[String]] = None
+      var rules: Option[Vector[Rule]] = None
+      var allowlist: Option[Allowlist] = None
+      var types: Option[Types] = None
       while token != Token.CloseObject do
         val key = string("manifest field")
         colon(key)
@@ -80,6 +86,11 @@ object Manifest:
             modules = Some(moduleArray())
           case "allows" => allows = once(allows, "allows", allowArray())
           case "jvmOptions" => jvmOptions = once(jvmOptions, "jvmOptions", Jpms.launcherOptions(resolve(string("jvmOptions"))))
+          case "rules" => rules = once(rules, "rules", Presets.rules(string("rules")))
+          case "allowlist" => allowlist = once(allowlist, "allowlist", token match
+            case Token.Text("default") => take(); Allowlist.Default
+            case _ => Allowlist(stringArray("allowlist")))
+          case "types" => types = once(types, "types", typesObject())
           case other => refuse(s"manifest has unknown field '$other'")
         separator("manifest")
       take()
@@ -89,7 +100,38 @@ object Manifest:
       names.groupBy(identity).collectFirst { case (name, xs) if xs.size > 1 => name }
         .foreach(name => refuse(s"manifest names module '$name' more than once"))
       Manifest(rows.map(r => r._1 -> r._2).toMap, rows.map(r => r._1 -> r._3).toMap,
-        rows.map(r => r._1 -> r._4).toMap, allows.getOrElse(Vector.empty), jvmOptions.getOrElse(Vector.empty))
+        rows.map(r => r._1 -> r._4).toMap, allows.getOrElse(Vector.empty), jvmOptions.getOrElse(Vector.empty),
+        rules.getOrElse(Boundary.Default), allowlist, types)
+
+    private def stringArray(where: String): Vector[String] =
+      openArray(where)
+      val out = Vector.newBuilder[String]
+      while token != Token.CloseArray do
+        out += string(s"$where entry")
+        separator(where)
+      take(); out.result()
+
+    /** `{"data": ["java.util.UUID", ...], "answers": {"com.acme.Op": "0"}}` — `data` adds to the default list */
+    private def typesObject(): Types =
+      openObject("types")
+      var data = Vector.empty[String]
+      val answers = scala.collection.mutable.Map.empty[String, Int]
+      while token != Token.CloseObject do
+        val key = string("types field"); colon(key)
+        key match
+          case "data" => data = stringArray("data")
+          case "answers" =>
+            openObject("answers")
+            while token != Token.CloseObject do
+              val effect = string("answers effect"); colon(effect)
+              val raw = string(s"answer index of $effect")
+              answers(effect) = raw.toIntOption.getOrElse(refuse(s"answer index of $effect is '$raw', not a number"))
+              separator("answers")
+            take()
+          case other => refuse(s"types has unknown field '$other'")
+        separator("types")
+      take()
+      Types(Types.Data ++ data, answers.toMap)
 
     private def resolve(raw: String): Path =
       val path = Paths.get(raw)

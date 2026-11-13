@@ -1124,6 +1124,8 @@ lazy val okayAudit = (project in file("okay-audit"))
   .settings(
     name := "okay-audit",
     auditLayer := "handlers",
+    // a launcher puts it on the module path beside the kernel it verifies (Seal): a name, not the jar's file name
+    Compile / packageBin / packageOptions += Package.ManifestAttributes("Automatic-Module-Name" -> "okay.audit"),
     Compile / run / fork := true,            // Main exits 1 on a finding; forked, that is a failed task, not a dead sbt
     libraryDependencies += "org.scalameta" %% "munit" % "1.1.1" % Test,
   )
@@ -4094,8 +4096,12 @@ audit := Def.taskDyn {
   IO.createDirectory(outDir)
   val scalaRt = (f: File) => f.getName.matches("scala(3)?-library.*\\.jar|scala-reflect.*\\.jar")
   val sep = java.io.File.pathSeparator
+  // a jar a runtime project brings (okay core's okay-core artifact, the JMH jars its plugin puts in Compile) is
+  // the runtime's, listed on its row: a business project that inherits it through the core does not own it
+  val runtimeJars = names.indices.filter(i => layers(i) == "runtime").flatMap(i => ext(i).map(_.data)).toSet
   val rows = names.indices.map { i =>
-    val paths = prods(i) ++ ext(i).map(_.data).filterNot(scalaRt)
+    val inherited = if (layers(i) == "runtime") Set.empty[File] else runtimeJars
+    val paths = prods(i) ++ ext(i).map(_.data).filterNot(scalaRt).filterNot(inherited)
     s"${names(i)}\t${layers(i)}\t${paths.map(_.getAbsolutePath).mkString(sep)}\t${pkgs(i).map { case (k, v) => s"$k=$v" }.mkString(";")}"
   }
   val rt = ext.flatten.map(_.data).filter(scalaRt).distinct
