@@ -87,7 +87,7 @@ class TestAudit extends munit.FunSuite with okay.testkit.Munit.Diagnosed:
     assertEquals(f.rule.api, "java.net.")
     assert(f.rule.why.startsWith("network"))
     assert(r.text.contains("audit: FAIL"))
-    assert(r.text.contains("fixture.Sockets -> java.net.Socket#<init>  [java.net.: network"))
+    assert(r.text.contains("fixture.Sockets -> java.net.Socket#<init> in port (line 6)  [java.net.: network"), r.text)
 
   test("a lambda, a string concatenation and a record in a business class are NOT findings — the bootstraps are the carve-out"):
     val r = business(only("Lambdas"))
@@ -113,7 +113,8 @@ class TestAudit extends munit.FunSuite with okay.testkit.Munit.Diagnosed:
   test("time and randomness: currentTimeMillis, new Date() and Random are findings with the replay reason"):
     val r = business(only("Clocky"))
     val members = r.findings.map(_.ref.member).toSet
-    assertEquals(members, Set("java.lang.System#currentTimeMillis", "java.util.Date#<init>", "java.util.Random#<init>", "java.util.Random#nextInt", "java.util.Random"))
+    // the unseeded `new Random()` is the reach; a call on the instance it made is not counted again (seeded: none)
+    assertEquals(members, Set("java.lang.System#currentTimeMillis", "java.util.Date#<init>", "java.util.Random#<init>"))
     assert(r.findings.forall(_.rule.why.startsWith("time and randomness")))
 
   test("a Scala 3 lazy val — lookup, findVarHandle, VarHandle.compareAndSet — is the compiler's idiom, not a reach"):
@@ -168,7 +169,8 @@ class TestAudit extends munit.FunSuite with okay.testkit.Munit.Diagnosed:
       Allow("biz", "java.sql.", "never used", "ops")))
     val r = Audit.run(ok, Map("biz" -> Seq(only("Sockets"))))
     assert(r.passed, r.text)
-    assertEquals(r.allowed.map(_._2.ref.member).toSet, Set("java.net.Socket#<init>", "java.net.Socket", "java.net.Socket#getPort", "java.net.Socket#close"))
+    assertEquals(r.allowed.map(_._2.ref.member).toSet, Set("java.net.Socket#<init>", "java.net.Socket#getPort",
+      "java.net.Socket#close"))
     assertEquals(r.unusedAllows.map(_.api), Vector("java.sql."))
     assert(r.text.contains("ALLOWED (named exceptions)"))
     assert(r.text.contains("UNUSED ALLOWS"))

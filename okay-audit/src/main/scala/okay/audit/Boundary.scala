@@ -17,9 +17,12 @@ enum Layer:
   *  - a member: `java.lang.System#currentTimeMillis`; `#system*` is a name
   *    prefix; `java.util.Date#<init>()` pins the descriptor's start. A dotted
   *    `java.lang.System.exit` (okay-java's spelling) names the member too
-  *  - `state`: the static-state rule, checked on code (`Code`), not on refs */
-final case class Rule(api: String, why: String, use: String = ""):
+  *  - `state`: the static-state rule, checked on code (`Code`), not on refs
+  * `except`: what the rule does not cover though its api does, in the same spellings (`java.net.` except
+  * `java.net.URLEncoder`: a string codec under the network's package) — listed with the rule in every report */
+final case class Rule(api: String, why: String, use: String = "", except: Vector[String] = Vector.empty):
   def isPackage: Boolean = api.endsWith(".") || api.endsWith(".*")
+  private lazy val exceptions = except.map(Rule(_, why))
 
   // the api read once: a prefix, a class (and its dotted member), or an owner, a name and a descriptor's start
   private lazy val hash = api.indexOf('#')
@@ -39,7 +42,9 @@ final case class Rule(api: String, why: String, use: String = ""):
   private def desc = parts._3
   private lazy val namePrefix: Option[String] = Option.when(name.endsWith("*"))(name.dropRight(1))
 
-  def matches(r: Ref): Boolean =
+  def matches(r: Ref): Boolean = covers(r) && !exceptions.exists(_.covers(r))
+
+  private def covers(r: Ref): Boolean =
     if hash < 0 then
       if prefix.nonEmpty then r.owner.startsWith(prefix)
       else r.owner == api || r.owner.startsWith(nested) ||
@@ -72,13 +77,16 @@ final case class Allow(module: String, api: String, reason: String, owner: Strin
   * product that is ONE module by design with business and handlers side by
   * side (okay-watch: `okaywatch.trace` is business, `okaywatch.collect` is
   * handlers, one jar). A class takes the longest matching prefix's layer,
-  * else its module's (specs/audit-ready.md, stage 1). */
+  * else its module's (specs/audit-ready.md, stage 1). A key is a package or a CLASS: `okay.http.JdkHttp` covers
+  * the class, its companion, nested and anonymous classes (`okay.http.JdkHttp$…`) — handler files often sit in a
+  * business package (specs/okay-audit.md, "The first real-world run"). */
 final case class Boundary(layers: Map[String, Layer], rules: Vector[Rule] = Boundary.Default, allows: Vector[Allow] = Vector.empty,
                           packages: Map[String, Map[String, Layer]] = Map.empty,
-                          allowlist: Option[Allowlist] = None, types: Option[Types] = None):
+                          allowlist: Option[Allowlist] = None, types: Option[Types] = None,
+                          elsewhere: Set[String] = Set.empty):
   /** the prefix that classifies `cls`, if any: the longest one it is under */
   def prefixOf(module: String, cls: String): Option[String] =
-    packages.getOrElse(module, Map.empty).keys.filter(p => cls == p || cls.startsWith(p + ".")).maxByOption(_.length)
+    packages.getOrElse(module, Map.empty).keys.filter(p => Boundary.under(cls, p)).maxByOption(_.length)
   def layerOf(module: String, cls: String): Layer =
     prefixOf(module, cls).flatMap(p => packages.get(module).flatMap(_.get(p))).getOrElse(layers.getOrElse(module, Layer.Untracked))
 
@@ -86,10 +94,10 @@ final case class Boundary(layers: Map[String, Layer], rules: Vector[Rule] = Boun
   def canonical: String =
     (layers.toVector.map((m, l) => s"layer $m ${l.toString.toLowerCase}").sorted ++
       packages.toVector.flatMap((m, ps) => ps.toVector.map((p, l) => s"package $m $p ${l.toString.toLowerCase}")).sorted ++
-      rules.map(r => s"rule ${r.api}").sorted ++
+      rules.map(r => s"rule ${r.api}" + r.except.map(" except " + _).mkString).sorted ++
       allows.map(a => s"allow ${a.module} ${a.api} ${a.owner}").sorted ++
       allowlist.toVector.flatMap(_.entries.map("allowlist " + _)).sorted ++
-      types.toVector.map(_.canonical)).mkString("\n")
+      types.toVector.map(_.canonical) ++ elsewhere.toVector.sorted.map("elsewhere " + _)).mkString("\n")
 
 /** DENY BY DEFAULT for business code (okay-safe's allowlist, on bytecode):
   * besides what a rule names, a business reference is a finding unless it is
@@ -155,6 +163,32 @@ object Boundary:
     Bootstraps.contains(r.owner) || (r.kind == Ref.Kind.Class && BootstrapTypes.contains(r.owner)) ||
       r.owner == "java.lang.invoke.VarHandle" || LazyValIdiom.contains(r.member)
 
+  /** `cls` under a `packages` key: the package's classes, or the class named with its own (`Cls$…`) */
+  def under(cls: String, key: String): Boolean =
+    cls == key || cls.startsWith(key + ".") || cls.startsWith(key + "$")
+
+  /** Scala 3.3 LTS's `lazy val` (3.8+ writes the VarHandle idiom above): the class's initializer reads the cell's
+    * offset as `LazyVals$.MODULE$.getOffsetStatic(C.class.getDeclaredField("x$lzy1"))` — measured with javap on
+    * okay-simple's `Shape$Deferred` (3.3.8). The `getDeclaredField` site is the idiom when its name is a lazy
+    * cell's and the very next call hands the field to `getOffsetStatic`; any other use of it is reflection */
+  val LazyVals33: String = "scala.runtime.LazyVals$#getOffsetStatic"
+  private val LazyCell = """.*\$lzy\d+""".r
+
+  def lazyOffset(m: MethodInfo, i: Int): Boolean =
+    val s = m.sites(i)
+    s.ref.owner == "java.lang.Class" && s.ref.name == "getDeclaredField" && LazyCell.matches(s.text) &&
+      m.sites.iterator.drop(i + 1).find(_.isMember).exists(_.ref.member == LazyVals33)
+
+  /** a Scala STATIC FORWARDER: the static `m` of class `C` that calls `C$#m` (an object's method; `X$package` for
+    * top-level definitions). The reach is the module class's, reported there — not a second time here */
+  def forwarder(c: ClassInfo, m: MethodInfo, s: Site): Boolean =
+    val module = c.name + "$"
+    m.isStatic && s.isMember && s.ref.owner == module && (s.ref.name == m.name || s.ref.name == "MODULE$") &&
+      m.sites.exists(x => x.isMember && x.ref.owner == module && x.ref.name == m.name)
+
+  /** a site the check does not count: the 3.3 lazy-val idiom, or a static forwarder's call */
+  def excused(c: ClassInfo, m: MethodInfo, i: Int): Boolean = lazyOffset(m, i) || forwarder(c, m, m.sites(i))
+
   /** an own `ACC_NATIVE` method: always a finding in a business module — code the JVM cannot see */
   val Native: Rule = Rule("native", "a native method: code neither the JVM nor this check can see")
 
@@ -167,11 +201,11 @@ object Boundary:
 
 /** a set of rules, named — after a standard effect where one replaces what they forbid */
 final case class Preset(name: String, why: String, use: String, apis: Vector[String]):
-  def rules: Vector[Rule] = apis.map(Rule(_, why, use))
+  def rules: Vector[Rule] = apis.map(api => Rule(api, why, use, Presets.exceptOf(api)))
 
 /** THE PRESETS NAMED AFTER THE STANDARD EFFECTS (okay-java's resumable presets, okay-safe's deny list, moved here):
   * each forbids the ambient way of doing what an effect does, and names the effect. `Presets.rules("clock, fresh,
-  * java.lang.Thread")` selects; `pure` is every effect preset, `strict` okay-java's former strict list; an entry that
+  * java.lang.Thread")` selects; `pure` is every effect preset but `nested-run`, `strict` okay-java's former list; an entry that
   * is no preset's name is a rule of its own. */
 object Presets:
   val UseState = "a State effect (okay.rows.std.State, okay.scala3.std.State, okay.safe.std.State) or a handler in place"
@@ -184,7 +218,22 @@ object Presets:
   val UseAsync = "the Async effect (okay.rows.std.Async, okay.scala3.std.Async): the runtime schedules, a program forks"
   val UseIo = "an effect of your own, whose handler — in a handlers module — does it"
   val UseNested = "one program: compose the sub-program into it, its handlers inside (okay.rows: Direct.row(..)" +
-    ".embed(..)); installing a handler is allowed, running a program to its end is the host's, at its edge"
+    ".embed(..)); installing a handler is allowed, running a program to its end is the host's, at its edge" +
+    "; a closed sub-program run on purpose is `runIsolated` (okay-scala, okay.rows, okay-java's Eff)"
+
+  /** RANDOMNESS THAT BREAKS REPLAY: an unseeded generator, the global ones, a secure one, a random id. A SEEDED
+    * generator (`new Random(seed)`, `scala.util.Random(seed)`, `SplittableRandom(seed)`) is deterministic, and calls
+    * on such an instance are not reaches (specs/okay-audit.md, "The first real-world run") */
+  val Random: Vector[String] = Vector("java.util.Random#<init>()", "scala.util.Random#<init>()", "scala.util.Random$",
+    "java.util.SplittableRandom#<init>()", "java.util.concurrent.ThreadLocalRandom", "java.security.SecureRandom",
+    "java.util.UUID#randomUUID", "java.lang.Math#random", "java.lang.StrictMath#random",
+    "java.util.random.RandomGenerator#getDefault", "java.util.random.RandomGenerator#of",
+    "java.util.random.RandomGeneratorFactory#create()")
+
+  /** pure values under the network's package: string codecs and a URI, which reaches nothing until `toURL` and an
+    * open (both still rules) — the `except` of every `java.net.` rule */
+  val PureNet: Vector[String] = Vector("java.net.URLEncoder", "java.net.URLDecoder", "java.net.URI")
+  def exceptOf(api: String): Vector[String] = if api == "java.net." || api == "java.net.*" then PureNet else Vector.empty
 
   // the ambient groups of the default rules, split where the replacing effect differs
   private val net = "network: reached through an effect (Http, Net) whose handler is a Handlers module"
@@ -196,7 +245,7 @@ object Presets:
   private val escape = "escape hatch: the way around any static check, so the check forbids it"
 
   val Network: Vector[Preset] = Vector(Preset("network", net, UseIo,
-    Vector("java.net.", "javax.net.", "java.nio.channels.", "java.rmi.", "javax.naming.")))
+    Vector("java.net.", "java.net.URI#toURL", "javax.net.", "java.nio.channels.", "java.rmi.", "javax.naming.")))
   val Files: Vector[Preset] = Vector(
     Preset("files", files, UseIo, Vector("java.nio.file.", "java.io.File", "java.io.FileInputStream",
       "java.io.FileOutputStream", "java.io.FileReader", "java.io.FileWriter", "java.io.RandomAccessFile",
@@ -215,8 +264,7 @@ object Presets:
       "java.time.Clock#system*", "java.time.Instant#now", "java.time.LocalDate#now", "java.time.LocalDateTime#now",
       "java.time.LocalTime#now", "java.time.ZonedDateTime#now", "java.time.OffsetDateTime#now",
       "java.util.Date#<init>()")),
-    Preset("randomness", time, UseFresh, Vector("java.util.Random", "java.util.concurrent.ThreadLocalRandom",
-      "java.util.SplittableRandom", "java.security.SecureRandom", "java.util.UUID#randomUUID", "scala.util.Random")))
+    Preset("randomness", time, UseFresh, Random))
   val Threads: Vector[Preset] = Vector(Preset("threads", threads, UseAsync, Vector("java.lang.Thread",
     "java.util.concurrent.Executors", "java.util.concurrent.ForkJoinPool",
     "java.util.concurrent.CompletableFuture#runAsync", "java.util.concurrent.CompletableFuture#supplyAsync",
@@ -234,6 +282,14 @@ object Presets:
   /** the static-state rule: a static field not final written (refused), read (said); a Scala object's field the same */
   val State: Rule = Rule("state", "state: a static field that is not final, or a field of a Scala object — global " +
     "mutable state outside a handler", UseState)
+
+  /** the state rule's finding for a held collection: `owner.field`, of a mutable `tpe`, mutated in place — global
+    * when the field is static or a Scala object's (a finding), an instance's otherwise (said). Found by a load and
+    * the next mutating call on that type in the same method: it may name another receiver of the same type */
+  def held(state: Rule, owner: String, field: String, tpe: String, global: Boolean): Rule =
+    Rule("state", s"state: $owner.$field holds a mutable $tpe, changed in place — " +
+      (if global then "global mutable state outside a handler" else "an instance's mutable state (said)") +
+      " (a load, then a mutating call on its type)", state.use)
 
   private val writing = Vector("java.lang.System#out", "java.lang.System#err", "java.lang.System#getLogger",
     "java.lang.Throwable#printStackTrace", "java.util.logging.", "org.slf4j.", "org.apache.logging.log4j.",
@@ -257,18 +313,18 @@ object Presets:
         "java.time.chrono.HijrahDate#now", "java.time.chrono.JapaneseDate#now", "java.time.chrono.MinguoDate#now",
         "java.time.chrono.ThaiBuddhistDate#now", "java.time.chrono.Chronology#dateNow", "java.util.Date#<init>()")),
     Preset("fresh", "fresh: a random number or id is nondeterminism — replay breaks", UseFresh,
-      Vector("java.util.UUID#randomUUID", "java.util.Random", "java.util.SplittableRandom",
-        "java.util.concurrent.ThreadLocalRandom", "java.security.SecureRandom", "java.util.random.",
-        "java.lang.Math#random", "java.lang.StrictMath#random", "scala.util.Random")),
+      Random),
     Preset("async", "async: threads, executors and monitors are the runtime's", UseAsync,
       Vector("java.lang.Thread", "java.lang.ThreadGroup", "java.util.concurrent.ExecutorService",
         "java.util.concurrent.Executors", "java.util.concurrent.ForkJoinPool", "java.util.concurrent.CompletableFuture",
         "java.util.Timer", "java.lang.Object#wait", "java.lang.Object#notify", "java.lang.Object#notifyAll",
-        "scala.concurrent.ExecutionContext$Implicits$", "scala.concurrent.Future")),
+        "scala.concurrent.ExecutionContext$Implicits$", "scala.concurrent.Future", "scala.concurrent.Promise")),
     Preset("io", "io: files, sockets and databases are reached through an effect whose handler does it", UseIo,
       Vector("java.io.File", "java.io.FileInputStream", "java.io.FileOutputStream", "java.io.FileReader",
         "java.io.FileWriter", "java.io.RandomAccessFile", "java.nio.file.", "java.nio.channels.", "java.net.",
-        "java.sql.", "javax.sql.", "scala.io.Source")),
+        "java.net.URI#toURL", "java.sql.", "javax.sql.", "scala.io.Source")),
+    // NOT in `pure` (specs/okay-audit.md, "The first real-world run"): a run in business code is a design rule,
+    // selected by name; whether its program is closed is not in the bytecode. `runIsolated`/`stepIsolated` never match
     Preset("nested-run", "nested run: a program runs no program to its end — the host runs one, at its edge",
       UseNested, Vector("okay.rows.Effects#run", "okay.rows.Effects#step", "okay.rows.std.Async#start",
         "okay.rows.std.Async#toFuture", "okay.rows.std.Async#runBlocking", "okay.rows.std.Emit#pull",
@@ -284,20 +340,22 @@ object Presets:
     "java.lang.invoke.VarHandle", "sun.misc.Unsafe", "jdk.internal.", "java.lang.ProcessBuilder",
     "java.lang.Runtime#exec", "java.lang.Runtime#halt", "java.lang.Runtime#exit", "java.lang.System#exit",
     "java.lang.System#load", "java.lang.System#loadLibrary", "java.lang.Class#forName", "java.lang.Thread",
-    "java.util.concurrent.Executors").map(api => Rule(api, "strict: reaches the world other than by an effect",
-      INSTEAD.getOrElse(api, UseIo)))
+    "java.util.concurrent.Executors", "java.net.URI#toURL").map(api => Rule(api, "strict: reaches the world other than by an effect",
+      INSTEAD.getOrElse(api, UseIo), exceptOf(api)))
 
   private lazy val INSTEAD: Map[String, String] =
     all.reverse.flatMap(p => p.apis.map(_ -> p.use)).toMap
 
   def byName(name: String): Option[Preset] = all.find(_.name == name)
 
-  /** a list as a build gives it, comma or space separated: preset names, `pure` (every effect preset), `strict`, and
+  /** a list as a build gives it, comma or space separated: preset names, `pure` (every effect preset but
+    * `nested-run`, a design rule selected by name), `strict`, and
     * entries of its own (okay-java's `java.net.*` and `java.lang.System.exit` spellings are rules' spellings too) */
   def rules(list: String): Vector[Rule] =
     list.split("[,\\s]+").toVector.filter(_.nonEmpty).flatMap {
-      case "pure" => all.filter(_.name != "escape").flatMap(_.rules)
+      case "pure" => all.filter(p => p.name != "escape" && p.name != "nested-run").flatMap(_.rules)
       case "strict" => Strict
       case "default" => Boundary.Default
-      case name => byName(name).fold(Vector(Rule(name, "named by the build", INSTEAD.getOrElse(name, ""))))(_.rules)
+      case name => byName(name).fold(Vector(Rule(name, "named by the build", INSTEAD.getOrElse(name, ""),
+        exceptOf(name))))(_.rules)
     }.distinctBy(_.api)

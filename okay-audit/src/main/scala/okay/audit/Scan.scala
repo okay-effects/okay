@@ -18,26 +18,34 @@ object Ref:
     case Class, Field, Method, InterfaceMethod, Native
 
 /** one instruction of a method that names something: `op` is the JVM opcode
-  * (getstatic 0xb2 … invokeinterface 0xb9, new 0xbb), `line` the source line
-  * of the LineNumberTable (0 when the class carries none) */
-final case class Site(op: Int, line: Int, ref: Ref)
+  * (getstatic 0xb2 … invokeinterface 0xb9, new 0xbb; checkcast, instanceof, anewarray, multianewarray and an `ldc`
+  * of a class name a class too), `line` the source line of the LineNumberTable (0 when the class carries none),
+  * `text` the string constant an `ldc` pushed just before it (a reflective name: `getDeclaredField("x$lzy1")`) */
+final case class Site(op: Int, line: Int, ref: Ref, text: String = ""):
+  /** a call or a field access — what the rules on code read; the class-naming sites only place a reference */
+  def isMember: Boolean = op >= Site.GetStatic && op <= 0xb9
 
 object Site:
   val GetStatic = 0xb2; val PutStatic = 0xb3; val GetField = 0xb4; val PutField = 0xb5
   val New = 0xbb
+  val Ldc = 0x12; val LdcW = 0x13; val CheckCast = 0xc0; val InstanceOf = 0xc1; val ANewArray = 0xbd
+  val MultiANewArray = 0xc5
 
 final case class FieldInfo(access: Int, name: String, descriptor: String, signature: Option[String]):
   def isStatic: Boolean = (access & 0x0008) != 0
   def isFinal: Boolean = (access & 0x0010) != 0
 
-final case class MethodInfo(access: Int, name: String, descriptor: String, signature: Option[String], sites: Vector[Site])
+final case class MethodInfo(access: Int, name: String, descriptor: String, signature: Option[String], sites: Vector[Site]):
+  def isStatic: Boolean = (access & 0x0008) != 0
 
 /** a class file as this module reads it: its name and supertypes, its fields
   * and methods (with their generic `Signature`s and, when asked, the sites of
-  * their code), and every reference its constant pool makes */
+  * their code), and every reference its constant pool makes; `scala`: compiled by Scala (a `TASTY` or `ScalaSig`
+  * attribute) — its `Object` may be an erased union, opaque type, boxed type argument or `Any`, which the bytecode
+  * alone cannot tell apart */
 final case class ClassInfo(name: String, access: Int, superName: Option[String], interfaces: Vector[String],
                            signature: Option[String], sourceFile: Option[String], fields: Vector[FieldInfo],
-                           methods: Vector[MethodInfo], refs: Vector[Ref]):
+                           methods: Vector[MethodInfo], refs: Vector[Ref], scala: Boolean = false):
   def isInterface: Boolean = (access & 0x0200) != 0
   def isFinal: Boolean = (access & 0x0010) != 0
   def isAbstract: Boolean = (access & 0x0400) != 0
@@ -85,6 +93,7 @@ object Scan:
     val superName = if superIdx == 0 then None else Some(className(superIdx))
     val interfaces = Vector.fill(in.readUnsignedShort())(className(in.readUnsignedShort()))
 
+    var scalaAttr = false
     /** a member's or the class's attributes: its Signature, its SourceFile, and its Code read by `onCode` */
     def attributes(onCode: Array[Byte] => Unit = _ => ()): (Option[String], Option[String]) =
       var signature = Option.empty[String]
@@ -96,6 +105,7 @@ object Scan:
           case "Signature" => signature = Some(utf8(in.readUnsignedShort()))
           case "SourceFile" => source = Some(utf8(in.readUnsignedShort()))
           case "Code" => onCode(in.readNBytes(length.toInt))
+          case "TASTY" | "ScalaSig" | "Scala" => scalaAttr = true; in.skipNBytes(length)
           case _ => in.skipNBytes(length)
       (signature, source)
 
@@ -121,7 +131,7 @@ object Scan:
       val desc = utf8(in.readUnsignedShort())
       if (acc & 0x0100) != 0 then natives += Ref(self, Ref.Kind.Native, self, name, desc)
       var sites = Vector.empty[Site]
-      val (sig, _) = attributes(body => if code then sites = this.sites(body, tags, ref,
+      val (sig, _) = attributes(body => if code then sites = this.sites(body, tags, a, ref,
         idx => Ref(self, Ref.Kind.Class, className(idx), "", ""), utf8))
       MethodInfo(acc, name, desc, sig, sites)
     }
@@ -141,10 +151,10 @@ object Scan:
         case _ =>
       k += 1
     ClassInfo(self, access, superName, interfaces, classSig, source, fields, methods,
-      (refs.result() ++ natives.result()).distinct)
+      (refs.result() ++ natives.result()).distinct, scalaAttr)
 
   /** the instructions of one Code attribute that name a field, a method or a class (`new`), with their lines */
-  private def sites(body: Array[Byte], tags: Array[Int], ref: Int => Ref, classRef: Int => Ref,
+  private def sites(body: Array[Byte], tags: Array[Int], a: Array[Int], ref: Int => Ref, classRef: Int => Ref,
                     utf8: Array[String]): Vector[Site] =
     val in = DataInputStream(ByteArrayInputStream(body))
     in.skipNBytes(4)                                                     // max_stack, max_locals
@@ -164,6 +174,9 @@ object Scan:
     def s4(at: Int): Int = ((code(at) & 0xff) << 24) | ((code(at + 1) & 0xff) << 16) | ((code(at + 2) & 0xff) << 8) |
       (code(at + 3) & 0xff)
     val out = Vector.newBuilder[Site]
+    // the string an `ldc` pushed, kept for the one instruction right after it
+    var pushed = ""
+    def utf8At(idx: Int) = if idx > 0 && idx < tags.length && tags(idx) == 8 then Option(utf8(a(idx))) else None
     var pc = 0
     while pc < length do
       val op = code(pc) & 0xff
@@ -183,11 +196,19 @@ object Scan:
           val at = (pc + 4) & ~3
           at - pc + 8 + 8 * s4(at + 4)
         case _ => 1
+      var next = ""
       if (op >= 0xb2 && op <= 0xb9) then
         val idx = u2(pc + 1)
-        if tags(idx) == 9 || tags(idx) == 10 || tags(idx) == 11 then out += Site(op, lineAt(pc), ref(idx))
-      else if op == 0xbb then
-        out += Site(op, lineAt(pc), classRef(u2(pc + 1)))
+        if tags(idx) == 9 || tags(idx) == 10 || tags(idx) == 11 then out += Site(op, lineAt(pc), ref(idx), pushed)
+      else if op == Site.New || op == Site.CheckCast || op == Site.InstanceOf || op == Site.ANewArray ||
+          op == Site.MultiANewArray then
+        val idx = u2(pc + 1)
+        if tags(idx) == 7 && utf8(a(idx)).charAt(0) != '[' then out += Site(op, lineAt(pc), classRef(idx))
+      else if op == Site.Ldc || op == Site.LdcW then
+        val idx = if op == Site.Ldc then code(pc + 1) & 0xff else u2(pc + 1)
+        if tags(idx) == 7 && utf8(a(idx)).charAt(0) != '[' then out += Site(op, lineAt(pc), classRef(idx))
+        else utf8At(idx).foreach(next = _)
+      pushed = next
       pc += size
     out.result()
 

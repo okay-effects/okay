@@ -189,10 +189,14 @@ object Classes:
   * stands for is held to the rule where it is given.
   *
   * `answers`: an effect type and which of its type arguments is an operation's
-  * answer (`-1` the last): a business class extending it answers that type. */
-final case class Types(data: Vector[String] = Types.Data, answers: Map[String, Int] = Map.empty):
+  * answer (`-1` the last): a business class extending it answers that type. `programs`: the runtime's program
+  * types (okay-scala's `Prog`, okay.rows' `Comp`, okay-safe's `Comp`, okay-java's `Eff`, their nested classes with
+  * them): a program the host gives is a program — a value the runtime runs, not a function (specs/okay-audit.md, "The
+  * first real-world run"). */
+final case class Types(data: Vector[String] = Types.Data, answers: Map[String, Int] = Map.empty,
+                       programs: Vector[String] = Types.Programs):
   def canonical: String = (data.sorted.map("data " + _) ++
-    answers.toVector.sorted.map((t, i) => s"answer $t $i")).mkString("\n")
+    answers.toVector.sorted.map((t, i) => s"answer $t $i") ++ programs.sorted.map("program " + _)).mkString("\n")
 
 object Types:
   /** the data of the JDK and the Scala library beside the primitives */
@@ -203,6 +207,12 @@ object Types:
     "java.util.Optional", "scala.math.BigInt", "scala.math.BigDecimal", "scala.Option", "scala.Some", "scala.None$",
     "scala.util.Either", "scala.util.Left", "scala.util.Right", "scala.runtime.BoxedUnit", "scala.Unit",
     "scala.runtime.Nothing$", "scala.Tuple*", "scala.collection.immutable.")
+
+  /** the kernels' program types */
+  val Programs: Vector[String] = Vector("okay.scala3.Prog", "okay.rows.Comp", "okay.safe.Comp", "okay.core.Eff")
+
+  /** `name` is a program type or one of its nested classes (`okay.scala3.Prog$Defer`) */
+  def program(programs: Vector[String], name: String): Boolean = programs.exists(p => Boundary.under(name, p))
 
   /** never data, whatever a list says: they say nothing of what a value is */
   val Anything: Set[String] = Set("java.lang.Object", "java.io.Serializable", "java.lang.Comparable",

@@ -31,7 +31,7 @@ class TestConsolidation extends munit.FunSuite with okay.testkit.Munit.Diagnosed
     val now = r.findings.find(_.ref.member == "java.lang.System#currentTimeMillis").getOrElse(fail(r.text))
     assertEquals(now.rule.use, Presets.UseClock)
     assert(r.text.contains("— use a Clock effect (okay.rows.std.Clock, okay.scala3.std.Clock, okay.safe.std.Clock)"))
-    val random = r.findings.find(_.ref.member == "java.util.Random#nextInt").getOrElse(fail(r.text))
+    val random = r.findings.find(_.ref.member == "java.util.Random#<init>").getOrElse(fail(r.text))
     assert(random.rule.use.contains("okay.rows.std.Fresh"), random.toString)
     assert(r.json.contains("\"use\":\"a Clock effect"), r.json)
     val bare = Boundary.Default.filter(_.use.isEmpty).map(_.api).toSet
@@ -39,8 +39,10 @@ class TestConsolidation extends munit.FunSuite with okay.testkit.Munit.Diagnosed
 
   test("presets by name: pure is every effect's, strict okay-java's list, an entry of its own is a rule; spellings"):
     val pure = Presets.rules("pure").map(_.api).toSet
-    for p <- Vector("state", "reader", "writer", "clock", "fresh", "async", "io", "nested-run") do
+    for p <- Vector("state", "reader", "writer", "clock", "fresh", "async", "io") do
       assert(Presets.byName(p).get.apis.forall(pure), p)
+    // nested-run is a design rule of its own, selected by name (specs/okay-audit.md, "The first real-world run")
+    assert(!Presets.byName("nested-run").get.apis.exists(pure), "nested-run is not in pure")
     assert(!pure.contains("java.lang.reflect."), "escape is not an effect")
     val mixed = Presets.rules("clock, java.lang.Thread java.net.*")
     assert(mixed.exists(_.api == "java.time.Instant#now"))

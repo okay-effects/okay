@@ -8,8 +8,8 @@ import java.nio.file.{Files, Path, Paths}
 final case class Manifest(layers: Map[String, Layer], modules: Map[String, Seq[Path]],
                           packages: Map[String, Map[String, Layer]], allows: Vector[Allow], jvmOptions: Vector[String] = Vector.empty,
                           rules: Vector[Rule] = Boundary.Default, allowlist: Option[Allowlist] = None,
-                          types: Option[Types] = None):
-  def boundary: Boundary = Boundary(layers, rules, allows, packages, allowlist, types)
+                          types: Option[Types] = None, elsewhere: Set[String] = Set.empty):
+  def boundary: Boundary = Boundary(layers, rules, allows, packages, allowlist, types, elsewhere)
 
 object Manifest:
   private enum Token:
@@ -65,13 +65,16 @@ object Manifest:
       if !closed then refuse("unterminated string")
       Token.Text(out.result())
 
+  // name, layer, paths, package layers, audited elsewhere
+  private type Row = (String, Layer, Seq[Path], Map[String, Layer], Boolean)
+
   private final class Parser(text: String, base: Path):
     private val lexer = Lexer(text)
     private var token = lexer.next()
 
     def manifest(): Manifest =
       openObject("manifest")
-      var modules: Option[Vector[(String, Layer, Seq[Path], Map[String, Layer])]] = None
+      var modules: Option[Vector[Row]] = None
       var allows: Option[Vector[Allow]] = None
       var jvmOptions: Option[Vector[String]] = None
       var rules: Option[Vector[Rule]] = None
@@ -101,7 +104,7 @@ object Manifest:
         .foreach(name => refuse(s"manifest names module '$name' more than once"))
       Manifest(rows.map(r => r._1 -> r._2).toMap, rows.map(r => r._1 -> r._3).toMap,
         rows.map(r => r._1 -> r._4).toMap, allows.getOrElse(Vector.empty), jvmOptions.getOrElse(Vector.empty),
-        rules.getOrElse(Boundary.Default), allowlist, types)
+        rules.getOrElse(Boundary.Default), allowlist, types, rows.filter(_._5).map(_._1).toSet)
 
     private def stringArray(where: String): Vector[String] =
       openArray(where)
@@ -111,15 +114,18 @@ object Manifest:
         separator(where)
       take(); out.result()
 
-    /** `{"data": ["java.util.UUID", ...], "answers": {"com.acme.Op": "0"}}` — `data` adds to the default list */
+    /** `{"data": ["java.util.UUID", ...], "answers": {"com.acme.Op": "0"}, "programs": [...]}` — `data` and
+      * `programs` add to the default lists */
     private def typesObject(): Types =
       openObject("types")
       var data = Vector.empty[String]
+      var programs = Vector.empty[String]
       val answers = scala.collection.mutable.Map.empty[String, Int]
       while token != Token.CloseObject do
         val key = string("types field"); colon(key)
         key match
           case "data" => data = stringArray("data")
+          case "programs" => programs = stringArray("programs")
           case "answers" =>
             openObject("answers")
             while token != Token.CloseObject do
@@ -131,26 +137,29 @@ object Manifest:
           case other => refuse(s"types has unknown field '$other'")
         separator("types")
       take()
-      Types(Types.Data ++ data, answers.toMap)
+      Types(Types.Data ++ data, answers.toMap, Types.Programs ++ programs)
 
     private def resolve(raw: String): Path =
       val path = Paths.get(raw)
       if path.isAbsolute then path.normalize else base.resolve(path).normalize
 
-    private def moduleArray(): Vector[(String, Layer, Seq[Path], Map[String, Layer])] =
+    private def moduleArray(): Vector[Row] =
       openArray("modules")
-      val out = Vector.newBuilder[(String, Layer, Seq[Path], Map[String, Layer])]
+      val out = Vector.newBuilder[Row]
       while token != Token.CloseArray do
         out += module()
         separator("modules")
       take(); out.result()
 
-    private def module(): (String, Layer, Seq[Path], Map[String, Layer]) =
+    /** a module: its name, layer, paths, package layers and `"audited": "elsewhere"` (its own report holds its
+      * findings: here its classes only inform the others') */
+    private def module(): Row =
       openObject("module")
       var name: Option[String] = None
       var layer: Option[Layer] = None
       var paths: Option[Seq[Path]] = None
       var packages: Option[Map[String, Layer]] = None
+      var audited: Option[Boolean] = None
       while token != Token.CloseObject do
         val key = string("module field"); colon(key)
         key match
@@ -158,13 +167,18 @@ object Manifest:
           case "layer" => layer = once(layer, "layer", layerOf(string("module layer"), "module layer"))
           case "paths" => paths = once(paths, "paths", pathArray())
           case "packages" => packages = once(packages, "packages", packageObject())
+          case "audited" => audited = once(audited, "audited", string("module audited") match
+            case "elsewhere" => true
+            case "here" => false
+            case other => refuse(s"module audited is '$other', not elsewhere or here"))
           case other => refuse(s"module has unknown field '$other'")
         separator("module")
       take()
       val n = name.getOrElse(refuse("module has no name"))
       val ps = paths.getOrElse(refuse(s"module '$n' has no paths"))
       if ps.isEmpty then refuse(s"module '$n' has no paths")
-      (n, layer.getOrElse(refuse(s"module '$n' has no layer")), ps, packages.getOrElse(Map.empty))
+      (n, layer.getOrElse(refuse(s"module '$n' has no layer")), ps, packages.getOrElse(Map.empty),
+        audited.getOrElse(false))
 
     private def pathArray(): Seq[Path] =
       openArray("paths")
