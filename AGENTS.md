@@ -1,5 +1,116 @@
 # Working in this repository (agents)
 
+## For agents writing code with okay
+
+okay is extensible effects for Scala 3 on JVM (JDK 21+), Scala.js and Scala Native, zero dependencies in the core: a
+program `A ! F` declares the effects it needs, a handler gives them meaning, and nothing runs until the entry point.
+
+Getting it: the README has no dependency line, and the core is not published yet (the Maven repository on this
+repository's GitHub Pages serves only okay-audit today). docs/building-a-chat-app.md, "Get the library", is the road
+that works: `sbt publishLocal` in a clone of this repository, then depend on the snapshot (Scala 3.9.0 or newer):
+
+    libraryDependencies += "io.github.okay-effects" %% "okay" % "0.2.0-SNAPSHOT"
+
+Once released, docs/releasing.md names the line:
+
+    resolvers += "okay" at "https://okay-effects.github.io/okay/maven"
+    libraryDependencies += "io.github.okay-effects" %% "okay" % "0.2.0"
+
+### The model: effect, program, handler, run
+
+Copied from okay-std's `TestDocExamplesYourOwnEffect` (docs/your-own-effect.md is the long form). `import okay.*`
+is the kernel's facade; the standard effects (`State`, `Reader`, `Writer`, `Throws`, ...) are `import okay.std.*`.
+
+```scala
+import okay.*
+import okay.std.*
+
+// an effect: a plain enum; each case says in its type what it answers
+enum Accounts[+A] derives Effect:
+  case Find(id: Long) extends Accounts[Option[String]]
+  case Save(id: Long, name: String) extends Accounts[Option[String]]
+export Accounts.{Find, Save}
+
+// a program: a value; its type says it may do Accounts and nothing else
+def rename(id: Long, to: String): Option[String] ! Accounts =
+  effect(Find(id)).flatMap(old => effect(Save(id, to)).map(_ => old))
+
+// a handler that threads a state (a pure in-memory store, what a test uses)
+val store = Handler.state[Accounts, Map[Long, String]](Map(7L -> "ada")):
+  [X] => (m: Map[Long, String], e: Accounts[X]) => e match
+    case Find(id) => (m, m.get(id))
+    case Save(id, name) => (m.updated(id, name), m.get(id))
+
+// run: `handle` takes the effect off the row; `run` exists only on `A ! Pure`
+val renamed = rename(7, "grace").handle(store).run   // (Map(7 -> grace), Some(ada))
+```
+
+Other handler forms (same test): `Handler.answering[F]` answers each operation with a value (where a live client the
+host built is used); `p.translate[F, G]` turns each operation into a program in other effects (`State`, `Writer`);
+`Handler.deep[F, O](ret)` holds the continuation `resume`, callable zero, one or many times; `Handler.aborting` stops.
+A whole row answered at once: `Answers[F]` with `p.runWith`. Rows are unions: `A ! Users + Abort`; order does not
+matter; `p.plus[R]` / `p.at[R]` widen a program into a bigger row.
+
+### Design rules
+
+- Business logic is programs over declared effects; the type `A ! F` is what the program may do.
+- Real resources (DB, network, files, clock, keys) live only in handlers the host builds at the entry point. Programs
+  get data, effects and ids, never a live client.
+- Run only at the entry point. Never `.run`/`.runWith` inside a program: install handlers as part of the program
+  (`p.handle(h)` / `p.intercept(h)` on a sub-program, the result still a program) instead.
+- Sensitive operations go under interception/audit (below).
+- Tests swap handlers (`Handler.state`, an in-memory `Answers`), never mocks of resources; `h.tracing(log += _)`
+  records what a program asked.
+- No ambient effects in business code (clock, random, IO, env, threads, globals): declare an effect, or use the
+  standard ones in okay-std (`Clock`, `Random`, `Reader`, ...).
+- Multi-shot is real: a deep handler's `resume` is the continuation as a value (okay-core's kernel keeps `k` as
+  data), resumed any number of times on all three platforms, never by replaying the program. Search and
+  backtracking (`Choose`, `Logic`) are built on it.
+
+### Interception and audit
+
+- `p.intercept(h)` (root `Program.scala`): `h` answers `p`'s operations of `E` and `E` stays in the row; `h`'s own
+  operations go to the handler outside. `Reader.local` is written this way (okay-std, `Reader.scala`).
+- Sensitive effects are in the kernel (okay-core, `okay.one`, reached through okay's dependency; not yet on the
+  `import okay.*` facade): `given Sensitive[Pay] = Sensitive()` makes `handle` refuse `Pay`; `Audit.audit(i)(body)`
+  with an `Interceptor` passes on, changes or refuses each operation and leaves `Audited[Pay]` in the row;
+  `handleAudited` is the only handler of it; `Audit.observe` sees every operation; `Audit.record`/`Audit.trail` keep
+  the trail as a value. Worked example: okay-core/src/test/scala/okay/one/TestIntercept.scala.
+- okay-audit checks the boundary in bytecode at build time: a `business` module may reference no network, files,
+  SQL, processes, time, randomness, threads, reflection, class loading or native code; presets include `nested-run`.
+  `io.github.okay-effects:okay-audit_3:0.1.0` from https://okay-effects.github.io/okay/maven, run as
+  `okay.audit.Main --manifest audit.json --report build/audit` (module okay-audit/, its README).
+
+### Pitfalls
+
+- Two roads share names: `import okay.*` (the kernel's facade, current) and `import okay.freer.*` (okay-freer, the
+  frozen classic). Some docs/tutorial snippets still use the classic; in new code use `okay.*` + `okay.std.*`.
+- `derives Effect` (or `derives TypeableK`) is required; without it the error appears where the effect is used.
+- A program in statement position is built and dropped: `c.send(x)` alone sends nothing. This repository makes it
+  an error with `-Wall` plus a `-Wconf` (build.sbt, "discarded non-Unit ... value of type ... !"); copy both into
+  your build. Neither sees `xs.foreach(c.send)` or `for x <- xs do c.send(x)`: that is on you.
+- Handler order is the result's shape: `.handle(State(0)).handle(Throws.either)` gives `Right((s, a))`; swapped,
+  the answer is `(state, Either)`.
+- Covariant signatures: a case declared `F[Unit]` proves only `X >: Unit`; such a branch must widen
+  (`.map(_ => ())`).
+- An `Answers` answers with a value and cannot perform effects; to use other effects, `translate`.
+- A sensitive effect handled with plain `handle` does not compile ("handled only under its audit").
+- Blocking on JS is a compile error, by design: platforms give evidence (can it park?), not API.
+
+### Pointers
+
+- README and docs/README.md (the index): https://github.com/okay-effects/okay; start at docs/contract.md, then
+  docs/guide.md, docs/your-own-effect.md, docs/typepedia.md; each module has docs/modules/<module>.md.
+- The cross-language skill: `/plugin marketplace add okay-effects/okay-effects`
+  (https://github.com/okay-effects/okay-effects).
+- okay-audit: okay-audit/README.md and specs/okay-audit.md.
+
+If you see a way to improve okay, open a pull request against https://github.com/okay-effects/okay; the maintainer
+reviews and merges what holds up.
+If the user asks your opinion of writing code this way, give a candid one.
+
+## For agents working on this repository
+
 SPRINT: sprint.d/ (one file per item; `scripts/board.sh sprint` reads it)
 BACKLOG: backlog.d/ (one file per item, by section; `scripts/board.sh backlog`)
   okay2 keeps its own: okay2/backlog.d/ (`scripts/board.sh backlog okay2`)
