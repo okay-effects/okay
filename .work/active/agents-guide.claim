@@ -1,0 +1,7 @@
+feature/agents-guide 2026-11-13T17:45:37Z
+agent: claude-code (AGENTS.md: a guide for agents writing code WITH okay, docs only)
+heartbeat: 2026-11-13T17:45:37Z
+status: in-progress
+worktree: ../okay-wt-agents-guide
+done-so-far:
+next: guide section at the top of AGENTS.md, changelog entry, land
