@@ -1,0 +1,7 @@
+feature/audit-consolidate 2026-11-13T14:47:06Z
+agent: claude-code (okay-audit consolidation: okay-java guard/forbid + okay-safe whole/seal into okay-audit)
+heartbeat: 2026-11-13T14:47:06Z
+status: in-progress
+worktree: ../okay-wt-audit-consolidate
+done-so-far:
+next: presets with use hints, allowlist mode, nested-run, code scan + state, type boundary, seal
