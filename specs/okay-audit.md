@@ -353,29 +353,29 @@ object Seal:                           // a build that proves it was checked; ve
 
 ### Behavior
 
-- [ ] every rule may carry `use`, the effect to perform instead (okay.rows.std
+- [x] every rule may carry `use`, the effect to perform instead (okay.rows.std
   for Java, okay-scala's `okay.scala3.std`, okay-safe's `okay.safe.std`); a
   finding shows it (`— use …`) in text and json; `Boundary.Default` names one
   for every rule that has a replacement
-- [ ] presets named after the standard effects — state, reader, writer/trail,
+- [x] presets named after the standard effects — state, reader, writer/trail,
   clock, fresh, async, io, nested-run, escape; `pure` is all of them, `strict`
   okay-java's former list — select rules by name; an entry that is no preset
   is a rule (okay-java's `pkg.*` and `Owner.member` spellings accepted)
-- [ ] a class or member rule matches up the owner's superclasses and
+- [x] a class or member rule matches up the owner's superclasses and
   interfaces, as far as their class files are found among the inputs and the
   JDK: a subclass of `Thread` is a `Thread`, `String#wait` is `Object#wait`
-- [ ] the nested-run rule: business code calling a top-level runner
+- [x] the nested-run rule: business code calling a top-level runner
   (okay.rows `Effects.run/step`, okay-scala's `run`, okay-safe's `run`/`step`,
   okay-direct's `Effects`) is a finding naming what to do instead
-- [ ] the state rule: a business method writing a static field that is not
+- [x] the state rule: a business method writing a static field that is not
   final (outside its own class's initializer), or a field of a Scala `object`
   outside its constructor, is a finding; reading a non-final static is SAID
   (listed, not failed) — a static nothing writes may be a constant
-- [ ] the allowlist mode: with `allowlist` set, a business reference that no
+- [x] the allowlist mode: with `allowlist` set, a business reference that no
   rule names is still a finding unless it is to the module's own classes, to a
   runtime module's, or matches an entry; a reference to a handlers module's
   class is a finding of its own ("names a handler")
-- [ ] the boundary rule on types (with `types` set), from descriptors and
+- [x] the boundary rule on types (with `types` set), from descriptors and
   `Signature` attributes, so for Java, Kotlin and Scala alike: what a handlers
   or runtime module passes to a business method or constructor, and an
   operation's answer (`answers`: an effect type and which type argument is its
@@ -384,12 +384,65 @@ object Seal:                           // a build that proves it was checked; ve
   business or runtime classes that are final or closed (no handlers or
   runtime class extends them) with final fields of data; a function, `Object`,
   an array, a library class or a handler's class is a finding saying which
-- [ ] a business class naming a handlers module's class in a field, a method
+- [x] a business class naming a handlers module's class in a field, a method
   signature or a reference is a finding ("names the host's type") when `types`
   is set
-- [ ] a seal: the check's version, the configuration's hash, the result, the
+- [x] a seal: the check's version, the configuration's hash, the result, the
   launcher options recorded, extra fields of the caller's, and the SHA-256 of
   every file; `Seal.verify` refuses a file added, changed or missing, a failed
   result, and a JVM started without an option the seal records
-- [ ] okay-java's resumable plugins and okay-safe's whole check and gate use
+- [x] okay-java's resumable plugins and okay-safe's whole check and gate use
   these instead of their own copies (their repositories; Results below)
+
+### Results (2026-11-13)
+
+`TestConsolidation`, 13 tests beside `TestAudit`'s 19, on Java and Scala fixtures: a use hint in text and json; the
+presets and both spellings; a library's `Thread` subclass and `Object#wait` matched up the hierarchy, invisible to
+the same rules without it; the nested-run rule over okay.rows, okay-scala, okay-safe and okay-direct; a static
+written (finding, with method and line), read (said), a final one (nothing), a Scala object's var, a lazy val's
+storage (nothing); `Code.check` by method; the allowlist (own classes pass, a handler's class named, the rest
+refused); the boundary on types — a client, a `Supplier`, `Object`, a library's `List`, an open class the host
+extends refused as arguments the host gives, an `Amount` (final, final primitive field) passed, an operation
+answered with the host's client refused, the host's type named in a signature and a reference; signatures with
+generic arguments, nested classes, type variables; a seal verified, and refused for a file added, changed, missing,
+a failed result, a JVM option absent; the JSON manifest's `rules`, `allowlist` and `types`.
+
+**Where it moved from, and what stayed** (the other repositories' own records say the same):
+
+- okay-java (resumable, `64cf488`): `forbid` and its presets are okay-audit's — `okay.resumable.transform.Audited`
+  calls `Code.check` over the methods the transformation rewrites (effectful code = business) and words the hits as
+  its refusals always read (method, line, what, the entry in its own spelling, the effect to use). Kept in its
+  `Transformer`: the guard (a handler's clause called, an `@Implementation` reached — the transformation's own
+  notion of a handler) and the monitor refusal (a `synchronized` method cannot suspend). okay-audit is on the
+  transformer's class path only (Gradle: its configuration; Maven: the plugin's dependency), resolved from `~/.m2`
+  (`okayAudit/publishM2`) until okay-audit has a release; a list named without it is refused by name. GuardTest's
+  messages as before but for the use hint, now okay-audit's (one wording for Java, Scala and the TASTy check); 261
+  okay-java tests, the Maven sample and the Gradle sample green (`forbid = "strict, pure"`).
+- okay-safe (`cafe28e`): the whole-program check's ambient APIs are okay-audit's presets read as TASTy paths
+  (`Rule.sourcePath`), its JDK data list okay-audit's `Types.Data`; its gate runs okay-audit's bytecode check beside
+  the TASTy one (a Java class beside the program has no TASTy: refused now by the bytecode witness, SealTest) and
+  writes okay-audit's seal; `Launch` verifies with `Seal.verify*` and keeps the kernel's own checks (the flags, the
+  whole result, `Unsafe` tried rather than the arguments read, the three modules hashed). Kept on TASTy, because
+  bytecode erases them: the allowlist of names with positions (a cast is a `checkcast` the compiler emits anyway; an
+  annotation like `@unchecked` or `caps.unsafe` is gone), the boundary rule on Scala types (unions, opaque types,
+  `sealed`, capture sets), safe mode imported, the cc and explicit-nulls attributes, `@assumeSafe`, `throw`/`try`.
+  205 + 1 tests green; SealTest's added cost measured at ~50–110 ms per sealed build (the audit's own time) after a
+  rule's api is read once and a reference matched once per audit.
+
+**The dogfood** (`sbt audit`, 24 projects): PASS. One build change: a jar a RUNTIME project brings is the runtime's
+row, not each business project's — the okay-core artifact (in a worktree without the submodule) and the JMH jars
+that `JmhPlugin` puts in the core's Compile classpath had made every business project "own" jopt-simple and
+jmh-core (3670 findings, all in those jars, none in our classes). The inventory now shows them under the runtime;
+that the core's Compile classpath carries JMH at all is filed (backlog.d/okay-audit/core-jmh-in-compile.md).
+
+Decisions:
+
+- **Code sites, not only the pool**: the constant pool stays the sound base of the module check (it
+  over-approximates, dead code included); the instruction walk adds what the pool cannot say — which method, which
+  line, a read from a write — for the state rule and for a caller that scopes by method (okay-java).
+- **Hierarchy from the inputs, then this JVM's resources**: a class file is read as a resource never encapsulated,
+  so the JDK's are found without a JDK path; a class nowhere found ends the walk (the rule does not match up it).
+- **Closed, not sealed**: bytecode does not carry Scala's `sealed`; "nothing of the host's extends it" is read over
+  the scanned classes — whole-program, so sound for what is given, as okay-safe's check is for its TASTy.
+- **The seal's JVM options are data the launcher may check by reading the arguments (`verifyJvm`) or by trying the
+  effect**: okay-safe tries (`Unsafe` refused), which is stronger and skips `java.management`'s start cost.
