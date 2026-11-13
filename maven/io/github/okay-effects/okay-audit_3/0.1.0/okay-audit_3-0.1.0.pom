@@ -1,0 +1,56 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<project xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns="http://maven.apache.org/POM/4.0.0">
+    <modelVersion>4.0.0</modelVersion>
+    <groupId>io.github.okay-effects</groupId>
+    <artifactId>okay-audit_3</artifactId>
+    <packaging>jar</packaging>
+    <description>okay-audit</description>
+    <url>https://github.com/okay-effects/okay</url>
+    <version>0.1.0</version>
+    <licenses>
+        <license>
+            <name>Apache-2.0</name>
+            <url>https://www.apache.org/licenses/LICENSE-2.0</url>
+            <distribution>repo</distribution>
+        </license>
+    </licenses>
+    <name>okay-audit</name>
+    <organization>
+        <name>io.github.okay-effects</name>
+        <url>https://github.com/okay-effects/okay</url>
+    </organization>
+    <scm>
+        <url>https://github.com/okay-effects/okay</url>
+        <connection>scm:git:https://github.com/okay-effects/okay.git</connection>
+    </scm>
+    <developers>
+        <developer>
+            <id>sergey-scherbina</id>
+            <name>Sergiy Shcherbyna</name>
+            <url>https://github.com/sergey-scherbina</url>
+            <email>sergey.scherbina@gmail.com</email>
+        </developer>
+    </developers>
+    <properties>
+        <info.versionScheme>early-semver</info.versionScheme>
+    </properties>
+    <dependencies>
+        <dependency>
+            <groupId>io.github.okay-effects</groupId>
+            <artifactId>okay-test_3</artifactId>
+            <version>0.2.0-SNAPSHOT</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.scala-lang</groupId>
+            <artifactId>scala3-library_3</artifactId>
+            <version>3.9.0</version>
+        </dependency>
+        <dependency>
+            <groupId>org.scalameta</groupId>
+            <artifactId>munit_3</artifactId>
+            <version>1.1.1</version>
+            <scope>test</scope>
+        </dependency>
+    </dependencies>
+</project>
