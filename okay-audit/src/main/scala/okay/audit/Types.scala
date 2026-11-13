@@ -125,23 +125,10 @@ object Signatures:
   * JDK's and whatever this JVM can load as a resource (a class file is a
   * resource never encapsulated). Parsed without their code, once, on demand —
   * the hierarchy a rule matches up, a field's finality, a type's fields */
-final class Classes(inputs: Seq[Path]):
-  private lazy val index: Map[String, Path] = inputs.reverse.flatMap(p => Scan.names(p).map(_ -> p)).toMap
+final class Classes(find: String => Option[Array[Byte]], release: () => Unit = () => ()):
   private val parsed = scala.collection.mutable.HashMap.empty[String, Option[ClassInfo]]
-  private val jars = scala.collection.mutable.HashMap.empty[Path, JarFile]
 
-  def get(name: String): Option[ClassInfo] = parsed.getOrElseUpdate(name, load(name))
-
-  private def load(name: String): Option[ClassInfo] =
-    val file = name.replace('.', '/') + ".class"
-    val bytes = index.get(name) match
-      case Some(p) if Files.isDirectory(p) => Some(Files.readAllBytes(p.resolve(file)))
-      case Some(p) =>
-        val jf = jars.getOrElseUpdate(p, JarFile(p.toFile))
-        Option(jf.getEntry(file)).map(e => jf.getInputStream(e).readAllBytes())
-      case None =>
-        Option(ClassLoader.getSystemResourceAsStream(file)).map(s => try s.readAllBytes() finally s.close())
-    bytes.map(Scan.parse(_, code = false))
+  def get(name: String): Option[ClassInfo] = parsed.getOrElseUpdate(name, find(name).map(Scan.parse(_, code = false)))
 
   private val supersCache = scala.collection.mutable.HashMap.empty[String, Vector[String]]
 
@@ -162,7 +149,32 @@ final class Classes(inputs: Seq[Path]):
   def field(owner: String, name: String): Option[FieldInfo] =
     supers(owner).iterator.flatMap(c => get(c).flatMap(_.fields.find(_.name == name))).nextOption()
 
-  def close(): Unit = jars.values.foreach(_.close())
+  def close(): Unit = release()
+
+object Classes:
+  /** the classes of `inputs` (directories and jars, the first one's class winning), then this JVM's */
+  def apply(inputs: Seq[Path]): Classes =
+    lazy val index: Map[String, Path] = inputs.reverse.flatMap(p => Scan.names(p).map(_ -> p)).toMap
+    val jars = scala.collection.mutable.HashMap.empty[Path, JarFile]
+    def find(name: String): Option[Array[Byte]] =
+      val file = name.replace('.', '/') + ".class"
+      index.get(name) match
+        case Some(p) if Files.isDirectory(p) => Some(Files.readAllBytes(p.resolve(file)))
+        case Some(p) =>
+          val jf = jars.getOrElseUpdate(p, JarFile(p.toFile))
+          Option(jf.getEntry(file)).map(e => jf.getInputStream(e).readAllBytes())
+        case None => system(name)
+    new Classes(find, () => jars.values.foreach(_.close()))
+
+  /** the classes a function finds by INTERNAL name (`java/lang/Object`), null when it has none — a
+    * transformer's own lookup (okay-java's resumable transformation) */
+  def byInternalName(find: java.util.function.Function[String, Array[Byte]]): Classes =
+    new Classes(name => Option(find.apply(name.replace('.', '/'))))
+
+  /** a class file this JVM can read as a resource: the JDK's, and what is on its own class path */
+  def system(name: String): Option[Array[Byte]] =
+    Option(ClassLoader.getSystemResourceAsStream(name.replace('.', '/') + ".class"))
+      .map(s => try s.readAllBytes() finally s.close())
 
 /** THE BOUNDARY RULE ON TYPES (okay-safe's, on bytecode): what crosses from a
   * handlers or runtime module into business code — the arguments it passes to a

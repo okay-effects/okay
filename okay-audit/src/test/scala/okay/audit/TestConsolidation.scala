@@ -196,3 +196,14 @@ class TestConsolidation extends munit.FunSuite with okay.testkit.Munit.Diagnosed
     Files.writeString(manifest, s"""{"modules":[{"name":"biz","layer":"business","paths":["$biz"]}],
       "types":{"answers":{"fixture.biz.Op":"first"}}}""")
     assertEquals(Main.run(Array("--manifest", manifest.toString, "--report", out.toString)), 2)
+
+  test("Code.check for a Java caller: methods by name and descriptor, rules by name, classes by internal name"):
+    val bytes = Files.readAllBytes(classesDir.resolve("fixture/Statics.class"))
+    val classes = Classes.byInternalName(n => Classes.system(n.replace('/', '.')).orElse {
+      val f = classesDir.resolve(n + ".class"); Option.when(Files.exists(f))(Files.readAllBytes(f))
+    }.orNull)
+    val hits = Code.check(bytes, java.util.List.of("bump()I"), "state", classes)
+    note(hits.toString)
+    assertEquals(hits.size, 3)
+    assertEquals(hits.stream.filter(!_.said).count, 1L)
+    assert(Code.check(bytes, java.util.List.of("names()I"), "state", classes).isEmpty)

@@ -19,6 +19,13 @@ final case class Hit(cls: String, method: String, descriptor: String, line: Int,
   * its constructor, is a hit; such a field read is said. okay-java's resumable transformation calls it on the
   * methods it makes resumable (effectful code); `Audit.run` on every method of a business module. */
 object Code:
+  /** for a Java caller (okay-java's transformation): a class file, the methods in scope as `name + descriptor`, the
+    * rules as a build names them (`Presets.rules`) */
+  def check(bytes: Array[Byte], methods: java.util.Collection[String], rules: String, classes: Classes): java.util.List[Hit] =
+    import scala.jdk.CollectionConverters.*
+    val keys = methods.asScala.toSet
+    check(Scan.parse(bytes), m => keys(m.name + m.descriptor), Presets.rules(rules), classes).asJava
+
   /** the storage of a Scala lazy val (`x$lzy1`, `bitmap$0`): the compiler's idiom, written once, not state */
   def lazyStorage(name: String): Boolean = name.contains("$lzy") || name.startsWith("bitmap$") ||
     name.startsWith("0bitmap$")
