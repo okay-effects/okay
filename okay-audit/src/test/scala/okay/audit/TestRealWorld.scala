@@ -117,6 +117,10 @@ class TestRealWorld extends munit.FunSuite with okay.testkit.Munit.Diagnosed:
       val r = business(rules, cls("rw/Links"))
       assertEquals(r.findings.map(_.ref.member).toSet, Set("java.net.URI#toURL"), r.text)
     assert(!business(Boundary.Default, cls("Sockets")).passed)
+    val al = Audit.run(Boundary(Map("biz" -> Layer.Business), allowlist = Some(Allowlist.Default)),
+      Map("biz" -> Seq(cls("rw/Links"))))
+    assert(!al.findings.exists(f => Presets.PureNet.contains(f.ref.owner) && f.ref.name != "toURL"),
+      "on the default allowlist: " + al.text)
     val net = Boundary.Default.find(_.api == "java.net.").get
     assertEquals(net.except, Presets.PureNet)
     assert(Boundary(Map.empty).canonical.contains("rule java.net. except java.net.URLEncoder"))
@@ -194,7 +198,7 @@ class TestRealWorld extends munit.FunSuite with okay.testkit.Munit.Diagnosed:
       {"name": "lib", "layer": "business", "paths": ["${cls("Sockets")}"], "audited": "elsewhere"}]}"""): Unit
     val m = Manifest.read(manifest)
     assertEquals(m.elsewhere, Set("lib"))
-    assert(m.types.exists(_.programs.contains("com.acme.Prog")) && m.types.exists(_.programs.contains("okay.scala3.Prog")))
+    assert(m.types.exists(t => t.programs.contains("com.acme.Prog") && t.programs.contains("okay.scala3.Prog")))
     val report = Audit.run(m.boundary, m.modules)
     assert(report.passed, report.text)
     Files.writeString(manifest, s"""{"modules": [{"name": "lib", "layer": "business", "paths": ["${cls("Pure")}"],

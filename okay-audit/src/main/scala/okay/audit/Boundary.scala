@@ -133,7 +133,7 @@ object Allowlist:
     "scala.package$", "scala.reflect.ClassTag", "scala.reflect.Enum", "scala.deriving.", "scala.Array",
     "scala.Int$", "scala.Long$", "scala.Double$", "scala.Char$", "scala.Boolean$", "scala.Unit$",
     "scala.Tuple2$mcII$sp", "scala.NotImplementedError", "scala.annotation.", "scala.CanEqual",
-    "scala.LowPriorityImplicits"))
+    "scala.LowPriorityImplicits") ++ Presets.PureNet)   // a URI and the URL codecs are values (`Presets.PureNet`)
 
 object Boundary:
   /** the three bootstraps every compiler emits — a lambda, a string
@@ -205,8 +205,8 @@ final case class Preset(name: String, why: String, use: String, apis: Vector[Str
 
 /** THE PRESETS NAMED AFTER THE STANDARD EFFECTS (okay-java's resumable presets, okay-safe's deny list, moved here):
   * each forbids the ambient way of doing what an effect does, and names the effect. `Presets.rules("clock, fresh,
-  * java.lang.Thread")` selects; `pure` is every effect preset but `nested-run`, `strict` okay-java's former list; an entry that
-  * is no preset's name is a rule of its own. */
+  * java.lang.Thread")` selects; `pure` is every effect preset but `nested-run`, `strict` okay-java's former list;
+  * an entry that is no preset's name is a rule of its own. */
 object Presets:
   val UseState = "a State effect (okay.rows.std.State, okay.scala3.std.State, okay.safe.std.State) or a handler in place"
   val UseReader = "a Reader effect (okay.rows.std.Reader, okay.scala3.std.Reader, okay.safe.std.Reader)"
@@ -233,7 +233,8 @@ object Presets:
   /** pure values under the network's package: string codecs and a URI, which reaches nothing until `toURL` and an
     * open (both still rules) — the `except` of every `java.net.` rule */
   val PureNet: Vector[String] = Vector("java.net.URLEncoder", "java.net.URLDecoder", "java.net.URI")
-  def exceptOf(api: String): Vector[String] = if api == "java.net." || api == "java.net.*" then PureNet else Vector.empty
+  def exceptOf(api: String): Vector[String] =
+    if api == "java.net." || api == "java.net.*" then PureNet else Vector.empty
 
   // the ambient groups of the default rules, split where the replacing effect differs
   private val net = "network: reached through an effect (Http, Net) whose handler is a Handlers module"
@@ -340,7 +341,8 @@ object Presets:
     "java.lang.invoke.VarHandle", "sun.misc.Unsafe", "jdk.internal.", "java.lang.ProcessBuilder",
     "java.lang.Runtime#exec", "java.lang.Runtime#halt", "java.lang.Runtime#exit", "java.lang.System#exit",
     "java.lang.System#load", "java.lang.System#loadLibrary", "java.lang.Class#forName", "java.lang.Thread",
-    "java.util.concurrent.Executors", "java.net.URI#toURL").map(api => Rule(api, "strict: reaches the world other than by an effect",
+    "java.util.concurrent.Executors", "java.net.URI#toURL")
+    .map(api => Rule(api, "strict: reaches the world other than by an effect",
       INSTEAD.getOrElse(api, UseIo), exceptOf(api)))
 
   private lazy val INSTEAD: Map[String, String] =

@@ -162,7 +162,7 @@ fi
 if [ "$dry_run" = true ]; then
   echo "land.sh: --dry-run stops here. Would then:"
   echo "  git merge --ff-only $branch   (from $main, its own command)"
-  echo "  git worktree remove $wt"
+  echo "  sh scripts/worktree-remove.sh $wt   (deinit a clean okay-core first, then git worktree remove)"
   echo "  git branch -d $branch"
   if git ls-files --error-unmatch "$claim" >/dev/null 2>&1; then
     echo "  git rm $claim; git commit -m 'release-claim: $slug, landed as <sha>'"
@@ -189,7 +189,8 @@ echo "land.sh: landed as $sha"
 
 # --- 5. worktree remove ------------------------------------------------
 rm_exit=0
-git worktree remove "$wt" || rm_exit=$?
+# through worktree-remove.sh: a worktree with okay-core initialised is refused by a bare `git worktree remove`
+sh scripts/worktree-remove.sh "$wt" || rm_exit=$?
 echo "land.sh: worktree remove exit=$rm_exit"
 if [ "$rm_exit" -ne 0 ]; then
   echo "land.sh: worktree remove failed — master is already landed ($sha) and this is safe to leave; investigate $wt by hand (no --force attempted: this script never forces a removal)." >&2

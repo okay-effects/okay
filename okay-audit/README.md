@@ -32,13 +32,27 @@ evidence for an auditor to read, not a compliance claim.
 okay-audit is also what okay-java's resumable plugins (`forbid`) and okay-safe's
 whole-program check and seal use: presets named after the standard effects
 (`state`, `reader`, `writer`, `clock`, `fresh`, `async`, `io`, `nested-run`,
-`escape`; `pure`, `strict`), each rule's `use` — the effect to perform
+`escape`; `pure` — every effect preset but `nested-run` —, `strict`), each rule's `use` — the effect to perform
 instead, shown in every finding —, matching up a class's hierarchy, the
 state rule on code (method and line), an allowlist (deny by default) mode,
 the boundary rule on types (first-order data from handlers/runtime into
 business, read from descriptors and `Signature`s), and a seal with its
 verifier for a launcher (`okay.audit.Seal`). What moved from where:
 [`specs/okay-audit.md`](../specs/okay-audit.md), "Consolidation".
+
+## What the first real-world run changed (2026-11-13)
+
+Run read-only over twenty okay-effects repositories, it taught the check (specs/okay-audit.md, "The first
+real-world run"): Scala 3.3's lazy val is the compiler's idiom; a `packages` key may name a class with its
+nested ones; the allowlist passes other business and runtime modules; a seeded generator and the pure `java.net`
+values (`URLEncoder`, `URLDecoder`, `URI`) are not reaches; the type rule leaves `unapply`/`copy`/mixin calls
+alone, reads the kernels' program types as programs (`types.programs`), says an erased Scala `Object` instead of
+failing on it, counts per (class, target, reason) and suggests `types.data` entries; `nested-run` is a preset of its
+own, not `pure`'s (`runIsolated` never matches); static forwarders add nothing; every finding has its method,
+line and count; a mutable collection held in a static or object field and changed is state; a module may be
+`"audited": "elsewhere"`; a library's findings roll up per jar. `okay.audit.Export <sbt-root> <out>` writes the
+class directories, classpaths and a skeleton manifest of any sbt build
+([`specs/audit-cli-standalone.md`](../specs/audit-cli-standalone.md), "Getting the inputs").
 
 ## Maven and Gradle
 

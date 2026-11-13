@@ -67,7 +67,8 @@ object Export:
     val p = ProcessBuilder(cmd*).directory(root.toFile).redirectErrorStream(true).start()
     val out = String(p.getInputStream.readAllBytes(), "UTF-8").linesIterator.toVector
     if p.waitFor() != 0 then
-      throw Audit.Refused(s"export: sbt ${args.headOption.getOrElse("")} … failed:\n${out.takeRight(20).mkString("\n")}")
+      val tail = out.takeRight(20).mkString("\n")
+      throw Audit.Refused(s"export: sbt ${args.headOption.getOrElse("")} … failed:\n$tail")
     out
 
   def run(root: Path, out: Path): Vector[Project] =

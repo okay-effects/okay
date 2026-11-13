@@ -285,7 +285,8 @@ object Audit:
                 }
                 if state then
                   Code.check(c, _ => true, Vector(Presets.State), classes)
-                    .groupBy(h => (h.rule, h.site.ref.member, h.said)).toVector.sortBy(_._2.head.line).foreach { (_, hs) =>
+                    .groupBy(h => (h.rule, h.site.ref.member, h.said)).toVector.sortBy(_._2.head.line)
+                    .foreach { (_, hs) =>
                       val h = hs.head
                       val f = Finding(row, h.site.ref.copy(from = c.name), h.rule, s"${h.method} (line ${h.line})",
                         hs.size, source)
@@ -317,7 +318,8 @@ object Audit:
     val notElsewhere = (f: Finding) => !boundary.elsewhere(f.module.takeWhile(_ != ':'))
     Report(scanned, findings.result().filter(notElsewhere), inventory.result(), untracked.result(),
       boundary.allows.filterNot(used.contains), allowed.result(), jpms, said.result().filter(notElsewhere),
-      modules.keys.toVector.filter(boundary.elsewhere).sorted.map(m => m -> boundary.layers.getOrElse(m, Layer.Untracked)),
+      modules.keys.toVector.filter(boundary.elsewhere).sorted
+        .map(m => m -> boundary.layers.getOrElse(m, Layer.Untracked)),
       suggested.toVector.filter(_._2 >= 2).sortBy(s => (-s._2, s._1)))
 
   /** a business reference to a handlers module's class (allowlist mode, and the boundary on types) */
@@ -381,7 +383,8 @@ object Audit:
           args.lift(if i < 0 then args.size + i else i).foreach {
             case JArg.Exact(answer) => judge.data(answer, scala = c.scala).foreach { why =>
               out += ((module(row), Finding(row, Ref(c.name, Ref.Kind.Class, effect, "", ""),
-                boundaryRule(s"the answer of ${c.name}, an operation of $effect, must be first-order data: ${why.text}"),
+                boundaryRule(s"the answer of ${c.name}, an operation of $effect, must be first-order data: " +
+                  why.text),
                 "class header"), why))
             }
             case _ =>
@@ -396,7 +399,8 @@ object Audit:
         } ++ c.refs.map(_.owner)).distinct
       named.filter(n => classLayer.get(n).contains(Layer.Handlers)).sorted.foreach { n =>
         val at = c.methods.iterator.flatMap(m => m.sites.find(_.ref.owner == n).map(s => s"${m.name} (line ${s.line})"))
-          .nextOption().orElse(c.fields.find(f => f.descriptor.contains(n.replace('.', '/'))).map(f => s"field ${f.name}"))
+          .nextOption()
+          .orElse(c.fields.find(f => f.descriptor.contains(n.replace('.', '/'))).map(f => s"field ${f.name}"))
           .orElse(c.methods.find(m => (m.descriptor + m.signature.getOrElse("")).contains(n.replace('.', '/')))
             .map(m => s"${m.name} (signature)")).getOrElse("class header")
         out += ((module(row), Finding(row, Ref(c.name, Ref.Kind.Class, n, "", ""),

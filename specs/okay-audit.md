@@ -456,23 +456,23 @@ made the reports hard to read and two modes (allowlist, libs) unusable. This sec
 
 ### Behavior
 
-- [ ] **Scala 3.3's lazy val** (`LazyVals$.getOffsetStatic(C.class.getDeclaredField("x$lzyN"))` in the class's
+- [x] **Scala 3.3's lazy val** (`LazyVals$.getOffsetStatic(C.class.getDeclaredField("x$lzyN"))` in the class's
   initializer) is carved out like 3.8's VarHandle idiom: a `Class#getDeclaredField` site whose string is
   `…$lzyN` and whose next call is `scala.runtime.LazyVals$#getOffsetStatic` is not a reach; any other
   `getDeclaredField` (another name, or the field used for anything else) stays a finding. The type rule does not
   read a lazy val's cell (`x$lzyN`, `bitmap$N`) as "a var" (the state rule already did not)
-- [ ] a `packages` key names a class as well as a package: `okay.http.JdkHttp` covers `okay.http.JdkHttp$`,
+- [x] a `packages` key names a class as well as a package: `okay.http.JdkHttp` covers `okay.http.JdkHttp$`,
   `okay.http.JdkHttp$JdkClient`, `okay.http.JdkHttp$$anon$1` (`Cls$…`), not `okay.http.JdkHttpX`
-- [ ] the allowlist mode allows a reference to any class of a business or runtime row (another business module of
+- [x] the allowlist mode allows a reference to any class of a business or runtime row (another business module of
   the build, a dependency marked business or runtime); a handlers class is still "names a handler", an untracked
   or unknown one is still checked against the list
-- [ ] randomness: `java.util.Random#<init>(J)`, `scala.util.Random#<init>(J)` (and `SplittableRandom(J)`) — a
+- [x] randomness: `java.util.Random#<init>(J)`, `scala.util.Random#<init>(J)` (and `SplittableRandom(J)`) — a
   seeded generator, deterministic — and calls on such an instance are not findings; `new Random()`, the
   `scala.util.Random` object, `ThreadLocalRandom`, `SecureRandom`, `UUID#randomUUID`, `Math#random` are
-- [ ] `java.net.URLEncoder`, `java.net.URLDecoder` and `java.net.URI` (string codecs and a value) are out of the
+- [x] `java.net.URLEncoder`, `java.net.URLDecoder` and `java.net.URI` (string codecs and a value) are out of the
   `java.net.` rule, `URI#toURL` is not; a rule carries its exceptions (`Rule.except`) so the carve-out is listed
   with the rule, in the report's header
-- [ ] the type rule, precision: (a) a host calling `unapply`, `unapplySeq`, `copy`, `copy$default$N`, `_N`,
+- [x] the type rule, precision: (a) a host calling `unapply`, `unapplySeq`, `copy`, `copy$default$N`, `_N`,
   `productElement`, `equals`, `hashCode`, `toString`, `canEqual` of a business class, or a business trait's own
   implementation for itself (`$init$`, a static `m$` the host's class inherits), is not "the host gives";
   (b) `types.programs` (default: okay-scala's `okay.scala3.Prog`, okay.rows' `okay.rows.Comp`, okay-safe's
@@ -482,23 +482,23 @@ made the reports hard to read and two modes (allowlist, libs) unusable. This sec
   Java class it stays a finding; (d) one type finding per (class, target, reason) with its occurrence count;
   (e) the report suggests `types.data` entries: a final business or runtime class with final fields that fails only
   through a leaf (an array, `Object`, a library class) and is named in two or more findings
-- [ ] `nested-run` is its own preset, NOT in `pure` (decision below); `runIsolated` (okay-scala's
+- [x] `nested-run` is its own preset, NOT in `pure` (decision below); `runIsolated` (okay-scala's
   `Prog$package$`/`Cek$`), `okay.rows.Effects#runIsolated`/`#stepIsolated`, okay-java's `okay.core.Eff#runIsolated`
   — the sanctioned run of a closed sub-program — never match it
-- [ ] a Scala static forwarder (a static method `m` of class `C` calling `C$#m`, `X$package` → `X$package$`) is not
+- [x] a Scala static forwarder (a static method `m` of class `C` calling `C$#m`, `X$package` → `X$package$`) is not
   where a reach is made: its reference is not a finding of `C`, the module class's own is
-- [ ] every finding carries `at` — the method and the LineNumberTable line of its first site, and how many sites
+- [x] every finding carries `at` — the method and the LineNumberTable line of its first site, and how many sites
   (`count`); a reference no code makes (a class header, InnerClasses) says `class header`
-- [ ] the state rule, held collections: a business method that loads a static field or a Scala object's field whose
+- [x] the state rule, held collections: a business method that loads a static field or a Scala object's field whose
   type is a mutable collection (`scala.collection.mutable.`, `scala.collection.concurrent.`, `java.util.` maps,
   lists, sets, queues and their concurrent kinds, `java.util.concurrent.atomic.`) and calls a mutating method on that
   type (put, add, update, remove, clear, `+=`, compareAndSet, …) outside the owner's initializer is a finding; the
   same through an instance field of a business class is said. `scala.concurrent.Promise` is in `async`
-- [ ] a module may be `"audited": "elsewhere"`: its classes inform the hierarchy, the allowlist and the type rule
+- [x] a module may be `"audited": "elsewhere"`: its classes inform the hierarchy, the allowlist and the type rule
   under its layer, its own findings, said lines and inventory are not repeated — it is listed once, by layer
-- [ ] findings in a jar (a third-party library under a business row) are rolled up in the text report, one line per
+- [x] findings in a jar (a third-party library under a business row) are rolled up in the text report, one line per
   jar: how many, by group (network, files, escape hatch, …); the JSON keeps every finding, with its `source` input
-- [ ] getting the inputs: `okay-audit/tools/export.scala` (scala-cli, no Python) writes, for any sbt build, one line
+- [x] getting the inputs: `okay-audit/tools/export.scala` (scala-cli, no Python) writes, for any sbt build, one line
   per project — name, class directory, runtime classpath — and a skeleton manifest with every project `untracked`;
   `specs/audit-cli-standalone.md` documents it and the by-hand `export` recipe
 
@@ -517,3 +517,42 @@ made the reports hard to read and two modes (allowlist, libs) unusable. This sec
 - **Held collections by load-then-mutate in one method**, not data flow: a method that loads the field and calls a
   mutating method on its type is counted; it over-approximates (another receiver of the same type in the same
   method) and says so in the finding's why.
+
+### Results (2026-11-13)
+
+`TestRealWorld`, 13 tests beside `TestAudit`'s and `TestConsolidation`'s (45 in all, 4 s): the real Scala 3.3.8 class
+file (okay-simple's `Shape$Deferred`, kept as bytes) passes with its `getDeclaredField`, and two other uses of
+`getDeclaredField` are one finding counted twice; a lazy cell is not a var while a real one is; a Java `Object`
+field is still a finding while a Scala union is said; a final wrapper over an array is suggested; `unapply`,
+`copy`, `$init$` and `name$` from a host are not "the host gives" while a host's lambda still is; a program type is
+a function without `types.programs` and a program with it; a class key covers `Edge$Client` and `Edge$1` and not
+`EdgeX`; the allowlist passes another business or runtime module, names a handler, refuses an untracked class;
+seeded `java.util.Random`, `scala.util.Random` and `SplittableRandom` pass while the unseeded, global, secure and
+thread-local ones are placed findings; `URLEncoder`/`URLDecoder`/`URI` pass under `default`, `io` and `strict`
+while `URI#toURL` and a socket do not; `runIsolated`/`stepIsolated` never match `nested-run`, which `pure` lacks; a
+static forwarder adds no finding; held collections in Java statics and a Scala object are findings at their
+method, an instance's map is said, a table filled in the initializer is nothing; an elsewhere module is listed and
+not repeated; a jar's findings roll up to one line; the manifest's `audited` and `types.programs`; `Export`'s
+parsing and skeleton on sbt's real output.
+
+**The re-run over the 20 repositories** (`~/work/my/okay-audit-report/REPORT-2.md`; same inputs, the sha-256 of
+every input equal to the first run's): own-module findings 1374 → 715 (direct 475 → 298, type rule 899 → 417),
+356 lines said; the allowlist mode 25 354 → 4 867 (okay-mall 4 939 → 120); the libraries run's text 60 584 → 5 290
+lines (okay-uplc 29 021 raw findings → 4 180 distinct reaches over 50 jars). By false-positive class, v1 → v2: the
+3.3 lazy val 48 → 0, lazy cells as vars 107 → 0, `Object says nothing` 248 → 0 (235 said as erased), program as
+a function 25 → 1 (a real thunk returning a program), unapply/copy/mixin 263 → 0, pure `java.net` 18 → 0, seeded
+random 18 → 0, nested-run 9 → 0 (now its own preset), bare class beside its members 135 → 25. New: 16 `Promise`
+uses in business code, one global held map (okay-mall `Drawn.kept`), 120 instance-held collections said. Still
+findings by design: `okay.http.Bytes` (52 → 37) until a manifest vouches for it — every repository using it now
+gets the suggestion. The dogfood (`sbt audit`) still passes; its inventory no longer lists seeded generators.
+
+Decisions taken while measuring:
+
+- **A bare class reference is carried by the class's member references to the same owner** — a class rule matches
+  both, so the bare one only doubled every line (`java.util.Random` beside `java.util.Random#<init>`); kept where
+  no member names the owner (a `checkcast`, a header's type).
+- **Held collections read the field's own type**: the first cut counted `getstatic Stack$.MODULE$` (a companion,
+  under `scala.collection.mutable.`) and then any mutating call — okay-datalog's local stacks; the field must not be
+  `MODULE$`, its type no companion, and the mutating call on that type or a supertype of it.
+- **A jar on several business rows is one reach per (class, member, rule)**: the libs manifests put a dependency
+  under every business project that has it (okay-uplc: five), which multiplied each library's count by five.

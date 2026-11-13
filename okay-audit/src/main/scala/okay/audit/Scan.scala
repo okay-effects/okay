@@ -35,7 +35,8 @@ final case class FieldInfo(access: Int, name: String, descriptor: String, signat
   def isStatic: Boolean = (access & 0x0008) != 0
   def isFinal: Boolean = (access & 0x0010) != 0
 
-final case class MethodInfo(access: Int, name: String, descriptor: String, signature: Option[String], sites: Vector[Site]):
+final case class MethodInfo(access: Int, name: String, descriptor: String, signature: Option[String],
+                            sites: Vector[Site]):
   def isStatic: Boolean = (access & 0x0008) != 0
 
 /** a class file as this module reads it: its name and supertypes, its fields

@@ -42,7 +42,8 @@ object Code:
     for m <- info.methods if inScope(m) do
       // the nearest field load before a call: (field's owner, name, type, global) — the held-collection rule
       var held = Option.empty[(String, String, String, Boolean)]
-      for (s, i) <- m.sites.zipWithIndex if s.isMember && !Boundary.isBootstrap(s.ref) && !Boundary.excused(info, m, i) do
+      for (s, i) <- m.sites.zipWithIndex
+          if s.isMember && !Boundary.isBootstrap(s.ref) && !Boundary.excused(info, m, i) do
         def hit(rule: Rule, said: Boolean): Unit = out += Hit(info.name, m.name, m.descriptor, s.line, s, rule, said)
         apis.find(_.matchesUp(s.ref, classes.supers)) match
           case Some(rule) => hit(rule, said = false)
