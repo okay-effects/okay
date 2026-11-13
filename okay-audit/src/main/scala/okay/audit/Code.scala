@@ -35,7 +35,8 @@ object Code:
     val stateRule = rules.find(_.api == "state").getOrElse(Presets.State)
     val apis = rules.filter(r => r.api != "state")
     val out = Vector.newBuilder[Hit]
-    for m <- info.methods if inScope(m); s <- m.sites if !Boundary.isBootstrap(s.ref) do
+    // a `new` is followed by its constructor's call, which names the same class: the call is the one counted
+    for m <- info.methods if inScope(m); s <- m.sites if s.op != Site.New && !Boundary.isBootstrap(s.ref) do
       def hit(rule: Rule, said: Boolean) = out += Hit(info.name, m.name, m.descriptor, s.line, s, rule, said)
       apis.find(_.matchesUp(s.ref, classes.supers)) match
         case Some(rule) => hit(rule, said = false)
