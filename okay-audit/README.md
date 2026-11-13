@@ -27,6 +27,19 @@ Zero dependencies. The report says what the check chose not to count
 (compiler bootstraps, the lazy-val idiom) in its header, every run. It is
 evidence for an auditor to read, not a compliance claim.
 
+## One checker for the family (2026-11-13)
+
+okay-audit is also what okay-java's resumable plugins (`forbid`) and okay-safe's
+whole-program check and seal use: presets named after the standard effects
+(`state`, `reader`, `writer`, `clock`, `fresh`, `async`, `io`, `nested-run`,
+`escape`; `pure`, `strict`), each rule's `use` — the effect to perform
+instead, shown in every finding —, matching up a class's hierarchy, the
+state rule on code (method and line), an allowlist (deny by default) mode,
+the boundary rule on types (first-order data from handlers/runtime into
+business, read from descriptors and `Signature`s), and a seal with its
+verifier for a launcher (`okay.audit.Seal`). What moved from where:
+[`specs/okay-audit.md`](../specs/okay-audit.md), "Consolidation".
+
 ## Maven and Gradle
 
 Build the `okay-audit` artifact once, then invoke its JVM main class from a

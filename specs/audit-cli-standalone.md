@@ -34,6 +34,11 @@ java -cp <okay-audit runtime classpath> okay.audit.Main \
 ```
 
 `layer` is exactly `business`, `handlers`, `runtime`, or `untracked`.
+Optional since audit-consolidate (2026-11-13): `"rules": "default, state, nested-run"` (presets
+by name and entries, `Presets.rules`; default `Boundary.Default`), `"allowlist": "default"` or an
+array of entries (deny by default for business), and `"types": {"data": [...], "answers":
+{"com.acme.Op": "0"}}` (the boundary rule on types; `data` adds to `Types.Data`, an answer index
+is a string, `-1` the last argument). An unknown preset is an entry; a non-numeric index is refused.
 `paths` is required and non-empty; paths resolve relative to the manifest.
 `packages` and `allows` default to empty. The command writes `report.txt`
 and `report.json` below `--report`, returns 0 for a pass, 1 for findings and
