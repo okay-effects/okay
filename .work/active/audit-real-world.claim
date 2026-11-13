@@ -1,7 +1,0 @@
-feature/audit-real-world 2026-11-13T18:34:54Z
-agent: claude-code (okay-audit: the 12 lessons of the 20-repo run, ~/work/my/okay-audit-report)
-heartbeat: 2026-11-13T18:34:54Z
-status: in-progress
-worktree: ../okay-wt-audit-real-world
-done-so-far:
-next: spec section, then the 12 items with fixtures, re-run, REPORT-2.md
