@@ -319,3 +319,77 @@ Deviation from the Interface above: `Report.json` is written by a
 twenty-line writer of its own, not okay-codec's `Json` — the module stays
 at zero dependencies so a Maven/Gradle user of the Java facade (stage 2)
 can run it alone.
+
+## Consolidation (2026-11-13, audit-consolidate)
+
+Three checkers had grown over the same question — "does code that should only
+perform effects reach the world, or receive what is not data?": this module,
+okay-java's resumable guard (`--forbid`, presets named after okay.rows.std's
+effects, the static-state rule) and okay-safe's whole-program check (a
+deny-by-default allowlist, the boundary rule on types, a sealed deployment
+verified at launch). The operator approved one checker: okay-audit, on
+bytecode, zero dependencies, its report evidence. The other two keep only
+what a bytecode check cannot see (okay-java: the transformation's own rules;
+okay-safe: what TASTy alone carries) and call this module for the rest.
+
+### Interface (additions)
+
+```scala
+final case class Rule(api: String, why: String, use: String = "")   // `use`: the effect to perform instead
+object Presets:                       // named after the standard effects
+  val all: Vector[Preset]            // state, reader, writer (= trail), clock, fresh, async, io, nested-run, escape
+  def rules(list: String): Vector[Rule]  // "clock, fresh, java.lang.Thread" — presets, `pure` (all), `strict`, entries
+final case class Allowlist(entries: Vector[String])   // deny by default for business: what it may name
+final case class Types(data: Vector[String] = Types.Data, answers: Map[String, Int] = Map.empty)
+final case class Boundary(..., allowlist: Option[Allowlist] = None, types: Option[Types] = None)
+object Scan:
+  def parse(bytes: Array[Byte]): ClassInfo   // + fields, methods, code sites with lines, Signature attributes
+object Code:
+  def check(info: ClassInfo, methods: MethodInfo => Boolean, rules: Vector[Rule], classes: Classes): Vector[Hit]
+object Seal:                           // a build that proves it was checked; verified by a launcher
+  def of(report: Report, config: String, files: Vector[(String, String)], fields: Vector[(String, String)]): Seal
+  def verify(seal: Seal, present: Vector[(String, String)], ...): Either[String, Unit]
+```
+
+### Behavior
+
+- [ ] every rule may carry `use`, the effect to perform instead (okay.rows.std
+  for Java, okay-scala's `okay.scala3.std`, okay-safe's `okay.safe.std`); a
+  finding shows it (`— use …`) in text and json; `Boundary.Default` names one
+  for every rule that has a replacement
+- [ ] presets named after the standard effects — state, reader, writer/trail,
+  clock, fresh, async, io, nested-run, escape; `pure` is all of them, `strict`
+  okay-java's former list — select rules by name; an entry that is no preset
+  is a rule (okay-java's `pkg.*` and `Owner.member` spellings accepted)
+- [ ] a class or member rule matches up the owner's superclasses and
+  interfaces, as far as their class files are found among the inputs and the
+  JDK: a subclass of `Thread` is a `Thread`, `String#wait` is `Object#wait`
+- [ ] the nested-run rule: business code calling a top-level runner
+  (okay.rows `Effects.run/step`, okay-scala's `run`, okay-safe's `run`/`step`,
+  okay-direct's `Effects`) is a finding naming what to do instead
+- [ ] the state rule: a business method writing a static field that is not
+  final (outside its own class's initializer), or a field of a Scala `object`
+  outside its constructor, is a finding; reading a non-final static is SAID
+  (listed, not failed) — a static nothing writes may be a constant
+- [ ] the allowlist mode: with `allowlist` set, a business reference that no
+  rule names is still a finding unless it is to the module's own classes, to a
+  runtime module's, or matches an entry; a reference to a handlers module's
+  class is a finding of its own ("names a handler")
+- [ ] the boundary rule on types (with `types` set), from descriptors and
+  `Signature` attributes, so for Java, Kotlin and Scala alike: what a handlers
+  or runtime module passes to a business method or constructor, and an
+  operation's answer (`answers`: an effect type and which type argument is its
+  answer), must be first-order data — primitives, strings, numbers, the
+  `data` list, immutable Scala collections/options/tuples of data, and
+  business or runtime classes that are final or closed (no handlers or
+  runtime class extends them) with final fields of data; a function, `Object`,
+  an array, a library class or a handler's class is a finding saying which
+- [ ] a business class naming a handlers module's class in a field, a method
+  signature or a reference is a finding ("names the host's type") when `types`
+  is set
+- [ ] a seal: the check's version, the configuration's hash, the result, the
+  launcher options recorded, extra fields of the caller's, and the SHA-256 of
+  every file; `Seal.verify` refuses a file added, changed or missing, a failed
+  result, and a JVM started without an option the seal records
+- [ ] okay-java's resumable plugins and okay-safe's whole check and gate use
+  these instead of their own copies (their repositories; Results below)
