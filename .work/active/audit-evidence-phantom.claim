@@ -1,0 +1,7 @@
+feature/audit-evidence-phantom 2026-11-14T12:09:56Z
+agent: claude-code (okay-audit: row evidence's type arguments are phantom, types.evidence; then 0.1.4 republished)
+heartbeat: 2026-11-14T12:09:56Z
+status: in-progress
+worktree: ../okay-wt-audit-evidence-phantom
+done-so-far:
+next: spec, types.evidence + test, README, gate, land, republish 0.1.4
