@@ -1,0 +1,7 @@
+feature/audit-held-receiver-warnings 2026-11-14T08:27:45Z
+agent: claude-code (okay-audit Scan: four warnings of audit-held-receiver, seen by ci-runner)
+heartbeat: 2026-11-14T08:27:45Z
+status: in-progress
+worktree: ../okay-wt-audit-held-receiver-warnings
+done-so-far:
+next: fix, clean compile, land
