@@ -602,3 +602,29 @@ Checked on the real class files: okay-mall's `Drawn$` (Scala 3.3.8) gives the on
 `of$$anonfun$2` line 851; the scanner over the Scala 3 and 2.13 libraries and jmh-core (3 347 classes, 101 185
 calls, 28 499 receivers known) never fails. The dogfood (`sbt audit`) passes, its report unchanged but for two
 digests.
+
+## okay-http's `Bytes` is data by default (2026-11-14, audit-data-bytes, 0.1.3)
+
+REPORT-2 and REPORT-3 (`~/work/my/okay-audit-report`) found `okay.http.Bytes` "not data" in nine repositories — 40 of
+okay-serverless' 48 findings after its split — because its one field is a `byte[]`, and suggested it for
+`types.data` everywhere. The operator decided (2026-11-14) that it counts as data. Checked first in okay-http
+(`1cc7d09`): `Bytes` is immutable — the array is private, `Bytes(array)` and `Bytes.body` copy it in, `toArray`
+copies it out, `slice` copies, nothing returns or keeps the caller's array; its `HttpSuite` pins that, and its
+README and AGENTS.md say so.
+
+### Behavior
+
+- [x] `Types.Data`, the default `types.data`, lists `okay.http.Bytes` beside the JDK's and Scala's data, as
+  `Types.Programs` lists the kernels' program types: a handler giving business code a `Bytes` (or a value holding
+  one, such as `okay.http.Request`) is not a finding, in every manifest without a word of configuration
+- [x] a raw `byte[]` stays a finding: given to a business method directly, and given to `Bytes`' own factory when
+  okay-http's classes are on a business row (the copy happens inside; the rule judges what crosses, not what the
+  callee does with it)
+- [x] a manifest's `"types": {"data": [...]}` still only ADDS to the default list; a `Types` built in code with its
+  own `data` replaces it (the test shows `Bytes` back as a finding without the default)
+
+### Decisions
+
+- **A name, not a shape.** The check cannot prove a final class over a private array immutable from bytecode (it
+  would have to follow every method that reads the field); it trusts a list. The list names one class of one family
+  library whose author vouches for it (okay-http's test and docs), the way `java.lang.String` is trusted.
