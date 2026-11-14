@@ -1,8 +1,10 @@
 package okay.audit
 
 /** one instruction of a method under a rule: its class, method, line, what it does, the rule; `said` when it is
-  * listed and not failed (a static field read that is not final: it may be a constant nothing writes) */
-final case class Hit(cls: String, method: String, descriptor: String, line: Int, site: Site, rule: Rule, said: Boolean):
+  * listed and not failed (a static field read that is not final: it may be a constant nothing writes); `holder` for a
+  * held collection changed in place, the field and what it is (`C.f, a static field holding a mutable collection`) */
+final case class Hit(cls: String, method: String, descriptor: String, line: Int, site: Site, rule: Rule, said: Boolean,
+                     holder: String = ""):
   /** `calls exit of`, `constructs`, `writes count of`, `reads cache of` — as okay-java's messages said it */
   def what: String = site.op match
     case Site.GetStatic | Site.GetField => s"reads ${site.ref.name} of"
@@ -40,8 +42,9 @@ object Code:
     // a `new` is followed by its constructor's call, which names the same class: the call is the one counted; the
     // other class-naming sites (checkcast, instanceof, ldc) only place a reference for a report
     for m <- info.methods if inScope(m) do
-      // the nearest field load before a call: (field's owner, name, type, global) — the held-collection rule
-      var held = Option.empty[(String, String, String, Boolean)]
+      // the held-collection rule: a field load's (or an object's accessor's) site index -> (the field's owner, name,
+      // type, what it is); a mutating call whose receiver (`Site.recv`) is one of them is the finding
+      val held = scala.collection.mutable.Map.empty[Int, (String, String, String, Holder)]
       for (s, i) <- m.sites.zipWithIndex
           if s.isMember && !Boundary.isBootstrap(s.ref) && !Boundary.excused(info, m, i) do
         def hit(rule: Rule, said: Boolean): Unit = out += Hit(info.name, m.name, m.descriptor, s.line, s, rule, said)
@@ -63,20 +66,22 @@ object Code:
                 hit(stateRule, said = true)
               case _ =>
             // HELD COLLECTIONS: a field of a mutable collection's type loaded (or read through an object's accessor),
-            // then a mutating call on that type, outside the owner's initializer
+            // then a mutating call on that very value (the call's receiver), outside the owner's initializer
             s.op match
               case Site.GetStatic | Site.GetField if !lazyStorage(s.ref.name) && s.ref.name != "MODULE$" =>
-                if !initializing then field.map(f => typeName(f.descriptor)).filter(mutable(_, classes))
-                  .foreach(t => held = Some((owner, s.ref.name, t, s.op == Site.GetStatic || module)))
+                if !initializing then field.map(f => typeName(f.descriptor)).filter(mutable(_, classes)).foreach { t =>
+                  val holder = if module then Holder.Module
+                    else if s.op == Site.GetStatic then Holder.Static else Holder.Instance
+                  held(i) = (owner, s.ref.name, t, holder)
+                }
               case _ if s.ref.descriptor.startsWith("()") && module && !initializing =>
-                held = classes.field(owner, s.ref.name).filterNot(_.isStatic).map(f => typeName(f.descriptor))
-                  .filter(mutable(_, classes)).map(t => (owner, s.ref.name, t, true)).orElse(held)
+                classes.field(owner, s.ref.name).filterNot(_.isStatic).map(f => typeName(f.descriptor))
+                  .filter(mutable(_, classes)).foreach(t => held(i) = (owner, s.ref.name, t, Holder.Module))
               case _ if Mutating(s.ref.name) && mutable(owner, classes) =>
                 // the call is on the held field's type (or a supertype of it): another collection's call is not its
-                held.filter((_, _, t, _) => classes.supers(t).contains(owner)).foreach { (o, f, t, global) =>
-                  out += Hit(info.name, m.name, m.descriptor, s.line, s, Presets.held(stateRule, o, f, t, global),
-                    said = !global)
-                  held = None
+                held.remove(s.recv).filter((_, _, t, _) => classes.supers(t).contains(owner)).foreach { (o, f, t, h) =>
+                  out += Hit(info.name, m.name, m.descriptor, s.line, s, Presets.held(stateRule, o, f, t, h.global),
+                    said = !h.global, holder = s"$o.$f, ${h.text}")
                 }
               case _ =>
           case None =>
@@ -181,3 +186,10 @@ object Judge:
       val w = whys.next()
       if w.erased then { if erased.isEmpty then erased = Some(w) } else definite = Some(w)
     definite.orElse(erased)
+
+/** what holds a mutable collection changed in place: a static field or a Scala object's (global state, a finding), an
+  * instance's (said) */
+enum Holder(val text: String, val global: Boolean):
+  case Static extends Holder("a static field holding a mutable collection", true)
+  case Module extends Holder("a field of a Scala object holding a mutable collection", true)
+  case Instance extends Holder("an instance's field holding a mutable collection", false)

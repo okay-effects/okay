@@ -567,20 +567,20 @@ list changed is not the field's, and the field is final.
 
 ### Behavior
 
-- [ ] the scanner tracks, per method, which instruction produced each operand-stack value (a member site: a field
+- [x] the scanner tracks, per method, which instruction produced each operand-stack value (a member site: a field
   load or a call's result; anything else is unknown): every opcode's stack effect in slots, `dup`s and `swap`
   copying origins, `checkcast` passing one through. A call's `Site` carries `recv`, the index of the site whose
   value is its receiver (`-1`: unknown); a static call's `recv` is its first argument's (a trait forwarder `put$`)
-- [ ] across branches: a forward jump's state joins its target's (an origin kept where both agree); a backward jump's
+- [x] across branches: a forward jump's state joins its target's (an origin kept where both agree); a backward jump's
   target and an exception handler start unknown
-- [ ] a local stored from a load and read back keeps the origin: within the flow, and for a slot stored exactly once in
+- [x] a local stored from a load and read back keeps the origin: within the flow, and for a slot stored exactly once in
   the method (not a parameter's) everywhere after its store — a loop over a list loaded before it is still seen
-- [ ] the held-collection finding requires the mutating call's `recv` to be the held load (a static field's, a Scala
+- [x] the held-collection finding requires the mutating call's `recv` to be the held load (a static field's, a Scala
   object's field's or its accessor's result); a mutating call on another receiver of the same type is nothing
-- [ ] a held-collection `Hit` names its holder (`holder`: `C.f, a static field holding a mutable collection`, `… a
+- [x] a held-collection `Hit` names its holder (`holder`: `C.f, a static field holding a mutable collection`, `… a
   field of a Scala object holding …`, `… an instance's field holding …`), so a caller (okay-java) words it right —
   "not final" is for a static field that is not final
-- [ ] tests: okay-java's `Ambient.clean` (no finding); `static final List L; … L.add(x)` through a local, a loop and a
+- [x] tests: okay-java's `Ambient.clean` (no finding); `static final List L; … L.add(x)` through a local, a loop and a
   ternary argument (findings); a Scala object's `update`/`+=`; okay-mall's `Drawn.kept` shape (`synchronized`, the
   update in a `getOrElse` closure) a finding
 
@@ -589,3 +589,16 @@ list changed is not the field's, and the field is final.
 - **Origins, not a verifier**: one linear pass with forward joins is enough for javac's and scalac's shapes; a value
   whose origin is not known is never a held receiver, so an unknown can only miss a finding (said in the rule's
   why: "the load's own value, mutated"), never invent one.
+
+### Results (2026-11-14)
+
+`TestRealWorld`'s "held collections follow the receiver" (46 tests in all): `Held.clean` and `Held.other` (a static
+list read, a local one added to — before and after) are nothing; `L.add` directly, through a local and in a loop
+(the local stored once, read after the loop's backward jump) is one finding counted three times; `M.put(k, v == null
+? 0 : v)` (a forward join between the load and the call) is found; `Drawn.kept`'s update inside `synchronized` and a
+`getOrElse` closure is found, `+=` on an object's buffer too, a local buffer beside it not. `Hit.holder` names the
+field and what holds it — a Scala object's field is said as one even where Scala 3 compiles it `static` in `X$`.
+Checked on the real class files: okay-mall's `Drawn$` (Scala 3.3.8) gives the one finding REPORT-2.md counted, at
+`of$$anonfun$2` line 851; the scanner over the Scala 3 and 2.13 libraries and jmh-core (3 347 classes, 101 185
+calls, 28 499 receivers known) never fails. The dogfood (`sbt audit`) passes, its report unchanged but for two
+digests.

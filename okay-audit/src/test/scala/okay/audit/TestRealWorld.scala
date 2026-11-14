@@ -157,6 +157,32 @@ class TestRealWorld extends munit.FunSuite with okay.testkit.Munit.Diagnosed:
     val promise = Ref("x.Y", Ref.Kind.Method, "scala.concurrent.Promise$", "apply", "()Lscala/concurrent/Promise;")
     assert(Presets.rules("async").exists(_.matches(promise)))
 
+  test("held collections follow the receiver: the loaded value itself, not another of its type"):
+    val r = business(Presets.rules("state"), cls("rw/Held", "rw/Drawn"))
+    note(r.text)
+    def held(field: String) = r.findings.filter(_.rule.why.contains(s".$field holds a mutable"))
+    // okay-java's Ambient.clean: NAMES read with size(), a local list added to — nothing; the same after L read
+    assert(!r.findings.exists(f => f.at.startsWith("clean") || f.at.startsWith("other")), r.text)
+    assert(held("NAMES").isEmpty, r.text)
+    assertEquals(held("L").map(_.count).sum, 3, r.text)               // direct, local, loop: one finding, three sites
+    assert(held("M").exists(_.at.startsWith("branch")), r.text)
+    // okay-mall's Drawn.kept, in a closure under synchronized; `+=` on an object's buffer; a local buffer is not
+    assert(held("kept").exists(f => f.ref.from == "fixture.rw.Drawn$" && f.at.startsWith("of")), r.text)
+    assert(held("names").exists(_.at.startsWith("note")), r.text)
+    assertEquals(held("names").map(_.count).sum, 1, r.text)            // note only: local's += is its own buffer's
+    // what okay-java words the finding with
+    val classes = Classes(Seq(classesDir))
+    val hits = Code.check(Scan.parse(Files.readAllBytes(classesDir.resolve("fixture/rw/Held.class"))), _ => true,
+      Presets.rules("state"), classes)
+    assert(hits.exists(h => h.method == "direct" && h.holder == "fixture.rw.Held.L, a static field holding a " +
+      "mutable collection"), hits.mkString("\n"))
+    assertEquals(hits.filter(_.holder.nonEmpty).map(_.method).toSet, Set("direct", "local", "loop", "branch"),
+      hits.mkString("\n"))
+    val drawn = Code.check(Scan.parse(Files.readAllBytes(classesDir.resolve("fixture/rw/Drawn$.class"))), _ => true,
+      Presets.rules("state"), classes)
+    assert(drawn.exists(_.holder == "fixture.rw.Drawn$.kept, a field of a Scala object holding a mutable collection"),
+      drawn.mkString("\n"))
+
   test("audited elsewhere: classes inform, findings are not repeated; jars roll up in the text, not in the json"):
     val lib = cls("rw/Edge")
     val r = Audit.run(Boundary(Map("biz" -> Layer.Business, "lib" -> Layer.Business), elsewhere = Set("lib")),

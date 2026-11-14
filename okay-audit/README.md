@@ -49,7 +49,8 @@ values (`URLEncoder`, `URLDecoder`, `URI`) are not reaches; the type rule leaves
 alone, reads the kernels' program types as programs (`types.programs`), says an erased Scala `Object` instead of
 failing on it, counts per (class, target, reason) and suggests `types.data` entries; `nested-run` is a preset of its
 own, not `pure`'s (`runIsolated` never matches); static forwarders add nothing; every finding has its method,
-line and count; a mutable collection held in a static or object field and changed is state; a module may be
+line and count; a mutable collection held in a static or object field and changed is state (the call's receiver
+must be the field's own value, since 0.1.2: a local list of the same type is not the field); a module may be
 `"audited": "elsewhere"`; a library's findings roll up per jar. `okay.audit.Export <sbt-root> <out>` writes the
 class directories, classpaths and a skeleton manifest of any sbt build
 ([`specs/audit-cli-standalone.md`](../specs/audit-cli-standalone.md), "Getting the inputs").

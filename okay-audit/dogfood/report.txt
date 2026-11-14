@@ -355,8 +355,8 @@ INPUTS
   okay-async  maven2:org/openjdk/jmh/jmh-generator-bytecode/1.37/jmh-generator-bytecode-1.37.jar  sha256:619b3d15a5e8bfc4ec49d3b7a64dbed053a0ca8625820a49a4f869d1b8c71d09
   okay-async  maven2:org/openjdk/jmh/jmh-generator-reflection/1.37/jmh-generator-reflection-1.37.jar  sha256:a0421dbbe5e77690df2dfdef98618b62852d816bbb814c5cbd0b4d464bff32b0
   okay-async  maven2:org/ow2/asm/asm/9.0/asm-9.0.jar  sha256:0df97574914aee92fd349d0cb4e00f3345d45b2c239e0bb50f0a90ead47888e0
-  okay-async  okay-async/.jvm/target/scala-3.9.0/classes  sha256:8b25fe89a4c7c3fb9cf81bfdca73ebe0de4014d75bedbed236a487f56b448f48
-  okay-audit  okay-audit/target/scala-3.9.0/classes  sha256:8c6bda87d57365bd906d82a972aaa8cba1756bfc92bea1581f38b4dc66094fa5
+  okay-async  okay-async/.jvm/target/scala-3.9.0/classes  sha256:de5fa4fa3108c28759b942fae788bf3228d4efaa9e7a8a15cfa47641c8f77d3f
+  okay-audit  okay-audit/target/scala-3.9.0/classes  sha256:b8491b2067d48aa7d62597a63a1a98d9d4c0739926714ab8e9cb3be24babb0fc
   okay-bayes  okay-bayes/.jvm/target/scala-3.9.0/classes  sha256:9add7c92a669131306598eabe5465f501397a5dea1b1706c13191fde6ff6d1eb
   okay-blob  okay-blob/.jvm/target/scala-3.9.0/classes  sha256:3f16bd07328207745a94a327da78918ef950809fe8d9c86d3796cb8b7d9b38b7
   okay-cache  okay-cache/.jvm/target/scala-3.9.0/classes  sha256:22d3aaff099b55a12e1412af06627b158cbfcada3da719ba5ace404d002e93a1

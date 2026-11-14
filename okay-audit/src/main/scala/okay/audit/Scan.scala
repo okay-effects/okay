@@ -20,8 +20,10 @@ object Ref:
 /** one instruction of a method that names something: `op` is the JVM opcode
   * (getstatic 0xb2 … invokeinterface 0xb9, new 0xbb; checkcast, instanceof, anewarray, multianewarray and an `ldc`
   * of a class name a class too), `line` the source line of the LineNumberTable (0 when the class carries none),
-  * `text` the string constant an `ldc` pushed just before it (a reflective name: `getDeclaredField("x$lzy1")`) */
-final case class Site(op: Int, line: Int, ref: Ref, text: String = ""):
+  * `text` the string constant an `ldc` pushed just before it (a reflective name: `getDeclaredField("x$lzy1")`), `recv`
+  * for a call the index (among the method's sites) of the field load or call whose value is its receiver — a static
+  * call's first argument —, -1 when not known (`Scan.sites`, the receiver tracking) */
+final case class Site(op: Int, line: Int, ref: Ref, text: String = "", recv: Int = -1):
   /** a call or a field access — what the rules on code read; the class-naming sites only place a reference */
   def isMember: Boolean = op >= Site.GetStatic && op <= 0xb9
 
@@ -132,8 +134,9 @@ object Scan:
       val desc = utf8(in.readUnsignedShort())
       if (acc & 0x0100) != 0 then natives += Ref(self, Ref.Kind.Native, self, name, desc)
       var sites = Vector.empty[Site]
-      val (sig, _) = attributes(body => if code then sites = this.sites(body, tags, a, ref,
-        idx => Ref(self, Ref.Kind.Class, className(idx), "", ""), utf8))
+      val (sig, _) = attributes(body => if code then sites = this.sites(body, tags, a, b, ref,
+        idx => Ref(self, Ref.Kind.Class, className(idx), "", ""), utf8,
+        (if (acc & 0x0008) != 0 then 0 else 1) + slots(desc)._1))
       MethodInfo(acc, name, desc, sig, sites)
     }
     val (classSig, source) = attributes()
@@ -154,14 +157,67 @@ object Scan:
     ClassInfo(self, access, superName, interfaces, classSig, source, fields, methods,
       (refs.result() ++ natives.result()).distinct, scalaAttr)
 
-  /** the instructions of one Code attribute that name a field, a method or a class (`new`), with their lines */
-  private def sites(body: Array[Byte], tags: Array[Int], a: Array[Int], ref: Int => Ref, classRef: Int => Ref,
-                    utf8: Array[String]): Vector[Site] =
+  /** a method descriptor's arguments in slots (a long or a double takes two) and its result's (void: none) */
+  private[audit] def slots(descriptor: String): (Int, Int) =
+    var i = 1
+    var args = 0
+    while descriptor.charAt(i) != ')' do
+      val c = descriptor.charAt(i)
+      args += (if c == 'J' || c == 'D' then 2 else 1)
+      while descriptor.charAt(i) == '[' do i += 1
+      if descriptor.charAt(i) == 'L' then i = descriptor.indexOf(';', i)
+      i += 1
+    val r = descriptor.charAt(i + 1)
+    (args, if r == 'V' then 0 else if r == 'J' || r == 'D' then 2 else 1)
+
+  /** the slots a field of this descriptor takes on the operand stack */
+  private def width(descriptor: String): Int = if descriptor == "J" || descriptor == "D" then 2 else 1
+
+  /** the operand-stack effect (slots popped, slots pushed, none of them a member's value) of an instruction whose
+    * values the receiver tracking does not follow: constants, arithmetic, conversions, comparisons, arrays */
+  private def plain(op: Int): (Int, Int) = op match
+    case o if o >= 0x01 && o <= 0x08 => (0, 1)
+    case 0x09 | 0x0a | 0x0e | 0x0f | 0x14 => (0, 2)
+    case 0x0b | 0x0c | 0x0d | 0x10 | 0x11 | 0x12 | 0x13 | 0xbb => (0, 1)
+    case 0x2e | 0x30 | 0x32 | 0x33 | 0x34 | 0x35 => (2, 1)
+    case 0x2f | 0x31 => (2, 2)
+    case 0x4f | 0x51 | 0x53 | 0x54 | 0x55 | 0x56 => (3, 0)
+    case 0x50 | 0x52 => (4, 0)
+    case 0x57 | 0xc2 | 0xc3 => (1, 0)
+    case 0x58 => (2, 0)
+    case o if o >= 0x60 && o <= 0x73 => if (o - 0x60) % 2 == 0 then (2, 1) else (4, 2)
+    case 0x74 | 0x76 => (1, 1)
+    case 0x75 | 0x77 => (2, 2)
+    case o if o >= 0x78 && o <= 0x7d => if o % 2 == 0 then (2, 1) else (3, 2)
+    case o if o >= 0x7e && o <= 0x83 => if o % 2 == 0 then (2, 1) else (4, 2)
+    case 0x85 | 0x87 | 0x8c | 0x8d => (1, 2)
+    case 0x86 | 0x8b | 0x91 | 0x92 | 0x93 | 0xbc | 0xbd | 0xbe | 0xc1 => (1, 1)
+    case 0x88 | 0x89 | 0x8e | 0x90 => (2, 1)
+    case 0x8a | 0x8f => (2, 2)
+    case 0x94 | 0x97 | 0x98 => (4, 1)
+    case 0x95 | 0x96 => (2, 1)
+    case _ => (0, 0)                                                   // nop, iinc, checkcast (its value kept)
+
+  /** the instructions of one Code attribute that name a field, a method or a class (`new`), with their lines, and
+    * for a call the site whose value is its receiver (`Site.recv`; a static call's first argument). `params`: the
+    * local slots the method's parameters (and `this`) take.
+    *
+    * THE RECEIVER TRACKING: one pass over the code with an abstract operand stack whose entries are ORIGINS — the
+    * index of the member site that pushed the value, or -1 (anything else). A forward jump's state joins its
+    * target's (an origin kept where every way in agrees); a backward jump's target and an exception handler start
+    * empty. A local keeps the origin it was stored with: in the flow, and — for a slot stored exactly once in the
+    * method, not a parameter's — from its store on everywhere, so a loop over a list loaded before it is still seen.
+    * An unknown origin only ever misses a receiver, never invents one. */
+  private def sites(body: Array[Byte], tags: Array[Int], a: Array[Int], b: Array[Int], ref: Int => Ref,
+                    classRef: Int => Ref, utf8: Array[String], params: Int): Vector[Site] =
     val in = DataInputStream(ByteArrayInputStream(body))
     in.skipNBytes(4)                                                     // max_stack, max_locals
     val length = in.readInt()
     val code = in.readNBytes(length)
-    in.skipNBytes(8L * in.readUnsignedShort())                         // exception table
+    val handlers = Set.newBuilder[Int]
+    for _ <- 0 until in.readUnsignedShort() do
+      in.skipNBytes(4); handlers += in.readUnsignedShort(); in.skipNBytes(2)   // start, end, HANDLER, type
+    val handler = handlers.result()
     val lines = Vector.newBuilder[(Int, Int)]
     for _ <- 0 until in.readUnsignedShort() do
       val name = utf8(in.readUnsignedShort())
@@ -171,46 +227,152 @@ object Scan:
       else in.skipNBytes(len)
     val table = lines.result().sortBy(_._1)
     def lineAt(pc: Int): Int = table.takeWhile(_._1 <= pc).lastOption.fold(0)(_._2)
-    def u2(at: Int): Int = ((code(at) & 0xff) << 8) | (code(at + 1) & 0xff)
-    def s4(at: Int): Int = ((code(at) & 0xff) << 24) | ((code(at + 1) & 0xff) << 16) | ((code(at + 2) & 0xff) << 8) |
-      (code(at + 3) & 0xff)
+    def u1(at: Int): Int = code(at) & 0xff
+    def u2(at: Int): Int = (u1(at) << 8) | u1(at + 1)
+    def s2(at: Int): Int = (code(at) << 8) | u1(at + 1)
+    def s4(at: Int): Int = (u1(at) << 24) | (u1(at + 1) << 16) | (u1(at + 2) << 8) | u1(at + 3)
+    def sizeAt(pc: Int): Int = u1(pc) match
+      case 0x10 | 0x12 | 0x15 | 0x16 | 0x17 | 0x18 | 0x19 | 0x36 | 0x37 | 0x38 | 0x39 | 0x3a | 0xa9 | 0xbc => 2
+      case 0x11 | 0x13 | 0x14 | 0x84 | 0xbb | 0xbd | 0xc0 | 0xc1 | 0xc6 | 0xc7 => 3
+      case o if o >= 0x99 && o <= 0xa8 => 3
+      case o if o >= 0xb2 && o <= 0xb8 => 3
+      case 0xb9 | 0xba | 0xc8 | 0xc9 => 5
+      case 0xc5 => 4
+      case 0xc4 => if u1(pc + 1) == 0x84 then 6 else 4
+      case 0xaa =>
+        val at = (pc + 4) & ~3
+        val low = s4(at + 4); val high = s4(at + 8)
+        at - pc + 12 + 4 * (high - low + 1)
+      case 0xab =>
+        val at = (pc + 4) & ~3
+        at - pc + 8 + 8 * s4(at + 4)
+      case _ => 1
+    /** where an instruction jumps: a branch's target, a switch's every target */
+    def jumps(pc: Int): Vector[Int] = u1(pc) match
+      case o if (o >= 0x99 && o <= 0xa8) || o == 0xc6 || o == 0xc7 => Vector(pc + s2(pc + 1))
+      case 0xc8 | 0xc9 => Vector(pc + s4(pc + 1))
+      case 0xaa =>
+        val at = (pc + 4) & ~3
+        val low = s4(at + 4); val high = s4(at + 8)
+        (pc + s4(at)) +: Vector.tabulate(high - low + 1)(k => pc + s4(at + 12 + 4 * k))
+      case 0xab =>
+        val at = (pc + 4) & ~3
+        (pc + s4(at)) +: Vector.tabulate(s4(at + 4))(k => pc + s4(at + 12 + 8 * k))
+      case _ => Vector.empty
+    /** the local a load or a store names, with its kind's opcode (iload 0x15 … astore 0x3a), else None */
+    def local(pc: Int): Option[(Int, Int)] = u1(pc) match
+      case o if o >= 0x15 && o <= 0x19 => Some((o, u1(pc + 1)))
+      case o if o >= 0x36 && o <= 0x3a => Some((o, u1(pc + 1)))
+      case o if o >= 0x1a && o <= 0x2d => Some((0x15 + (o - 0x1a) / 4, (o - 0x1a) % 4))
+      case o if o >= 0x3b && o <= 0x4e => Some((0x36 + (o - 0x3b) / 4, (o - 0x3b) % 4))
+      case 0xc4 if u1(pc + 1) != 0x84 => Some((u1(pc + 1), u2(pc + 2)))
+      case _ => None
+
+    // the first pass: where instructions start, which are jumped to backward, how often each local is stored
+    val starts = Vector.newBuilder[Int]
+    val backward = scala.collection.mutable.Set.empty[Int]
+    val stores = scala.collection.mutable.Map.empty[Int, Int].withDefaultValue(0)
+    var at = 0
+    while at < length do
+      starts += at
+      jumps(at).filter(_ <= at).foreach(backward += _)
+      local(at).filter(_._1 >= 0x36).foreach { (k, n) =>
+        stores(n) += 1
+        if k == 0x37 || k == 0x39 then stores(n + 1) += 1
+      }
+      at += sizeAt(at)
+    def single(n: Int) = n >= params && stores(n) == 1
+
     val out = Vector.newBuilder[Site]
+    var count = 0
+    def site(s: Site): Int = { out += s; count += 1; count - 1 }
+    def add(s: Site): Unit = site(s): Unit
+    var stack = Vector.empty[Int]                                        // origins, the top last
+    var locals = Map.empty[Int, Int]
+    val fixed = scala.collection.mutable.Map.empty[Int, Int]              // single-store slots, from their store on
+    val pending = scala.collection.mutable.Map.empty[Int, (Vector[Int], Map[Int, Int])]
+    def join(x: (Vector[Int], Map[Int, Int]), y: (Vector[Int], Map[Int, Int])): (Vector[Int], Map[Int, Int]) =
+      val n = x._1.length.min(y._1.length)
+      (x._1.takeRight(n).zip(y._1.takeRight(n)).map((p, q) => if p == q then p else -1),
+        x._2.filter((k, v) => y._2.get(k).contains(v)))
+    def jump(at: Int)(to: Int): Unit =
+      if to > at then pending(to) = pending.get(to).fold((stack, locals))(join(_, (stack, locals)))
+    def pop(): Int = if stack.isEmpty then -1 else { val v = stack.last; stack = stack.init; v }
+    def drop(n: Int): Unit = for _ <- 0 until n do pop()
+    def push(vs: Int*): Unit = stack = stack ++ vs
+    def unknown(n: Int): Unit = for _ <- 0 until n do push(-1)
     // the string an `ldc` pushed, kept for the one instruction right after it
     var pushed = ""
     def utf8At(idx: Int) = if idx > 0 && idx < tags.length && tags(idx) == 8 then Option(utf8(a(idx))) else None
-    var pc = 0
-    while pc < length do
-      val op = code(pc) & 0xff
-      val size = op match
-        case 0x10 | 0x12 | 0x15 | 0x16 | 0x17 | 0x18 | 0x19 | 0x36 | 0x37 | 0x38 | 0x39 | 0x3a | 0xa9 | 0xbc => 2
-        case 0x11 | 0x13 | 0x14 | 0x84 | 0xbb | 0xbd | 0xc0 | 0xc1 | 0xc6 | 0xc7 => 3
-        case o if o >= 0x99 && o <= 0xa8 => 3
-        case o if o >= 0xb2 && o <= 0xb8 => 3
-        case 0xb9 | 0xba | 0xc8 | 0xc9 => 5
-        case 0xc5 => 4
-        case 0xc4 => if (code(pc + 1) & 0xff) == 0x84 then 6 else 4
-        case 0xaa =>
-          val at = (pc + 4) & ~3
-          val low = s4(at + 4); val high = s4(at + 8)
-          at - pc + 12 + 4 * (high - low + 1)
-        case 0xab =>
-          val at = (pc + 4) & ~3
-          at - pc + 8 + 8 * s4(at + 4)
-        case _ => 1
+    var live = true                                                      // the instruction before falls through
+    for pc <- starts.result() do
+      if handler(pc) then { stack = Vector(-1); locals = Map.empty; pending.remove(pc) }
+      else if backward(pc) then { stack = Vector.empty; locals = Map.empty; pending.remove(pc) }
+      else pending.remove(pc).foreach { p =>
+        val (s, l) = if live then join((stack, locals), p) else p
+        stack = s; locals = l
+      }
+      live = true
+      val op = u1(pc)
       var next = ""
-      if (op >= 0xb2 && op <= 0xb9) then
+      if op >= 0xb2 && op <= 0xb9 then
         val idx = u2(pc + 1)
-        if tags(idx) == 9 || tags(idx) == 10 || tags(idx) == 11 then out += Site(op, lineAt(pc), ref(idx), pushed)
+        val r = ref(idx)
+        val named = tags(idx) == 9 || tags(idx) == 10 || tags(idx) == 11
+        op match
+          case 0xb2 | 0xb4 =>
+            if op == 0xb4 then pop()
+            val at = if named then site(Site(op, lineAt(pc), r, pushed)) else -1
+            if width(r.descriptor) == 2 then unknown(2) else push(at)
+          case 0xb3 => drop(width(r.descriptor)); if named then add(Site(op, lineAt(pc), r, pushed))
+          case 0xb5 => drop(width(r.descriptor) + 1); if named then add(Site(op, lineAt(pc), r, pushed))
+          case _ =>
+            val (args, result) = slots(r.descriptor)
+            val popped = Vector.fill(args)(pop())                       // the last argument first
+            val recv = if op == 0xb8 then popped.lastOption.getOrElse(-1) else pop()
+            val at = if named then site(Site(op, lineAt(pc), r, pushed, recv)) else -1
+            if result == 1 then push(at) else unknown(result)
+      else if op == 0xba then
+        val (args, result) = slots(utf8(b(b(u2(pc + 1)))))
+        drop(args); unknown(result)
       else if op == Site.New || op == Site.CheckCast || op == Site.InstanceOf || op == Site.ANewArray ||
           op == Site.MultiANewArray then
         val idx = u2(pc + 1)
-        if tags(idx) == 7 && utf8(a(idx)).charAt(0) != '[' then out += Site(op, lineAt(pc), classRef(idx))
+        if tags(idx) == 7 && utf8(a(idx)).charAt(0) != '[' then add(Site(op, lineAt(pc), classRef(idx)))
+        if op == Site.MultiANewArray then { drop(u1(pc + 3)); unknown(1) }
+        else { val (p, q) = plain(op); drop(p); unknown(q) }
       else if op == Site.Ldc || op == Site.LdcW then
-        val idx = if op == Site.Ldc then code(pc + 1) & 0xff else u2(pc + 1)
-        if tags(idx) == 7 && utf8(a(idx)).charAt(0) != '[' then out += Site(op, lineAt(pc), classRef(idx))
+        val idx = if op == Site.Ldc then u1(pc + 1) else u2(pc + 1)
+        if tags(idx) == 7 && utf8(a(idx)).charAt(0) != '[' then add(Site(op, lineAt(pc), classRef(idx)))
         else utf8At(idx).foreach(next = _)
+        unknown(1)
+      else local(pc) match
+        case Some((0x19, n)) => push(if single(n) then fixed.getOrElse(n, -1) else locals.getOrElse(n, -1))
+        case Some((0x3a, n)) =>
+          val v = pop()
+          if single(n) then fixed(n) = v else locals += n -> v
+        case Some((k, n)) if k >= 0x36 =>
+          val two = k == 0x37 || k == 0x39
+          drop(if two then 2 else 1); locals = locals - n - (n + 1) - (n - 1)
+        case Some((k, _)) => unknown(if k == 0x16 || k == 0x18 then 2 else 1)
+        case None => op match
+          case 0x59 => val v = pop(); push(v, v)
+          case 0x5a => val v1 = pop(); val v2 = pop(); push(v1, v2, v1)
+          case 0x5b => val v1 = pop(); val v2 = pop(); val v3 = pop(); push(v1, v3, v2, v1)
+          case 0x5c => val v1 = pop(); val v2 = pop(); push(v2, v1, v2, v1)
+          case 0x5d => val v1 = pop(); val v2 = pop(); val v3 = pop(); push(v2, v1, v3, v2, v1)
+          case 0x5e =>
+            val v1 = pop(); val v2 = pop(); val v3 = pop(); val v4 = pop(); push(v2, v1, v4, v3, v2, v1)
+          case 0x5f => val v1 = pop(); val v2 = pop(); push(v1, v2)
+          case o if o >= 0x99 && o <= 0x9e || o == 0xc6 || o == 0xc7 => pop(); jumps(pc).foreach(jump(pc))
+          case o if o >= 0x9f && o <= 0xa6 => drop(2); jumps(pc).foreach(jump(pc))
+          case 0xa7 | 0xc8 => jumps(pc).foreach(jump(pc)); live = false
+          case 0xa8 | 0xc9 => push(-1); jumps(pc).foreach(jump(pc)); pop()
+          case 0xaa | 0xab => pop(); jumps(pc).foreach(jump(pc)); live = false
+          case o if (o >= 0xac && o <= 0xb1) || o == 0xbf || o == 0xa9 => stack = Vector.empty; live = false
+          case _ => val (p, q) = plain(op); drop(p); unknown(q)
       pushed = next
-      pc += size
+      if !live then { stack = Vector.empty; locals = Map.empty }
     out.result()
 
   def directory(dir: Path): Vector[Ref] =

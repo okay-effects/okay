@@ -285,12 +285,12 @@ object Presets:
     "mutable state outside a handler", UseState)
 
   /** the state rule's finding for a held collection: `owner.field`, of a mutable `tpe`, mutated in place — global
-    * when the field is static or a Scala object's (a finding), an instance's otherwise (said). Found by a load and
-    * the next mutating call on that type in the same method: it may name another receiver of the same type */
+    * when the field is static or a Scala object's (a finding), an instance's otherwise (said). Found by a load and a
+    * mutating call on that type whose receiver is the load's own value (`Site.recv`, the scanner's receiver tracking) */
   def held(state: Rule, owner: String, field: String, tpe: String, global: Boolean): Rule =
     Rule("state", s"state: $owner.$field holds a mutable $tpe, changed in place — " +
       (if global then "global mutable state outside a handler" else "an instance's mutable state (said)") +
-      " (a load, then a mutating call on its type)", state.use)
+      " (the loaded value itself, mutated)", state.use)
 
   private val writing = Vector("java.lang.System#out", "java.lang.System#err", "java.lang.System#getLogger",
     "java.lang.Throwable#printStackTrace", "java.util.logging.", "org.slf4j.", "org.apache.logging.log4j.",
