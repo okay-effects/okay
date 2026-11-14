@@ -1,0 +1,7 @@
+feature/audit-held-receiver 2026-11-14T08:06:21Z
+agent: claude-code (okay-audit 0.1.1's held-collection rule follows the receiver; release 0.1.2)
+heartbeat: 2026-11-14T08:06:21Z
+status: in-progress
+worktree: ../okay-wt-audit-held-receiver
+done-so-far:
+next: spec, operand-stack receiver tracking in Scan, fixtures, gate, land, publish 0.1.2
