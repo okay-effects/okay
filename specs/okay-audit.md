@@ -679,3 +679,54 @@ now okay-http's own source (Scala, `Bytes` + `Bytes$`), so a Scala host's `Bytes
 are no finding, the same array to `Wire.raw` is one from each host, and `Bytes$#apply` taken off the list is a
 finding again while `body` stays trusted. The manifest test reads `"factories"` as an addition to the defaults.
 The dogfood (`sbt audit`) passes.
+
+## Row evidence's type arguments are phantom (2026-11-14, audit-evidence-phantom, 0.1.4 republished)
+
+REPORT-3 ("The 14, fixed", finding 5): okay-serverless's Telegram handler calls
+`okay.serverless.cloud.Http$package$Fetch$#apply(String, Request, In[Fetch, R])`, and the rule reported "the host
+gives ... `okay.http.Fetch$Call.answer`: a function". No function crosses. The third argument is okay-scala's row
+evidence: `In[E, R]` (an opaque type, as `Split`; `Has[E]` an alias of `In[E, _]`) erases to
+`okay.scala3.Place<okay.http.Fetch<Object>, R, ? extends Object>`, and the rule judged the type arguments as if a
+value of each crossed. A place is a path in the row (`Only`, `Last`, `Init(at)`, ...): it holds no `Fetch` and no
+function, and its effect and row arguments are PHANTOM — they say where, not what is held. okay-serverless
+worked around it by moving `telegramJVM` to business; the operator decided (2026-11-14) to teach the rule instead
+and republish 0.1.4 in place.
+
+The family's evidence classes, read from their sources: okay-scala (`core/src/main/scala/okay/scala3/Rows.scala`):
+`okay.scala3.Place` (what `In`, `Split` and `Has` erase to; an enum of cases holding only places), `okay.scala3.At`
+(a place of any representation, which `Place` extends) and `okay.scala3.Sub` (a renaming of one row's places to
+another's); okay-safe (`core/src/main/scala/okay/safe/Rows.scala`): `okay.safe.In`, `okay.safe.Split`,
+`okay.safe.Place` (the sealed class of the four places) and `okay.safe.Sub` (`Has` an alias of `In`). okay.rows
+(okay-java) has none: its rows are types only ("there is no value of a row", `Eff`), an operation goes to a place by
+its type; nor has the rest of okay-java.
+
+### Interface (additions)
+
+- `Types.evidence: Vector[String]` (default `Types.Evidence`: `okay.scala3.Place`, `okay.scala3.At`,
+  `okay.scala3.Sub`, `okay.safe.In`, `okay.safe.Split`, `okay.safe.Place`, `okay.safe.Sub`), classes by name, their
+  nested classes with them (`okay.scala3.Place$Init`), as `programs`.
+- manifest: `"types": {"evidence": [...]}` ADDS to the default list, as `data`, `programs` and `factories` do; a
+  `Types` built in code with its own `evidence` replaces it. `Types.canonical` lists them (`evidence <class>`).
+
+### Behavior
+
+- [ ] a value of a listed evidence class is data and its type arguments are not judged: a handler passing
+  `In[Fetch, R]` (erased `okay.scala3.Place<okay.http.Fetch<Object>, R, ?>`) to a business method is no finding,
+  though `Fetch`'s case holds a continuation (a function)
+- [ ] what is not evidence is judged as before: the same handler giving business code a real function, or an effect
+  value whose case holds a continuation (`Fetch.Call(.., answer)`), is still a finding
+- [ ] a class removed from the list is judged again: `In[Fetch, R]` is a finding once more, by `Fetch`'s continuation
+
+### Decisions
+
+- **Phantom by name, like programs.** Whether a type argument is phantom cannot be read from a class file (it would
+  take following every field of every case); the rule trusts the list that the class is evidence — a place in a row,
+  holding places only, its arguments types the compiler checks and nothing the program can call. Each default
+  entry is a class of the family's own kernels, read from its source above. A manifest adding its own takes that
+  responsibility itself.
+- **The evidence value is data too, not only its arguments.** `okay.scala3.At` and `Sub` are traits another
+  library's rows implement (okay-simple's adapter does); what they are given is places, and what crosses is a place.
+  Judging the class while waiving its arguments would report the family's kernels as "a class of a library" in
+  every manifest that does not put okay-scala on a row — the false positive this lane removes, by another door.
+- **Where the type appears, not only at the top.** An evidence class nested in another type (`Option[In[E, R]]`) is
+  exempt there too: the judge stops at it wherever it meets it, as it does at a program type.
