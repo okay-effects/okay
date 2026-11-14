@@ -306,9 +306,10 @@ object Scan:
     def utf8At(idx: Int) = if idx > 0 && idx < tags.length && tags(idx) == 8 then Option(utf8(a(idx))) else None
     var live = true                                                      // the instruction before falls through
     for pc <- starts.result() do
-      if handler(pc) then { stack = Vector(-1); locals = Map.empty; pending.remove(pc) }
-      else if backward(pc) then { stack = Vector.empty; locals = Map.empty; pending.remove(pc) }
-      else pending.remove(pc).foreach { p =>
+      val incoming = pending.remove(pc)
+      if handler(pc) then { stack = Vector(-1); locals = Map.empty }
+      else if backward(pc) then { stack = Vector.empty; locals = Map.empty }
+      else incoming.foreach { p =>
         val (s, l) = if live then join((stack, locals), p) else p
         stack = s; locals = l
       }
@@ -321,7 +322,7 @@ object Scan:
         val named = tags(idx) == 9 || tags(idx) == 10 || tags(idx) == 11
         op match
           case 0xb2 | 0xb4 =>
-            if op == 0xb4 then pop()
+            if op == 0xb4 then drop(1)
             val at = if named then site(Site(op, lineAt(pc), r, pushed)) else -1
             if width(r.descriptor) == 2 then unknown(2) else push(at)
           case 0xb3 => drop(width(r.descriptor)); if named then add(Site(op, lineAt(pc), r, pushed))
@@ -364,11 +365,11 @@ object Scan:
           case 0x5e =>
             val v1 = pop(); val v2 = pop(); val v3 = pop(); val v4 = pop(); push(v2, v1, v4, v3, v2, v1)
           case 0x5f => val v1 = pop(); val v2 = pop(); push(v1, v2)
-          case o if o >= 0x99 && o <= 0x9e || o == 0xc6 || o == 0xc7 => pop(); jumps(pc).foreach(jump(pc))
+          case o if o >= 0x99 && o <= 0x9e || o == 0xc6 || o == 0xc7 => drop(1); jumps(pc).foreach(jump(pc))
           case o if o >= 0x9f && o <= 0xa6 => drop(2); jumps(pc).foreach(jump(pc))
           case 0xa7 | 0xc8 => jumps(pc).foreach(jump(pc)); live = false
-          case 0xa8 | 0xc9 => push(-1); jumps(pc).foreach(jump(pc)); pop()
-          case 0xaa | 0xab => pop(); jumps(pc).foreach(jump(pc)); live = false
+          case 0xa8 | 0xc9 => push(-1); jumps(pc).foreach(jump(pc)); drop(1)
+          case 0xaa | 0xab => drop(1); jumps(pc).foreach(jump(pc)); live = false
           case o if (o >= 0xac && o <= 0xb1) || o == 0xbf || o == 0xa9 => stack = Vector.empty; live = false
           case _ => val (p, q) = plain(op); drop(p); unknown(q)
       pushed = next
