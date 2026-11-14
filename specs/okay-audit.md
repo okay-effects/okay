@@ -628,3 +628,44 @@ README and AGENTS.md say so.
 - **A name, not a shape.** The check cannot prove a final class over a private array immutable from bytecode (it
   would have to follow every method that reads the field); it trusts a list. The list names one class of one family
   library whose author vouches for it (okay-http's test and docs), the way `java.lang.String` is trusted.
+
+## Copying factories of data types are trusted by name (2026-11-14, audit-copying-factories, 0.1.4)
+
+After 0.1.3, 5 of okay-serverless' 19 findings were a handler passing a raw `byte[]` to `okay.http.Bytes$#apply`
+(REPORT-3, "after, 0.1.3"; and okay-http's own `JdkClient`/`JdkServer` to `Bytes$#apply`/`Bytes$#body`). The array
+crosses, but into a factory that copies it: what business code ends up holding is a `Bytes`, data, and nothing of
+the caller's array. The operator decided (2026-11-14) that such a call is not a boundary finding. Checked first in
+okay-http (`1cc7d09`, `core/src/main/scala/okay/http/Bytes.scala`): `Bytes.apply(a: Array[Byte])` is
+`new Bytes(a.clone())`, and `Bytes.body(raw: Array[Byte])` builds its `Bytes` from `raw.clone()` (its other result is
+a `String`); `HttpSuite`'s "Bytes is immutable data: copied in, copied out, no alias of a caller's array" pins both.
+`Bytes.of` takes a `String` (data already), so it needs no entry.
+
+### Interface (additions)
+
+- `Types.factories: Vector[String]` (default `Types.Factories`), members spelled as findings spell them,
+  `owner#name`: `okay.http.Bytes$#apply`, `okay.http.Bytes$#body` (a Scala caller's module call) and
+  `okay.http.Bytes#apply`, `okay.http.Bytes#body` (a Java caller's static forwarder, which calls the module's).
+- manifest: `"types": {"factories": [...]}` ADDS to the default list, as `data` and `programs` do; a `Types` built in
+  code with its own `factories` replaces it. `Types.canonical` lists them (`factory <member>`), so a seal names them.
+
+### Behavior
+
+- [ ] the host giving a listed factory its arguments is not judged: a handler passing a `byte[]` to `Bytes(array)`
+  or `Bytes.body(array)` (module call or static forwarder) is no finding
+- [ ] anything not listed is judged as before: a handler passing a `byte[]` to a business method of its own (`Wire.raw`)
+  is still "the host gives ... an array, byte[]"
+- [ ] a factory removed from the list is a finding again (the trust is the list, nothing else)
+
+### Decisions
+
+- **The trust is explicit: the rule trusts the list that the factory copies.** The bytecode check does not follow
+  the factory's body to prove the copy (it would have to prove the array never escapes, the same problem as proving
+  `Bytes` immutable); a listed factory is trusted the way a listed data type is. Each default entry cites the test
+  that proves it — here okay-http's `HttpSuite` immutability test (`1cc7d09`) — and an entry without such a test
+  does not belong in the defaults. A manifest adding its own entry takes that responsibility itself.
+- **A member, not a class.** Only the named factories are exempt: `Bytes`' other methods, and every other method of
+  the factory's class, are judged as before. Exact member names (no prefix or wildcard): a factory is a decision
+  about one method's body.
+- **Both spellings of a Scala factory.** Java calls a companion's method through its static forwarder
+  (`okay.http.Bytes#apply`), which a rule on `Bytes$#apply` does not match (audit-real-world-left (3)); the defaults
+  list both, since the forwarder only calls the module's method.
