@@ -1,7 +1,0 @@
-feature/audit-copying-factories 2026-11-14T11:06:48Z
-agent: claude-code (okay-audit: calls to listed copying factories of data types are not boundary findings; then 0.1.4)
-heartbeat: 2026-11-14T11:06:48Z
-status: in-progress
-worktree: ../okay-wt-audit-copying-factories
-done-so-far:
-next: spec, types.factories + test, README, gate, land, publish 0.1.4
