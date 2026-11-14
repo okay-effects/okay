@@ -7,5 +7,6 @@
       not seen. (3) A Java caller of a
       Scala object's static forwarder (`Cek.run`) does not match a rule written on `Cek$#run`. (4) okay-java's
       `Transformer` javadoc: fixed in its repository with the move to okay-audit 0.1.2.
-      (5) `okay.http.Bytes`: decided, data by default since 0.1.3 (audit-data-bytes, 5ad28468e).
+      (5) `okay.http.Bytes`: decided, data by default since 0.1.3 (audit-data-bytes, 5ad28468e); its copying
+      factories `apply`/`body` trusted since 0.1.4 (audit-copying-factories, `types.factories`).
       (6) `Export` reads only the root build's projects (not a `ProjectRef`'s other builds).
