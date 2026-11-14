@@ -60,6 +60,16 @@ default `types.programs` lists the kernels' program types): it is immutable — 
 handler giving business code a `Bytes` or a `Request`/`Response` holding one is no finding; a raw `byte[]` still is
 ([`specs/okay-audit.md`](../specs/okay-audit.md), "okay-http's `Bytes` is data by default").
 
+Since 0.1.4 a call to a COPYING FACTORY of a data type is not "the host gives": `types.factories` names members
+(`owner#name`), and the default lists okay-http's `okay.http.Bytes$#apply` and `okay.http.Bytes$#body` (and their static
+forwarders `okay.http.Bytes#apply`, `#body`, a Java caller's spelling), so a handler building a `Bytes` from a raw
+`byte[]` is no finding. The rule TRUSTS THE LIST that the factory copies — it does not read the factory's body; each
+default entry cites the test that proves the copy (okay-http `1cc7d09`, `HttpSuite`, "Bytes is immutable data: copied
+in, copied out, no alias of a caller's array"). A manifest's `"types": {"factories": [...]}` adds to the list, and
+whoever adds an entry vouches for it the same way. Anything not listed is judged as before: a raw `byte[]` given to
+any other business method is still a finding ([`specs/okay-audit.md`](../specs/okay-audit.md), "Copying factories of
+data types are trusted by name").
+
 ## Maven and Gradle
 
 Build the `okay-audit` artifact once, then invoke its JVM main class from a

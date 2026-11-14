@@ -365,6 +365,8 @@ object Audit:
       for r <- h.refs.distinct
           if (r.kind == Ref.Kind.Method || r.kind == Ref.Kind.InterfaceMethod) && byName.contains(r.owner) &&
             !valueMethod(r.name) &&
+            // a listed copying factory: trusted to copy what it is given (Types.factories)
+            !types.factory(r.owner, r.name) &&
             // a business trait's own implementation for the host's class itself (`$init$`, a static `m$`)
             !(r.name.endsWith("$") && classes.supers(h.name).contains(r.owner)) do
         val target = byName(r.owner)

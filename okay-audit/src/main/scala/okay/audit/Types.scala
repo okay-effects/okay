@@ -192,11 +192,18 @@ object Classes:
   * answer (`-1` the last): a business class extending it answers that type. `programs`: the runtime's program
   * types (okay-scala's `Prog`, okay.rows' `Comp`, okay-safe's `Comp`, okay-java's `Eff`, their nested classes with
   * them): a program the host gives is a program — a value the runtime runs, not a function (specs/okay-audit.md, "The
-  * first real-world run"). */
+  * first real-world run"). `factories`: COPYING FACTORIES of data types, by member (`okay.http.Bytes$#apply`): the
+  * host giving one its arguments is not judged — the rule TRUSTS THE LIST that the factory copies what it is given,
+  * so what business code holds is the data value and nothing of the caller's (specs/okay-audit.md, "Copying
+  * factories of data types are trusted by name"). */
 final case class Types(data: Vector[String] = Types.Data, answers: Map[String, Int] = Map.empty,
-                       programs: Vector[String] = Types.Programs):
+                       programs: Vector[String] = Types.Programs, factories: Vector[String] = Types.Factories):
   def canonical: String = (data.sorted.map("data " + _) ++
-    answers.toVector.sorted.map((t, i) => s"answer $t $i") ++ programs.sorted.map("program " + _)).mkString("\n")
+    answers.toVector.sorted.map((t, i) => s"answer $t $i") ++ programs.sorted.map("program " + _) ++
+    factories.sorted.map("factory " + _)).mkString("\n")
+
+  /** `owner#name` is a listed copying factory */
+  def factory(owner: String, name: String): Boolean = factories.contains(s"$owner#$name")
 
 object Types:
   /** the data of the JDK and the Scala library beside the primitives, and the family's own vouched values:
@@ -209,6 +216,12 @@ object Types:
     "scala.util.Either", "scala.util.Left", "scala.util.Right", "scala.runtime.BoxedUnit", "scala.Unit",
     "scala.runtime.Nothing$", "scala.Tuple*", "scala.collection.immutable.",
     "okay.http.Bytes")
+
+  /** the copying factories of the default data, each proven to copy by a test of its own library: okay-http's
+    * `Bytes(array)` and `Bytes.body(array)` clone the array (okay-http `1cc7d09`, `HttpSuite`, "Bytes is immutable
+    * data: copied in, copied out, no alias of a caller's array"); the module's method and its static forwarder */
+  val Factories: Vector[String] = Vector("okay.http.Bytes$#apply", "okay.http.Bytes$#body", "okay.http.Bytes#apply",
+    "okay.http.Bytes#body")
 
   /** the kernels' program types */
   val Programs: Vector[String] = Vector("okay.scala3.Prog", "okay.rows.Comp", "okay.safe.Comp", "okay.core.Eff")

@@ -619,7 +619,8 @@ README and AGENTS.md say so.
   one, such as `okay.http.Request`) is not a finding, in every manifest without a word of configuration
 - [x] a raw `byte[]` stays a finding: given to a business method directly, and given to `Bytes`' own factory when
   okay-http's classes are on a business row (the copy happens inside; the rule judges what crosses, not what the
-  callee does with it)
+  callee does with it) — until 0.1.4, which trusts the listed copying factories (below, "Copying factories
+  of data types are trusted by name")
 - [x] a manifest's `"types": {"data": [...]}` still only ADDS to the default list; a `Types` built in code with its
   own `data` replaces it (the test shows `Bytes` back as a finding without the default)
 
@@ -650,11 +651,11 @@ a `String`); `HttpSuite`'s "Bytes is immutable data: copied in, copied out, no a
 
 ### Behavior
 
-- [ ] the host giving a listed factory its arguments is not judged: a handler passing a `byte[]` to `Bytes(array)`
+- [x] the host giving a listed factory its arguments is not judged: a handler passing a `byte[]` to `Bytes(array)`
   or `Bytes.body(array)` (module call or static forwarder) is no finding
-- [ ] anything not listed is judged as before: a handler passing a `byte[]` to a business method of its own (`Wire.raw`)
+- [x] anything not listed is judged as before: a handler passing a `byte[]` to a business method of its own (`Wire.raw`)
   is still "the host gives ... an array, byte[]"
-- [ ] a factory removed from the list is a finding again (the trust is the list, nothing else)
+- [x] a factory removed from the list is a finding again (the trust is the list, nothing else)
 
 ### Decisions
 
@@ -669,3 +670,12 @@ a `String`); `HttpSuite`'s "Bytes is immutable data: copied in, copied out, no a
 - **Both spellings of a Scala factory.** Java calls a companion's method through its static forwarder
   (`okay.http.Bytes#apply`), which a rule on `Bytes$#apply` does not match (audit-real-world-left (3)); the defaults
   list both, since the forwarder only calls the module's method.
+
+### Results (2026-11-14)
+
+`TestRealWorld`, "a listed copying factory given a raw byte[] is no finding; ...": the test's `okay.http.Bytes` is
+now okay-http's own source (Scala, `Bytes` + `Bytes$`), so a Scala host's `Bytes(a)`/`Bytes.body(a)` reach
+`Bytes$#apply`/`Bytes$#body` and a Java host's `Bytes.apply` the static forwarder, as in the real jars; all three
+are no finding, the same array to `Wire.raw` is one from each host, and `Bytes$#apply` taken off the list is a
+finding again while `body` stays trusted. The manifest test reads `"factories"` as an addition to the defaults.
+The dogfood (`sbt audit`) passes.

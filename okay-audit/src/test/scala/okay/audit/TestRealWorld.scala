@@ -21,6 +21,13 @@ class TestRealWorld extends munit.FunSuite with okay.testkit.Munit.Diagnosed:
     }
     dir
 
+  /** okay.http.Bytes (with its `Bytes$` module) copied into `dir`: on the business row, as okay-http's jar is in the
+    * real manifests */
+  def withBytes(dir: Path): Unit =
+    val http = Files.createDirectories(dir.resolve("okay/http"))
+    Files.list(classesDir.resolve("okay/http")).filter(_.getFileName.toString.matches("""Bytes(\$.*)?\.class"""))
+      .forEach(p => Files.copy(p, http.resolve(p.getFileName.toString)): Unit)
+
   def business(rules: Vector[Rule], paths: Path*): Report =
     Audit.run(Boundary(Map("biz" -> Layer.Business), rules = rules), Map("biz" -> paths))
 
@@ -75,12 +82,9 @@ class TestRealWorld extends munit.FunSuite with okay.testkit.Munit.Diagnosed:
     assert(!r.findings.exists(_.ref.name == "record"), r.text)
     assert(r.said.exists(f => f.ref.name == "record" && f.rule.why.contains("unknown (erased)")), r.text)
 
-  test("okay-http's Bytes is data by default: a handler giving it is no finding; a raw byte[] still is"):
+  test("okay-http's Bytes is data by default: a handler giving it is no finding; a raw byte[] to business still is"):
     val biz = cls("rw/Wire")
-    // okay.http.Bytes on the business row too, as okay-http's jar is in the real manifests
-    val http = Files.createDirectories(biz.resolve("okay/http"))
-    Files.list(classesDir.resolve("okay/http")).filter(_.getFileName.toString.matches("""Bytes(\$.*)?\.class"""))
-      .forEach(p => Files.copy(p, http.resolve(p.getFileName.toString)): Unit)
+    withBytes(biz)
     val host = cls("rw/host/Wired")
     def run(types: Types) = Audit.run(Boundary(Map("biz" -> Layer.Business, "host" -> Layer.Handlers),
       rules = Vector.empty, types = Some(types)), Map("biz" -> Seq(biz), "host" -> Seq(host)))
@@ -88,12 +92,35 @@ class TestRealWorld extends munit.FunSuite with okay.testkit.Munit.Diagnosed:
     val r = run(Types())
     note(r.text)
     assert(!r.findings.exists(_.ref.name == "take"), r.text)
-    for n <- Vector("raw", "of") do
-      assert(r.findings.exists(f => f.ref.name == n && f.rule.why.contains("an array, byte[]")), s"$n: ${r.text}")
+    assert(r.findings.exists(f => f.ref.name == "raw" && f.rule.why.contains("an array, byte[]")), r.text)
     assert(!r.suggestions.exists(_._1 == "okay.http.Bytes"), r.text)
     // without the default the wrapper's array is a finding again, and suggested
     val bare = run(Types(data = Types.Data.filterNot(_ == "okay.http.Bytes")))
     assert(bare.findings.exists(f => f.ref.name == "take" && f.rule.why.contains("okay.http.Bytes.a")), bare.text)
+
+  test("a listed copying factory given a raw byte[] is no finding; an unlisted method still is; unlisted, a finding"):
+    val biz = cls("rw/Wire")
+    withBytes(biz)
+    val host = cls("rw/host/Copied", "rw/host/Wired")
+    def run(types: Types) = Audit.run(Boundary(Map("biz" -> Layer.Business, "host" -> Layer.Handlers),
+      rules = Vector.empty, types = Some(types)), Map("biz" -> Seq(biz), "host" -> Seq(host)))
+    assertEquals(Types.Factories, Vector("okay.http.Bytes$#apply", "okay.http.Bytes$#body", "okay.http.Bytes#apply",
+      "okay.http.Bytes#body"))
+    val r = run(Types())
+    note(r.text)
+    // the Scala host's module calls and the Java host's static forwarder: trusted to copy
+    for n <- Vector("apply", "body") do assert(!r.findings.exists(_.ref.name == n), s"$n: ${r.text}")
+    // a business method of its own given the same array: judged as before
+    for h <- Vector("Copied", "Wired") do assert(r.findings.exists(f => f.ref.from.contains(h) && f.ref.name == "raw" &&
+      f.rule.why.contains("an array, byte[]")), s"$h: ${r.text}")
+    // a seal names the list it trusted
+    assert(Boundary(Map.empty, types = Some(Types())).canonical.contains("factory okay.http.Bytes$#apply"))
+    // the trust is the list: a factory taken off it is a finding again, the others stay trusted
+    val off = run(Types(factories = Types.Factories.filterNot(_ == "okay.http.Bytes$#apply")))
+    note(off.text)
+    assert(off.findings.exists(f => f.ref.owner == "okay.http.Bytes$" && f.ref.name == "apply" &&
+      f.rule.why.contains("the host gives okay.http.Bytes$#apply what is not data: an array, byte[]")), off.text)
+    assert(!off.findings.exists(f => f.ref.name == "body" || f.ref.owner == "okay.http.Bytes"), off.text)
 
   test("a packages key names a class: its companion, nested and anonymous classes with it, not a longer name"):
     assert(Boundary.under("okay.http.JdkHttp$JdkClient", "okay.http.JdkHttp"))
@@ -236,15 +263,17 @@ class TestRealWorld extends munit.FunSuite with okay.testkit.Munit.Diagnosed:
     assert(lr.text.contains("fixture.Clocky ->"), "a directory's are listed: " + lr.text)
     assert(lr.json.contains(""""source":"lib.jar""""), "the json keeps every finding with its source")
 
-  test("the manifest: audited elsewhere, types.programs"):
+  test("the manifest: audited elsewhere, types.programs, types.factories"):
     val dir = Files.createTempDirectory("audit-manifest")
     val manifest = dir.resolve("audit.json")
-    Files.writeString(manifest, s"""{"types": {"programs": ["com.acme.Prog"]}, "modules": [
+    Files.writeString(manifest, s"""{"types": {"programs": ["com.acme.Prog"],
+      "factories": ["com.acme.Blob$$#apply"]}, "modules": [
       {"name": "biz", "layer": "business", "paths": ["${cls("Pure")}"]},
       {"name": "lib", "layer": "business", "paths": ["${cls("Sockets")}"], "audited": "elsewhere"}]}"""): Unit
     val m = Manifest.read(manifest)
     assertEquals(m.elsewhere, Set("lib"))
     assert(m.types.exists(t => t.programs.contains("com.acme.Prog") && t.programs.contains("okay.scala3.Prog")))
+    assert(m.types.exists(t => t.factories == Types.Factories :+ "com.acme.Blob$#apply"), m.types.toString)
     val report = Audit.run(m.boundary, m.modules)
     assert(report.passed, report.text)
     Files.writeString(manifest, s"""{"modules": [{"name": "lib", "layer": "business", "paths": ["${cls("Pure")}"],
