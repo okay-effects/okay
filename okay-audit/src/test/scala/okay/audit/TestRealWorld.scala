@@ -75,6 +75,26 @@ class TestRealWorld extends munit.FunSuite with okay.testkit.Munit.Diagnosed:
     assert(!r.findings.exists(_.ref.name == "record"), r.text)
     assert(r.said.exists(f => f.ref.name == "record" && f.rule.why.contains("unknown (erased)")), r.text)
 
+  test("okay-http's Bytes is data by default: a handler giving it is no finding; a raw byte[] still is"):
+    val biz = cls("rw/Wire")
+    // okay.http.Bytes on the business row too, as okay-http's jar is in the real manifests
+    val http = Files.createDirectories(biz.resolve("okay/http"))
+    Files.list(classesDir.resolve("okay/http")).filter(_.getFileName.toString.matches("""Bytes(\$.*)?\.class"""))
+      .forEach(p => Files.copy(p, http.resolve(p.getFileName.toString)): Unit)
+    val host = cls("rw/host/Wired")
+    def run(types: Types) = Audit.run(Boundary(Map("biz" -> Layer.Business, "host" -> Layer.Handlers),
+      rules = Vector.empty, types = Some(types)), Map("biz" -> Seq(biz), "host" -> Seq(host)))
+    assert(Types.Data.contains("okay.http.Bytes"))
+    val r = run(Types())
+    note(r.text)
+    assert(!r.findings.exists(_.ref.name == "take"), r.text)
+    for n <- Vector("raw", "of") do
+      assert(r.findings.exists(f => f.ref.name == n && f.rule.why.contains("an array, byte[]")), s"$n: ${r.text}")
+    assert(!r.suggestions.exists(_._1 == "okay.http.Bytes"), r.text)
+    // without the default the wrapper's array is a finding again, and suggested
+    val bare = run(Types(data = Types.Data.filterNot(_ == "okay.http.Bytes")))
+    assert(bare.findings.exists(f => f.ref.name == "take" && f.rule.why.contains("okay.http.Bytes.a")), bare.text)
+
   test("a packages key names a class: its companion, nested and anonymous classes with it, not a longer name"):
     assert(Boundary.under("okay.http.JdkHttp$JdkClient", "okay.http.JdkHttp"))
     assert(Boundary.under("okay.http.JdkHttp", "okay.http.JdkHttp"))

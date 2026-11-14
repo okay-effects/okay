@@ -55,6 +55,11 @@ must be the field's own value, since 0.1.2: a local list of the same type is not
 class directories, classpaths and a skeleton manifest of any sbt build
 ([`specs/audit-cli-standalone.md`](../specs/audit-cli-standalone.md), "Getting the inputs").
 
+Since 0.1.3 the default `types.data` lists okay-http's `okay.http.Bytes` beside the JDK's and Scala's data (as the
+default `types.programs` lists the kernels' program types): it is immutable — copied in, copied out —, so a
+handler giving business code a `Bytes` or a `Request`/`Response` holding one is no finding; a raw `byte[]` still is
+([`specs/okay-audit.md`](../specs/okay-audit.md), "okay-http's `Bytes` is data by default").
+
 ## Maven and Gradle
 
 Build the `okay-audit` artifact once, then invoke its JVM main class from a

@@ -199,14 +199,16 @@ final case class Types(data: Vector[String] = Types.Data, answers: Map[String, I
     answers.toVector.sorted.map((t, i) => s"answer $t $i") ++ programs.sorted.map("program " + _)).mkString("\n")
 
 object Types:
-  /** the data of the JDK and the Scala library beside the primitives */
+  /** the data of the JDK and the Scala library beside the primitives, and the family's own vouched values:
+    * okay-http's `Bytes` (immutable: copied in, copied out — okay-http's `HttpSuite` pins it) */
   val Data: Vector[String] = Vector("java.lang.String", "java.lang.Boolean", "java.lang.Byte", "java.lang.Character",
     "java.lang.Short", "java.lang.Integer", "java.lang.Long", "java.lang.Float", "java.lang.Double", "java.lang.Void",
     "java.math.BigInteger", "java.math.BigDecimal", "java.time.Instant", "java.time.Duration", "java.time.LocalDate",
     "java.time.LocalDateTime", "java.time.LocalTime", "java.time.ZoneOffset", "java.time.Period", "java.util.UUID",
     "java.util.Optional", "scala.math.BigInt", "scala.math.BigDecimal", "scala.Option", "scala.Some", "scala.None$",
     "scala.util.Either", "scala.util.Left", "scala.util.Right", "scala.runtime.BoxedUnit", "scala.Unit",
-    "scala.runtime.Nothing$", "scala.Tuple*", "scala.collection.immutable.")
+    "scala.runtime.Nothing$", "scala.Tuple*", "scala.collection.immutable.",
+    "okay.http.Bytes")
 
   /** the kernels' program types */
   val Programs: Vector[String] = Vector("okay.scala3.Prog", "okay.rows.Comp", "okay.safe.Comp", "okay.core.Eff")
