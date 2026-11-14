@@ -138,7 +138,8 @@ final class Judge(types: Types, classes: Classes, layer: String => Option[Layer]
         "hashCode are the value's own — a host's, run by the program", leaf = true))
       else if Types.function(name) then Some(Why(s"a function, ${t.show}: code of whoever made it — a host's lambda " +
         "is IO in disguise, with what it captured"))
-      else if seen(name) || Types.program(types.programs, name) then None
+      // a program is a value the runtime runs; row evidence a place, its type arguments phantom (Types.evidence)
+      else if seen(name) || Types.program(types.programs, name) || types.isEvidence(name) then None
       else if seen.size >= Judge.MaxClasses then
         Some(Why(s"$name: data nested through more than ${Judge.MaxClasses} classes"))
       else

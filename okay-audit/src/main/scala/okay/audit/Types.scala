@@ -195,12 +195,19 @@ object Classes:
   * first real-world run"). `factories`: COPYING FACTORIES of data types, by member (`okay.http.Bytes$#apply`): the
   * host giving one its arguments is not judged — the rule TRUSTS THE LIST that the factory copies what it is given,
   * so what business code holds is the data value and nothing of the caller's (specs/okay-audit.md, "Copying
-  * factories of data types are trusted by name"). */
+  * factories of data types are trusted by name"). `evidence`: the kernels' ROW EVIDENCE classes (okay-scala's `Place`,
+  * which `In`, `Split` and `Has` erase to, `At`, `Sub`; okay-safe's `In`, `Split`, `Place`, `Sub`), their nested
+  * classes with them: a place in a row is data and its type arguments are phantom, not judged (specs/okay-audit.md,
+  * "Row evidence's type arguments are phantom"). */
 final case class Types(data: Vector[String] = Types.Data, answers: Map[String, Int] = Map.empty,
-                       programs: Vector[String] = Types.Programs, factories: Vector[String] = Types.Factories):
+                       programs: Vector[String] = Types.Programs, factories: Vector[String] = Types.Factories,
+                       evidence: Vector[String] = Types.Evidence):
   def canonical: String = (data.sorted.map("data " + _) ++
     answers.toVector.sorted.map((t, i) => s"answer $t $i") ++ programs.sorted.map("program " + _) ++
-    factories.sorted.map("factory " + _)).mkString("\n")
+    factories.sorted.map("factory " + _) ++ evidence.sorted.map("evidence " + _)).mkString("\n")
+
+  /** `name` is a row evidence class or one of its nested classes (`okay.scala3.Place$Init`) */
+  def isEvidence(name: String): Boolean = evidence.exists(e => Boundary.under(name, e))
 
   /** `owner#name` is a listed copying factory */
   def factory(owner: String, name: String): Boolean = factories.contains(s"$owner#$name")
@@ -222,6 +229,12 @@ object Types:
     * data: copied in, copied out, no alias of a caller's array"); the module's method and its static forwarder */
   val Factories: Vector[String] = Vector("okay.http.Bytes$#apply", "okay.http.Bytes$#body", "okay.http.Bytes#apply",
     "okay.http.Bytes#body")
+
+  /** the kernels' row evidence, read from their sources: okay-scala's `Place` (`In`, `Split` and `Has` erase to it),
+    * `At` (a place of any representation) and `Sub` (a renaming of places); okay-safe's `In`, `Split`, `Place`, `Sub`.
+    * okay.rows (okay-java) has none: its rows are types only */
+  val Evidence: Vector[String] = Vector("okay.scala3.Place", "okay.scala3.At", "okay.scala3.Sub", "okay.safe.In",
+    "okay.safe.Split", "okay.safe.Place", "okay.safe.Sub")
 
   /** the kernels' program types */
   val Programs: Vector[String] = Vector("okay.scala3.Prog", "okay.rows.Comp", "okay.safe.Comp", "okay.core.Eff")

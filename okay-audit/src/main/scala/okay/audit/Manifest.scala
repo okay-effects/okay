@@ -114,13 +114,14 @@ object Manifest:
         separator(where)
       take(); out.result()
 
-    /** `{"data": ["java.util.UUID", ...], "answers": {"com.acme.Op": "0"}, "programs": [...], "factories": [...]}` —
-      * `data`, `programs` and `factories` add to the default lists */
+    /** `{"data": ["java.util.UUID", ...], "answers": {"com.acme.Op": "0"}, "programs": [...], "factories": [...],
+      * "evidence": [...]}` — `data`, `programs`, `factories` and `evidence` add to the default lists */
     private def typesObject(): Types =
       openObject("types")
       var data = Vector.empty[String]
       var programs = Vector.empty[String]
       var factories = Vector.empty[String]
+      var evidence = Vector.empty[String]
       val answers = scala.collection.mutable.Map.empty[String, Int]
       while token != Token.CloseObject do
         val key = string("types field"); colon(key)
@@ -128,6 +129,7 @@ object Manifest:
           case "data" => data = stringArray("data")
           case "programs" => programs = stringArray("programs")
           case "factories" => factories = stringArray("factories")
+          case "evidence" => evidence = stringArray("evidence")
           case "answers" =>
             openObject("answers")
             while token != Token.CloseObject do
@@ -139,7 +141,8 @@ object Manifest:
           case other => refuse(s"types has unknown field '$other'")
         separator("types")
       take()
-      Types(Types.Data ++ data, answers.toMap, Types.Programs ++ programs, Types.Factories ++ factories)
+      Types(Types.Data ++ data, answers.toMap, Types.Programs ++ programs, Types.Factories ++ factories,
+        Types.Evidence ++ evidence)
 
     private def resolve(raw: String): Path =
       val path = Paths.get(raw)

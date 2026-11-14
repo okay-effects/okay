@@ -122,6 +122,37 @@ class TestRealWorld extends munit.FunSuite with okay.testkit.Munit.Diagnosed:
       f.rule.why.contains("the host gives okay.http.Bytes$#apply what is not data: an array, byte[]")), off.text)
     assert(!off.findings.exists(f => f.ref.name == "body" || f.ref.owner == "okay.http.Bytes"), off.text)
 
+  test("row evidence is data, its type arguments phantom: In[Fetch, R] no finding; a function, an effect value are"):
+    val biz = cls("rw/Fetching")
+    // okay-scala's places and okay-http's Fetch on the business row, as the family's jars are in the real manifests
+    for (pkg, names) <- Vector("okay/scala3" -> """(In|Place)(\$.*)?\.class""",
+                               "okay/http" -> """Fetch(\$.*)?\.class""") do
+      val to = Files.createDirectories(biz.resolve(pkg))
+      Files.list(classesDir.resolve(pkg)).filter(_.getFileName.toString.matches(names))
+        .forEach(p => Files.copy(p, to.resolve(p.getFileName.toString)): Unit)
+    val host = cls("rw/host/Teller")
+    def run(types: Types) = Audit.run(Boundary(Map("biz" -> Layer.Business, "host" -> Layer.Handlers),
+      rules = Vector.empty, types = Some(types)), Map("biz" -> Seq(biz), "host" -> Seq(host)))
+    assertEquals(Types.Evidence, Vector("okay.scala3.Place", "okay.scala3.At", "okay.scala3.Sub", "okay.safe.In",
+      "okay.safe.Split", "okay.safe.Place", "okay.safe.Sub"))
+    val r = run(Types())
+    note(r.text)
+    // the place: no function crosses, though Fetch's case holds one
+    assert(!r.findings.exists(_.ref.name == "get"), r.text)
+    assert(!r.said.exists(_.ref.name == "get"), r.text)
+    // a real function, and an effect value holding a continuation: findings as before
+    assert(r.findings.exists(f => f.ref.name == "mapped" && f.rule.why.contains("a function, scala.Function1")),
+      r.text)
+    assert(r.findings.exists(f => f.ref.name == "asked" &&
+      f.rule.why.contains("okay.http.Fetch$Call.answer: a function")), r.text)
+    // a seal names the list it trusted
+    assert(Boundary(Map.empty, types = Some(Types())).canonical.contains("evidence okay.scala3.Place"))
+    // the trust is the list: Place taken off it, the place's Fetch is judged again
+    val off = run(Types(evidence = Types.Evidence.filterNot(_ == "okay.scala3.Place")))
+    note(off.text)
+    assert(off.findings.exists(f => f.ref.name == "get" &&
+      f.rule.why.contains("okay.http.Fetch$Call.answer: a function")), off.text)
+
   test("a packages key names a class: its companion, nested and anonymous classes with it, not a longer name"):
     assert(Boundary.under("okay.http.JdkHttp$JdkClient", "okay.http.JdkHttp"))
     assert(Boundary.under("okay.http.JdkHttp", "okay.http.JdkHttp"))
@@ -263,17 +294,18 @@ class TestRealWorld extends munit.FunSuite with okay.testkit.Munit.Diagnosed:
     assert(lr.text.contains("fixture.Clocky ->"), "a directory's are listed: " + lr.text)
     assert(lr.json.contains(""""source":"lib.jar""""), "the json keeps every finding with its source")
 
-  test("the manifest: audited elsewhere, types.programs, types.factories"):
+  test("the manifest: audited elsewhere, types.programs, types.factories, types.evidence"):
     val dir = Files.createTempDirectory("audit-manifest")
     val manifest = dir.resolve("audit.json")
     Files.writeString(manifest, s"""{"types": {"programs": ["com.acme.Prog"],
-      "factories": ["com.acme.Blob$$#apply"]}, "modules": [
+      "factories": ["com.acme.Blob$$#apply"], "evidence": ["com.acme.Row"]}, "modules": [
       {"name": "biz", "layer": "business", "paths": ["${cls("Pure")}"]},
       {"name": "lib", "layer": "business", "paths": ["${cls("Sockets")}"], "audited": "elsewhere"}]}"""): Unit
     val m = Manifest.read(manifest)
     assertEquals(m.elsewhere, Set("lib"))
     assert(m.types.exists(t => t.programs.contains("com.acme.Prog") && t.programs.contains("okay.scala3.Prog")))
     assert(m.types.exists(t => t.factories == Types.Factories :+ "com.acme.Blob$#apply"), m.types.toString)
+    assert(m.types.exists(t => t.evidence == Types.Evidence :+ "com.acme.Row"), m.types.toString)
     val report = Audit.run(m.boundary, m.modules)
     assert(report.passed, report.text)
     Files.writeString(manifest, s"""{"modules": [{"name": "lib", "layer": "business", "paths": ["${cls("Pure")}"],

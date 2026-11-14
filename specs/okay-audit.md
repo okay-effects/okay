@@ -710,12 +710,12 @@ its type; nor has the rest of okay-java.
 
 ### Behavior
 
-- [ ] a value of a listed evidence class is data and its type arguments are not judged: a handler passing
+- [x] a value of a listed evidence class is data and its type arguments are not judged: a handler passing
   `In[Fetch, R]` (erased `okay.scala3.Place<okay.http.Fetch<Object>, R, ?>`) to a business method is no finding,
   though `Fetch`'s case holds a continuation (a function)
-- [ ] what is not evidence is judged as before: the same handler giving business code a real function, or an effect
+- [x] what is not evidence is judged as before: the same handler giving business code a real function, or an effect
   value whose case holds a continuation (`Fetch.Call(.., answer)`), is still a finding
-- [ ] a class removed from the list is judged again: `In[Fetch, R]` is a finding once more, by `Fetch`'s continuation
+- [x] a class removed from the list is judged again: `In[Fetch, R]` is a finding once more, by `Fetch`'s continuation
 
 ### Decisions
 
@@ -730,3 +730,13 @@ its type; nor has the rest of okay-java.
   every manifest that does not put okay-scala on a row — the false positive this lane removes, by another door.
 - **Where the type appears, not only at the top.** An evidence class nested in another type (`Option[In[E, R]]`) is
   exempt there too: the judge stops at it wherever it meets it, as it does at a program type.
+
+### Results (2026-11-14)
+
+`TestRealWorld`, "row evidence is data, its type arguments phantom: ...": the test's `okay.scala3.Place`/`In` keep
+okay-scala's shape (an opaque `In` over an enum of places; a signature names `okay.scala3.Place<okay.http.Fetch<Object>,
+R, ?>`, as okay-serverless' `Fetch$#apply` does) and its `okay.http.Fetch` holds a continuation; a Scala handler gives
+`Fetching.get` the place (no finding, nothing said), `Fetching.mapped` a lambda ("a function, scala.Function1") and
+`Fetching.asked` a `Fetch.Call` ("okay.http.Fetch$Call.answer: a function"); with `okay.scala3.Place` off the list the
+place is a finding again, by the same continuation. The manifest test reads `"evidence"` as an addition to the
+defaults; `Types.canonical` names each (`evidence <class>`).

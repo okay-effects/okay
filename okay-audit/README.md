@@ -70,6 +70,15 @@ whoever adds an entry vouches for it the same way. Anything not listed is judged
 any other business method is still a finding ([`specs/okay-audit.md`](../specs/okay-audit.md), "Copying factories of
 data types are trusted by name").
 
+Since 0.1.4 (republished) ROW EVIDENCE is data and its type arguments are PHANTOM: `types.evidence` names classes
+(their nested classes with them), and the default lists the kernels' — okay-scala's `okay.scala3.Place` (what
+`In[E, R]`, `Split` and `Has[E]` erase to), `okay.scala3.At`, `okay.scala3.Sub`, and okay-safe's `okay.safe.In`,
+`Split`, `Place`, `Sub` (okay.rows has none: its rows are types only). A handler passing `In[Fetch, R]` to a business
+method is no finding, though `Fetch`'s case holds a continuation: the value is a place in the row and holds no
+`Fetch`. A real function, or an effect value whose case holds a continuation, is still a finding. A manifest's
+`"types": {"evidence": [...]}` adds to the list ([`specs/okay-audit.md`](../specs/okay-audit.md), "Row evidence's type
+arguments are phantom").
+
 ## Maven and Gradle
 
 Build the `okay-audit` artifact once, then invoke its JVM main class from a
