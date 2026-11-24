@@ -207,9 +207,13 @@ class TestRealWorld extends munit.FunSuite with okay.testkit.Munit.Diagnosed:
     val rules = Presets.rules("nested-run")
     def call(owner: String, name: String) = Ref("biz.P", Ref.Kind.Method, owner, name, "()Ljava/lang/Object;")
     for (o, n) <- Vector("okay.scala3.Prog$package$" -> "runIsolated", "okay.scala3.Cek$" -> "runIsolated",
-        "okay.rows.Effects" -> "runIsolated", "okay.rows.Effects" -> "stepIsolated", "okay.core.Eff" -> "runIsolated")
+        "okay.rows.Effects" -> "runIsolated", "okay.rows.Effects" -> "stepIsolated", "okay.core.Eff" -> "runIsolated",
+        "okay.core.Comp" -> "runIsolated")
     do assert(!rules.exists(_.matches(call(o, n))), s"$o#$n")
     assert(rules.exists(_.matches(call("okay.scala3.Prog$package$", "run"))))
+    for o <- Vector("okay.core.Comp", "okay.core.Eff") do // okay-java's program, renamed after 0.1.0
+      assert(rules.exists(_.matches(call(o, "run"))), s"$o#run")
+      assert(Types.program(Types.Programs, o + "$Top"), s"$o is a program type")
     val pure = Presets.rules("pure")
     assert(!pure.exists(_.matches(call("okay.scala3.Prog$package$", "run"))), "pure has no nested-run")
     assert(Presets.UseNested.contains("runIsolated"))

@@ -329,7 +329,8 @@ object Presets:
     Preset("nested-run", "nested run: a program runs no program to its end — the host runs one, at its edge",
       UseNested, Vector("okay.rows.Effects#run", "okay.rows.Effects#step", "okay.rows.std.Async#start",
         "okay.rows.std.Async#toFuture", "okay.rows.std.Async#runBlocking", "okay.rows.std.Emit#pull",
-        "okay.core.Eff#run", "okay.core.Kernel#run", "okay.direct.Effects", "okay.direct.MultiEffects",
+        "okay.core.Comp#run", "okay.core.Eff#run", "okay.core.Kernel#run", "okay.direct.Effects",
+        "okay.direct.MultiEffects",
         "okay.scala3.Prog$package$#run", "okay.scala3.Cek$#run", "okay.safe.Host$package$#run",
         "okay.safe.Host$package$#step", "okay.safe.Machine$#run", "okay.$bang$#run")),
     Preset("escape", escape, "", Escapes.flatMap(_.apis)))

@@ -237,7 +237,8 @@ object Types:
     "okay.safe.Split", "okay.safe.Place", "okay.safe.Sub")
 
   /** the kernels' program types */
-  val Programs: Vector[String] = Vector("okay.scala3.Prog", "okay.rows.Comp", "okay.safe.Comp", "okay.core.Eff")
+  val Programs: Vector[String] =
+    Vector("okay.scala3.Prog", "okay.rows.Comp", "okay.safe.Comp", "okay.core.Comp", "okay.core.Eff")
 
   /** `name` is a program type or one of its nested classes (`okay.scala3.Prog$Defer`) */
   def program(programs: Vector[String], name: String): Boolean = programs.exists(p => Boundary.under(name, p))

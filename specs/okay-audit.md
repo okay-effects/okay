@@ -476,15 +476,16 @@ made the reports hard to read and two modes (allowlist, libs) unusable. This sec
   `productElement`, `equals`, `hashCode`, `toString`, `canEqual` of a business class, or a business trait's own
   implementation for itself (`$init$`, a static `m$` the host's class inherits), is not "the host gives";
   (b) `types.programs` (default: okay-scala's `okay.scala3.Prog`, okay.rows' `okay.rows.Comp`, okay-safe's
-  `okay.safe.Comp`, okay-java's `okay.core.Eff`, nested classes with them) are programs: a value the host gives,
-  not a function; (c) a `java.lang.Object` in a SCALA class's descriptor or signature (a union, an opaque type, a
-  boxed type argument, `Any` — erased, and only TASTy could say which) is "unknown (erased)": said, not failed; in a
-  Java class it stays a finding; (d) one type finding per (class, target, reason) with its occurrence count;
+  `okay.safe.Comp`, okay-java's `okay.core.Comp` (`okay.core.Eff` up to 0.1.0), nested classes with them) are
+  programs: a value the host gives, not a function; (c) a `java.lang.Object` in a SCALA class's descriptor or
+  signature (a union, an opaque type, a boxed type argument, `Any` — erased, and only TASTy could say which) is
+  "unknown (erased)": said, not failed; in a Java class it stays a finding; (d) one type finding per
+  (class, target, reason) with its occurrence count;
   (e) the report suggests `types.data` entries: a final business or runtime class with final fields that fails only
   through a leaf (an array, `Object`, a library class) and is named in two or more findings
 - [x] `nested-run` is its own preset, NOT in `pure` (decision below); `runIsolated` (okay-scala's
-  `Prog$package$`/`Cek$`), `okay.rows.Effects#runIsolated`/`#stepIsolated`, okay-java's `okay.core.Eff#runIsolated`
-  — the sanctioned run of a closed sub-program — never match it
+  `Prog$package$`/`Cek$`), `okay.rows.Effects#runIsolated`/`#stepIsolated`, okay-java's
+  `okay.core.Comp#runIsolated` (`Eff`'s up to 0.1.0) — the sanctioned run of a closed sub-program — never match it
 - [x] a Scala static forwarder (a static method `m` of class `C` calling `C$#m`, `X$package` → `X$package$`) is not
   where a reach is made: its reference is not a finding of `C`, the module class's own is
 - [x] every finding carries `at` — the method and the LineNumberTable line of its first site, and how many sites
