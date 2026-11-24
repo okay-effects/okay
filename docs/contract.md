@@ -159,8 +159,8 @@ crosses as cats' free monad and folds there:
 
 ```scala
 val p: Int ! Ask = for
-  a <- okay.effect(Ask.Num("a"))
-  b <- okay.effect(Ask.Num("bb"))
+  a <- okay.perform(Ask.Num("a"))
+  b <- okay.perform(Ask.Num("bb"))
 yield a * 10 + b
 val toIO: Ask ==> IO = [X] => (e: Ask[X]) => e match
   case Ask.Num(k) => IO(k.length)

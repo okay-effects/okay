@@ -97,8 +97,8 @@ when the search crosses it.
 
 ```scala
 def shared(log: Log)(xs: Seq[Int]): Int ! R =
-  Resource.run(Resource.acquire("a")(x => log += s"release $x").at[Resource + R].flatMap(_ =>
-    effect[Choose, Int](Choose(xs)).at[Resource + R].map { x => log += s"use $x"; x }))
+  Resource.run(Resource.acquire("a")(x => log += s"release $x").into[Resource + R].flatMap(_ =>
+    perform[Choose, Int](Choose(xs)).into[Resource + R].map { x => log += s"use $x"; x }))
 
 assertEquals(runChoice(shared(log)(Seq(1, 2, 3))).run, Seq(1, 2, 3))
 assertEquals(log.toList, List("use 1", "use 2", "use 3", "release a"))

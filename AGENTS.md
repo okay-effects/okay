@@ -33,10 +33,10 @@ export Accounts.{Find, Save}
 
 // a program: a value; its type says it may do Accounts and nothing else
 def rename(id: Long, to: String): Option[String] ! Accounts =
-  effect(Find(id)).flatMap(old => effect(Save(id, to)).map(_ => old))
+  perform(Find(id)).flatMap(old => perform(Save(id, to)).map(_ => old))
 
 // a handler that threads a state (a pure in-memory store, what a test uses)
-val store = Handler.state[Accounts, Map[Long, String]](Map(7L -> "ada")):
+val store = Handler.stateful[Accounts, Map[Long, String]](Map(7L -> "ada")):
   [X] => (m: Map[Long, String], e: Accounts[X]) => e match
     case Find(id) => (m, m.get(id))
     case Save(id, name) => (m.updated(id, name), m.get(id))
@@ -45,11 +45,14 @@ val store = Handler.state[Accounts, Map[Long, String]](Map(7L -> "ada")):
 val renamed = rename(7, "grace").handle(store).run   // (Map(7 -> grace), Some(ada))
 ```
 
-Other handler forms (same test): `Handler.answering[F]` answers each operation with a value (where a live client the
+Other handler forms (same test): `Handler.tail[F]` answers each operation with a value (where a live client the
 host built is used); `p.translate[F, G]` turns each operation into a program in other effects (`State`, `Writer`);
-`Handler.deep[F, O](ret)` holds the continuation `resume`, callable zero, one or many times; `Handler.aborting` stops.
+`Handler.general[F, O](ret)` holds the continuation `resume`, callable zero, one or many times; `Handler.abort`
+stops.
 A whole row answered at once: `Answers[F]` with `p.runWith`. Rows are unions: `A ! Users + Abort`; order does not
-matter; `p.plus[R]` / `p.at[R]` widen a program into a bigger row.
+matter; `p.into[R]` widens a program into a bigger row (`p.plus[G]` adds one effect). The names are the
+family's (okay-effects CONCEPT §3); the old ones (`effect`, `Handler.answering`/`state`/`deep`/`aborting`, `at`,
+`up`, `ensure`, `Throws.either`, `Fresh.counter`) are deprecated aliases.
 
 ### Design rules
 
@@ -59,7 +62,7 @@ matter; `p.plus[R]` / `p.at[R]` widen a program into a bigger row.
 - Run only at the entry point. Never `.run`/`.runWith` inside a program: install handlers as part of the program
   (`p.handle(h)` / `p.intercept(h)` on a sub-program, the result still a program) instead.
 - Sensitive operations go under interception/audit (below).
-- Tests swap handlers (`Handler.state`, an in-memory `Answers`), never mocks of resources; `h.tracing(log += _)`
+- Tests swap handlers (`Handler.stateful`, an in-memory `Answers`), never mocks of resources; `h.tracing(log += _)`
   records what a program asked.
 - No ambient effects in business code (clock, random, IO, env, threads, globals): declare an effect, or use the
   standard ones in okay-std (`Clock`, `Random`, `Reader`, ...).
@@ -71,8 +74,8 @@ matter; `p.plus[R]` / `p.at[R]` widen a program into a bigger row.
 
 - `p.intercept(h)` (root `Program.scala`): `h` answers `p`'s operations of `E` and `E` stays in the row; `h`'s own
   operations go to the handler outside. `Reader.local` is written this way (okay-std, `Reader.scala`).
-- Sensitive effects are in the kernel (okay-core, `okay.one`, reached through okay's dependency; not yet on the
-  `import okay.*` facade): `given Sensitive[Pay] = Sensitive()` makes `handle` refuse `Pay`; `Audit.audit(i)(body)`
+- Sensitive effects are in the kernel (okay-core, `okay.one`, over its rows; on `import okay.*` as exports:
+  `Sensitive`, `Audited`, `Audit`, `audit`, `handleAudited`, `Pass`, `Interceptor`, `Observer`): `given Sensitive[Pay] = Sensitive()` makes `handle` refuse `Pay`; `Audit.audit(i)(body)`
   with an `Interceptor` passes on, changes or refuses each operation and leaves `Audited[Pay]` in the row;
   `handleAudited` is the only handler of it; `Audit.observe` sees every operation; `Audit.record`/`Audit.trail` keep
   the trail as a value. Worked example: okay-core/src/test/scala/okay/one/TestIntercept.scala.
@@ -89,7 +92,7 @@ matter; `p.plus[R]` / `p.at[R]` widen a program into a bigger row.
 - A program in statement position is built and dropped: `c.send(x)` alone sends nothing. This repository makes it
   an error with `-Wall` plus a `-Wconf` (build.sbt, "discarded non-Unit ... value of type ... !"); copy both into
   your build. Neither sees `xs.foreach(c.send)` or `for x <- xs do c.send(x)`: that is on you.
-- Handler order is the result's shape: `.handle(State(0)).handle(Throws.either)` gives `Right((s, a))`; swapped,
+- Handler order is the result's shape: `.handle(State(0)).handle(Throws.run)` gives `Right((s, a))`; swapped,
   the answer is `(state, Either)`.
 - Covariant signatures: a case declared `F[Unit]` proves only `X >: Unit`; such a branch must widen
   (`.map(_ => ())`).

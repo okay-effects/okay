@@ -283,7 +283,7 @@ Put the scope around the consumption, and give the consuming stage the
 source's row:
 
 ```scala
-val out = run(okay.through(Py.source[Long]("sources:rows")(10000L, 3L))(takeFour.at[Take % Long + (Writer % Long + (ForeignEval + Holding))]), h)
+val out = run(okay.through(Py.source[Long]("sources:rows")(10000L, 3L))(takeFour.into[Take % Long + (Writer % Long + (ForeignEval + Holding))]), h)
 ```
 
 Here `run` is `Writer.run(Py.releasing(p))`; four rows are read, and the

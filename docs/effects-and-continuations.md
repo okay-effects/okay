@@ -44,12 +44,12 @@ val checked: Int ! State % Int + Throws % String =
     r <- (if n > 3 then raise[String, Int]("too big") else pure(n)).plus[State % Int]
   yield r
 
-val b = checked.handle(State(5)).handle(Throws.either).run   // Left("too big")
-val c = checked.handle(Throws.either).handle(State(1)).run   // (1, Right(1))
+val b = checked.handle(State(5)).handle(Throws.run).run   // Left("too big")
+val c = checked.handle(Throws.run).handle(State(1)).run   // (1, Right(1))
 ```
 
 The handlers: `State(s)` answers `(S, A)`, `Reader(r)` answers `A`, `Writer.log` answers `(Seq[W], A)`,
-`Throws.either` answers `Either[E, A]`, `Choose.all` answers every branch as a `Seq[A]`, and `Maybe.option`
+`Throws.run` answers `Either[E, A]`, `Choose.all` answers every branch as a `Seq[A]`, and `Maybe.option`
 answers `Option[A]`. `Reset[R]` is described below. (`.plus[G]` widens a program into a bigger row; a row is a
 union, so its order does not matter.)
 

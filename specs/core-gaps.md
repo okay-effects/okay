@@ -101,8 +101,8 @@ object Fresh:                                        // not a top-level `fresh`:
 ## Design
 
 **Maybe is its own class, not an alias for `Option`.** A collection is
-already a signature here (`List(1,2).perform` is nondeterminism, Choice.scala),
-and `Option` could be one the same way. Choice.scala names the reason not
+already a signature here (`List(1,2).perform` is nondeterminism, Choose.scala),
+and `Option` could be one the same way. Choose.scala names the reason not
 to do that: a row needs a signature that means one thing. `Option` in a row
 means whatever the reader guesses. A box costs one 16-byte allocation per
 operation, the same price `Choose` pays.

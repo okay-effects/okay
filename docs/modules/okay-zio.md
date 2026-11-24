@@ -31,8 +31,8 @@ ZIO with an environment and a typed error crosses with
 ```scala
 type Row = Reader % ZEnvironment[Greeting] + Throws % String + Async
 val z: ZIO[Greeting, String, String] = ZIO.serviceWith[Greeting](_.word + "!")
-val p: String ! Row = Reader.ask[ZEnvironment[Greeting]].at[Row].map(_.get[Greeting].word)
-val q: Int ! Row = raise[String, Int]("bad").at[Row]
+val p: String ! Row = Reader.ask[ZEnvironment[Greeting]].into[Row].map(_.get[Greeting].word)
+val q: Int ! Row = raise[String, Int]("bad").into[Row]
 ```
 
 `fromZIOTyped(z)` is a program over that row; `toZIOTyped(p)` is a

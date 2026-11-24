@@ -6,7 +6,7 @@ Kiselyov & Shan, "Embedded probabilistic programming" (DSL 2009, the
 Hansei system) treat a probabilistic model as an ordinary program with
 one extra operation — a weighted choice — and treat INFERENCE as a
 HANDLER over it, the same "one program, several readings" shape this
-library already gives `Choose`/nondeterminism (`Choice.scala`'s own
+library already gives `Choose`/nondeterminism (`Choose.scala`'s own
 comment states it for that effect; this is its weighted twin). The
 showcase reason it belongs here specifically: exact inference by
 exhaustive enumeration is MULTI-SHOT — it must invoke the delimited
@@ -31,7 +31,7 @@ object Prob:
   def runRejection[A](n: Int)(p: => A ! Dist)(using scala.util.Random): Map[A, Double]
 ```
 
-`Dist` is its own signature, the same shape `Choose` uses (Choice.scala)
+`Dist` is its own signature, the same shape `Choose` uses (Choose.scala)
 — one case class, its answer type IS the choice's element type, no
 GADT refinement needed anywhere. `observe(false)` is `Dist(Seq.empty)`
 — a weighted choice with NO alternatives, pruning the branch exactly
@@ -93,7 +93,7 @@ Decisions for why `observe` in particular is never bare.
 ## Decisions
 
 - **Everything but `Dist` itself lives under `object Prob`** — unlike
-  `Choice.scala`'s own split (`Choose`, `choose` and `runChoice` are
+  `Choose.scala`'s own split (`Choose`, `choose` and `runChoice` are
   ALL package-level there), because `Logic.observe(n: Int)` already
   names an unrelated operation, and a package-level `Prob.observe`'s
   namesake (`observe(cond: Boolean)`) would be silently SHADOWED the

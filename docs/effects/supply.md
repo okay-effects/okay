@@ -10,7 +10,7 @@ could rewind it. A supply has one operation.
 | | |
 |---|---|
 | `Fresh.next` | the next `Long`, from 0 |
-| `p.handle(Fresh.counter)` | handle it |
+| `p.handle(Fresh.run)` | handle it |
 | `Fresh.run(p)` | handle it |
 | `Supply.next[S]` | the next value of any type |
 | `p.handle(Supply.from(first)(step))` | handle it from `first`, each next by `step` |
@@ -21,7 +21,7 @@ could rewind it. A supply has one operation.
 ```scala
 val three = for a <- Fresh.next; b <- Fresh.next; c <- Fresh.next yield List(a, b, c)
 
-val ids = three.handle(Fresh.counter).run   // List(0, 1, 2)
+val ids = three.handle(Fresh.run).run   // List(0, 1, 2)
 
 val (after, letters) = Supply.next[Char].flatMap(x => Supply.next[Char].map(y => s"$x$y")).handle(Supply.from('a')(c => (c + 1).toChar)).run   // ('c', "ab")
 ```

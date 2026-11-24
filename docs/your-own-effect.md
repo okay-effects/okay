@@ -58,8 +58,8 @@ an operation node. Write `derives okay.Effect` there.
 
 ```scala
 object Users:
-  inline def find(id: Long): Option[String] ! Users = effect(Find(id))
-  inline def save(id: Long, name: String): Option[String] ! Users = effect(Save(id, name))
+  inline def find(id: Long): Option[String] ! Users = perform(Find(id))
+  inline def save(id: Long, name: String): Option[String] ! Users = perform(Save(id, name))
 ```
 
 These are optional. `Users.Find(id).perform` says the same thing with
@@ -106,8 +106,8 @@ row is noise.
 ```scala
 def rename(id: Long, to: String): Option[String] ! Users = runOption {
   for
-    case Some(old) <- Users.find(id).at[Users + Abort]
-    _              <- Users.save(id, to).at[Users + Abort]
+    case Some(old) <- Users.find(id).into[Users + Abort]
+    _              <- Users.save(id, to).into[Users + Abort]
   yield old
 }
 ```
@@ -208,20 +208,20 @@ built-in effects do (`p.handle(State(5))`). They are ordered by power, and each 
 forms, answered in place where it can be. The examples use `Accounts`, an effect shaped like `Users`
 (`Find`, `Save`), from the test that pins them (okay-std, `TestDocExamplesYourOwnEffect`).
 
-**1. Answer each operation** (`Handler.answering`), and the program goes on:
+**1. Answer each operation** (`Handler.tail`), and the program goes on:
 
 ```scala
-val live: Handler[Accounts, [A] =>> A] = Handler.answering[Accounts]:
+val live: Handler[Accounts, [A] =>> A] = Handler.tail[Accounts]:
   [X] => (e: Accounts[X]) => e match
     case Find(id) => db.get(id)
     case Save(id, name) => db.put(id, name)
 ```
 
-**2. Thread a state** through the operations (`Handler.state`): each case answers `(state', answer)`, and
+**2. Thread a state** through the operations (`Handler.stateful`): each case answers `(state', answer)`, and
 the result carries the last state:
 
 ```scala
-val store = Handler.state[Accounts, Map[Long, String]](Map(7L -> "ada")):
+val store = Handler.stateful[Accounts, Map[Long, String]](Map(7L -> "ada")):
   [X] => (m: Map[Long, String], e: Accounts[X]) => e match
     case Find(id) => (m, m.get(id))
     case Save(id, name) => (m.updated(id, name), m.get(id))
@@ -239,17 +239,17 @@ def stored[A, Es[_]](p: A ! Es)(using s: Split[Es, Accounts]): A ! (State % Map[
       case Save(id, name) => State.update[Map[Long, String], Option[String]](m => (m.get(id), m.updated(id, name)))
 ```
 
-**4. Hold the continuation** (`Handler.deep`): call `resume` once, twice or not at all. This is Maybe
+**4. Hold the continuation** (`Handler.general`): call `resume` once, twice or not at all. This is Maybe
 written by hand:
 
 ```scala
-val asMaybe = Handler.deep[Maybe, Option]([A] => (a: A) => Some(a)):
+val asMaybe = Handler.general[Maybe, Option]([A] => (a: A) => Some(a)):
   [A, X] => (e: Maybe[X], resume: X => Option[A] ! Pure) => e.value match
     case Some(x) => resume(x)
     case None => pure[Option[A], Pure](None)
 ```
 
-A fifth, `Handler.aborting`, stops at an operation without a continuation (`Throws`, a refuted `Maybe`).
+A fifth, `Handler.abort`, stops at an operation without a continuation (`Throws`, a refuted `Maybe`).
 Each case is a polymorphic function the compiler checks with no macro: the operation's GADT case refines `X`,
 so a case answering the wrong type does not compile. (okay-freer, the frozen classic road, had a macro form,
 `Handler[Accounts] { case … }`, with its own messages; the kernel's words do not need it.)
@@ -263,12 +263,12 @@ effect author does not need them.
 | what the handler must do | write | it runs on |
 |---|---|---|
 | answer every operation of a whole row with a value, the program fixed | `Answers[F]`, run with `runWith` (§5) | each effect answered in place |
-| answer each operation with a value, one effect off any row | `Handler.answering[F]` (form 1) | the kernel's `Answering` |
-| answer and carry a state, the last state in the result | `Handler.state[F, S](s0)` (form 2) | the kernel's `Stateful` |
+| answer each operation with a value, one effect off any row | `Handler.tail[F]` (form 1) | the kernel's `Answering` |
+| answer and carry a state, the last state in the result | `Handler.stateful[F, S](s0)` (form 2) | the kernel's `Stateful` |
 | answer with a program in other effects | `p.translate[F, G]` (form 3, §7); `p.translateInto[F, G]` when `G` is in the row already | the kernel's `Translating` |
 | record what is asked and answer nothing | `Writer.tracing(p)` (§6) | `translate` |
-| resume twice, keep the continuation | `Handler.deep[F, O](ret)` (form 4) | the kernel's `Deep` |
-| stop, no continuation | `Handler.aborting[F, O](ret)` | the kernel's `Aborting` |
+| resume twice, keep the continuation | `Handler.general[F, O](ret)` (form 4) | the kernel's `Deep` |
+| stop, no continuation | `Handler.abort[F, O](ret)` | the kernel's `Aborting` |
 | *(library)* walk the program yourself | `okay.Walk.view` / `Walk.next` | the root's one walk |
 
 What is still a hand-written walk is a different kind of thing, not another handler form. `State.zoomWith`,
@@ -322,7 +322,7 @@ Two layers, one job each, composed:
 def tracked[A, S : Store, F[_]](prog: A ! Users + F): A ! Tracked[S] + F =
   stored[A, S, Writer % String + F](
     Writer.tracing[A, Users, String, Users + F](prog)([X] => (e: Users[X]) => e.toString)
-      .at[Users + (Writer % String + F)]).at[Tracked[S] + F]
+      .into[Users + (Writer % String + F)]).into[Tracked[S] + F]
 ```
 
 (`type Tracked[S] = State % S + Writer % String`.)
@@ -340,7 +340,7 @@ own runners, innermost first:
 def pureRun[S : Store](init: S): (S, (Seq[String], Option[String])) =
   State.run[S, (Seq[String], Option[String])](init)(
     Writer.run[String, Option[String], Tracked[S] + Pure](
-      tracked[Option[String], S, Pure](rename(7L, "grace").at[Users + Pure])).at[State % S])
+      tracked[Option[String], S, Pure](rename(7L, "grace").into[Users + Pure])).into[State % S])
 
 pureRun(Map(7L -> "ada"))
 // (Map(7 -> grace), (Seq(Find(7), Save(7,grace)), Some(ada)))

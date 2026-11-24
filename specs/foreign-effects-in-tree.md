@@ -126,7 +126,7 @@ real core in a worktree:
      `pure(())`) is now typed alone;
    - worse, inside package `okay` an extension `flatMap` of a given in
      LEXICAL scope wins over the companion's: `MonadPlus[A ! Choose]`'s
-     (Choice.scala) took `Maybe.prune`'s and `Logic.defer`'s binds, and
+     (Choose.scala) took `Maybe.prune`'s and `Logic.defer`'s binds, and
      at Eager.scala:61 `t.flatMap` inside `Monad[Eager]`'s `flatMap`
      resolved to that override ITSELF (a type error there only because
      the types differ). Every `Monad` instance written `x.flatMap(f)` is

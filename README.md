@@ -205,7 +205,7 @@ From the everyday to the rare; each name links to its own page, with examples. T
   sub-program runs at most once, its answer memoised in the handler
   (Once.scala).
 - [`Choice`](docs/effects/choice.md) — nondeterminism with a genuinely multi-shot handler; the
-  canonical MonadPlus (Choice.scala). `Logic` — fair backtracking
+  canonical MonadPlus (Choose.scala). `Logic` — fair backtracking
   search on top of it: interleave, once, ifte (Logic.scala,
   specs/backtracking.md).
 - [`Gen`](docs/effects/gen.md) — generators, Python's `yield`: a

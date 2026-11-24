@@ -46,5 +46,5 @@ val firstTwo = Logic.observe(2)(sums).run   // the first two: 11, 21
   shared ([State](state.md), [Once](once.md)).
 - Weighted choice with conditioning is [Prob](prob.md).
 
-See also: `src/main/scala/Choice.scala`, `src/main/scala/Logic.scala`,
+See also: `okay-std/src/main/scala/okay/std/Choose.scala`, `src/main/scala/Logic.scala`,
 `specs/backtracking.md`; LogicT (Kiselyov, Shan, Friedman, Sabry 2005).

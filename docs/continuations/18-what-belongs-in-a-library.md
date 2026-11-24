@@ -32,7 +32,7 @@ enum Ticks[+A] derives okay.Effect:
   case Millis extends Ticks[Long]
 
 object Ticks:
-  inline def millis: Long ! Ticks = effect(Millis)
+  inline def millis: Long ! Ticks = perform(Millis)
 ```
 
 And here are the two interpreters, which is the part that matters:

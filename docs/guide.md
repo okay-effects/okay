@@ -34,7 +34,7 @@ literally a natural transformation into `Cps`, and `Cps` is this
 same freer tree at the signature "a function of the continuation"
 ([theory ch. 11](theory/11-one-tree.md)): a program and its meaning
 are made of the same nodes. For a USER the whole of it is `p.handle(h)`
-with a ready handler value (`State(s)`, `Throws.either`, `Reader(r)`, …)
+with a ready handler value (`State(s)`, `Throws.run`, `Reader(r)`, …)
 and `p.run` at the end ([effects-and-continuations.md](effects-and-continuations.md));
 an effect AUTHOR writes `Handler[F] { case … }` or one of its forms
 ([your-own-effect.md](your-own-effect.md)). Underneath, three ways to run:
@@ -169,8 +169,8 @@ enum Users[+A] derives Effect:
   case Save(id: Long, name: String) extends Users[Unit]
 
 object Users:                       // optional: `Users.Find(id).perform`
-  inline def find(id: Long): Option[String] ! Users = effect(Find(id))
-  inline def save(id: Long, name: String): Unit ! Users = effect(Save(id, name))
+  inline def find(id: Long): Option[String] ! Users = perform(Find(id))
+  inline def save(id: Long, name: String): Unit ! Users = perform(Save(id, name))
 ```
 
 `derives Effect` writes the runtime test a row split needs (a row is an
@@ -186,7 +186,7 @@ its test is then by class only — so a row may hold one `Your`, not
 two at different S.
 
 **Putting an operation in a wider row.** `p.plus[R]` adds R to whatever
-row `p` has; `p.at[R]` names the target row instead — better when
+row `p` has; `p.into[R]` names the target row instead — better when
 several operations land in the same row, and required when that row is
 known only by MEMBERSHIP, as a row-polymorphic helper's is. A BIND
 whose continuation answers in another row is `p.bind(x => q)`: the
@@ -210,8 +210,8 @@ what happened:
 ```scala
 def rename(id: Long, to: String): Option[String] ! Users = runOption {
   for
-    case Some(old) <- Users.find(id).at[Users + Abort]
-    _              <- Users.save(id, to).at[Users + Abort]
+    case Some(old) <- Users.find(id).into[Users + Abort]
+    _              <- Users.save(id, to).into[Users + Abort]
   yield old
 }
 ```
@@ -241,7 +241,7 @@ come out of two handlers:
 ```scala
 type R = Maybe + Throws % String
 def adult(name: String): Int ! R =
-  age(name).at[R].flatMap(a => if a >= 18 then pure(a) else raise[String, Int]("minor").at[R])
+  age(name).into[R].flatMap(a => if a >= 18 then pure(a) else raise[String, Int]("minor").into[R])
 // runEither(Maybe.run(adult("eve"))) == Right(None); a minor is Left("minor")
 ```
 
@@ -253,7 +253,7 @@ each element under its own handler and keeps the ones that were there.
 
 ```scala
 assertEquals(Maybe.collect(List("ann", "eve", "bob"))(age).run, Vector(31, 42))
-val known: Int ! Maybe + Choose = for n <- choose("ann", "eve", "bob").at[Maybe + Choose]; a <- age(n).at[Maybe + Choose] yield a
+val known: Int ! Maybe + Choose = for n <- choose("ann", "eve", "bob").into[Maybe + Choose]; a <- age(n).into[Maybe + Choose] yield a
 assertEquals(runChoice(Maybe.prune(known)).run, Seq(31, 42))
 ```
 
@@ -332,8 +332,8 @@ undo:
 ```scala
 type Row = State % Int + Throws % String
 val p: Int ! Row =
-  State.set[Int](5).at[Row].flatMap(_ => raise[String, Int]("boom").at[Row])
-    .recover(_ => State.get[Int].at[Row])
+  State.set[Int](5).into[Row].flatMap(_ => raise[String, Int]("boom").into[Row])
+    .recover(_ => State.get[Int].into[Row])
 // State.run(0)(runEither[Int, State % Int, String](p)) == (5, Right(5)) — the set(5) sticks
 ```
 
@@ -358,7 +358,7 @@ use `Writer.map` or `Writer.expand` over the same scope:
 
 ```scala
 val step: Int ! W = for _ <- say("parse"); _ <- say("check") yield 42
-val p = for _ <- say("start"); heard <- Writer.listen(step).at[W]; _ <- say("end") yield heard
+val p = for _ <- say("start"); heard <- Writer.listen(step).into[W]; _ <- say("end") yield heard
 // Writer.run: told start, parse, check, end; heard == (42, List(parse, check))
 ```
 
@@ -405,8 +405,8 @@ def tracked[A, Es[_]](p: A ! Es)(using s: Split[Es, Users]): A ! (State % Store 
     [X] => (e: Users[X]) => e match
       case Find(id) =>
         for
-          store <- State.get[Store].at[R]
-          _     <- Writer.tell(s"find($id)").at[R]
+          store <- State.get[Store].into[R]
+          _     <- Writer.tell(s"find($id)").into[R]
         yield store.get(id)
       ...
 ```

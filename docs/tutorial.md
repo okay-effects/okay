@@ -21,9 +21,9 @@ Nothing ran until `run`: `handle` takes `State` off with its handler, `State(0)`
 ```scala
 type F = State % Int + Throws % String
 def risky(n: Int): Int ! F =
-  if n < 0 then raise[String, Int]("negative").at[F] else effect[State % Int, Int](State.Update[Int, Int](_ => (n, n))).at[F]
+  if n < 0 then raise[String, Int]("negative").into[F] else perform[State % Int, Int](State.Update[Int, Int](_ => (n, n))).into[F]
 
-val both = risky(5).handle(State(0)).handle(Throws.either).run   // handle State, then Throws: Right((5, 5))
+val both = risky(5).handle(State(0)).handle(Throws.run).run   // handle State, then Throws: Right((5, 5))
 ```
 
 ## 2. Telling is streaming

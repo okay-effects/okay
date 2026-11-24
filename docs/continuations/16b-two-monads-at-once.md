@@ -394,10 +394,10 @@ type Trip = Choose + Writer % String + Throws % String
 
 ```scala
 for {
-  (hub, p1) <- flights(from).at[Trip]
-  _         <- book(from, hub).at[Trip]
-  (to, p2)  <- flights(hub).at[Trip]
-  _         <- book(hub, to).at[Trip]
+  (hub, p1) <- flights(from).into[Trip]
+  _         <- book(from, hub).into[Trip]
+  (to, p2)  <- flights(hub).into[Trip]
+  _         <- book(hub, to).into[Trip]
 } yield p1 + p2
 ```
 
@@ -507,7 +507,7 @@ def note(msg: String): Unit ! Writer % String =
 
 <!-- not-a-test: okay-freer, the classic road (frozen) -->
 ```scala
-_     <- note(s"shop $shop").at[Basket]
+_     <- note(s"shop $shop").into[Basket]
 ps    <- items.foldLeft(pure[Basket, List[Int]](Nil))((acc, item) => acc.flatMap(xs => priceOf(shop, item).at[Basket].map(xs :+ _)))
 ```
 
@@ -527,9 +527,9 @@ type Taxed = okay.std.Reader % Int + Basket
 
 def taxed(items: List[String]): Int ! Taxed =
   for
-    vat   <- okay.std.Reader.ask[Int].at[Taxed]
-    total <- basket(items).at[Taxed]
-    _     <- audit(s"vat $vat%").at[Taxed]
+    vat   <- okay.std.Reader.ask[Int].into[Taxed]
+    total <- basket(items).into[Taxed]
+    _     <- audit(s"vat $vat%").into[Taxed]
   yield total * (100 + vat) / 100
 ```
 
@@ -711,15 +711,15 @@ type Basket = Choose + Writer % String + Throws % String
 def price(shop: String, item: String): Int ! Basket =
   prices(shop).get(item) match
     case Some(p) => pure[Basket, Int](p)
-    case None    => raise[String, Int](s"$shop has no $item").at[Basket]
+    case None    => raise[String, Int](s"$shop has no $item").into[Basket]
 
 def basket(items: List[String]): Int ! Basket =
   for
-    shop  <- choose("north", "south").at[Basket]
-    _     <- Writer.tell(s"shop $shop").at[Basket]
+    shop  <- choose("north", "south").into[Basket]
+    _     <- Writer.tell(s"shop $shop").into[Basket]
     ps    <- items.foldLeft(pure[Basket, List[Int]](Nil))((acc, item) => acc.flatMap(xs => price(shop, item).map(xs :+ _)))
     total  = ps.sum
-    _     <- Writer.tell(s"total $total").at[Basket]
+    _     <- Writer.tell(s"total $total").into[Basket]
   yield total
 ```
 

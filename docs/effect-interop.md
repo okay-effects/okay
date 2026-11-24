@@ -199,9 +199,9 @@ reverse, taking the Reader from ZIO's environment:
 ```scala
 type Row = Reader % ZEnvironment[Greeting] + Throws % String + Async
 val z: ZIO[Greeting, String, String] = ZIO.serviceWith[Greeting](_.word + "!")
-val p: String ! Row = Reader.ask[ZEnvironment[Greeting]].at[Row].map(_.get[Greeting].word)
+val p: String ! Row = Reader.ask[ZEnvironment[Greeting]].into[Row].map(_.get[Greeting].word)
 assertEquals(exit(toZIOTyped(p).provideEnvironment(hi)), Exit.succeed("hi"))
-val q: Int ! Row = raise[String, Int]("bad").at[Row]
+val q: Int ! Row = raise[String, Int]("bad").into[Row]
 assertEquals(exit(toZIOTyped(q).provideEnvironment(hi)), Exit.fail("bad"))
 ```
 

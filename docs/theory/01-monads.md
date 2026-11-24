@@ -101,7 +101,7 @@ rewrite the one interpreter performs.
 
 The parade of Moggi's examples is Okay's module list. State
 (`State.scala`), exceptions (`Throws.scala` — "typed aborts"),
-nondeterminism (`Choice.scala`, chapter 7), output (`Writer.scala`),
+nondeterminism (`Choose.scala`, chapter 7), output (`Writer.scala`),
 input (`Reader.scala`), and the continuation monad itself
 (`Cps.scala`, chapter 2). Each is one *signature* — a small GADT or
 identity alias naming its operations — rather than a monad of its own,
