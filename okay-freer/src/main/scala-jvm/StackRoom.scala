@@ -8,7 +8,7 @@ package okay.freer
  * 22+ variant reads, the runner asks it at the end of every room
  * (cont-stack-exact-first, 2026-10-04).
  *
- * THE OTHER SIDE is `jdk22/StackRoom.scala` — the same object, compiled
+ * THE OTHER SIDE is `okay-freer/jdk22/StackRoom.scala` — the same object, compiled
  * with `-java-output-version 22` against `java.lang.foreign` and
  * packaged under `META-INF/versions/22/` of this jar (build.sbt
  * `versioned`/`multiRelease`, JEP 238): a JVM of 22 or newer loads

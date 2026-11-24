@@ -165,13 +165,13 @@ on. Since java-gatherers (2026-09-23) sbt runs on JDK 25
 ordinary source.
 
 **What replaced it (build.sbt `versioned` / `multiRelease`):**
-- `jdk25/` is project `okayPlatformJdk25`: sources compiled with
+- `okay-platform/jdk25/` (at the root until 2026-11-24) is project `okayPlatformJdk25`: sources compiled with
   `-java-output-version 25` (the API check and bytecode 69 for that
   version) against okay-platform's own compile classpath — the root
   `okay.Scoped` is on it and the source wins, as measured. It has no
   `dependsOn`; okay-platform depends on it `test->compile`, which is
   both the truth (the jar its tests run against carries it) and what
-  lets `affected` reach okay-platform from a change under `jdk25/`.
+  lets `affected` reach okay-platform from a change under `okay-platform/jdk25/`.
 - okay-platform's `packageBin` maps every class of it to
   `META-INF/versions/25/` and the manifest says `Multi-Release: true`
   — unconditionally. The core's copy of that wiring, which had gone

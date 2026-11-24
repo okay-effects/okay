@@ -18,7 +18,7 @@ package okay
  *
  * THIS is the baseline every platform gets. On a JVM running JDK
  * 25+ specifically, the class actually loaded is a DIFFERENT one —
- * `jdk25/Scoped.scala` (repo root), backed by the real
+ * `okay-platform/jdk25/Scoped.scala`, backed by the real
  * `java.lang.ScopedValue` (JEP 506, JVM-only — no JS/Native
  * equivalent, so this swap applies to okayPlatformJVM alone) —
  * compiled as project `okayPlatformJdk25` and packaged into THIS

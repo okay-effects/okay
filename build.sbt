@@ -153,7 +153,7 @@ def jdkFloor(n: Int) = scalacOptions ~= { opts =>
  * (mrjar-jdk25-ci-gap, 2026-09-25). `dir` holds sources that
  * redefine classes of `hostId` for a JVM of feature version `n` and
  * up — the same names, the same public shape, a newer API inside
- * (`jdk25/Scoped.scala` over `java.lang.ScopedValue`). They compile
+ * (`okay-platform/jdk25/Scoped.scala` over `java.lang.ScopedValue`). They compile
  * with `-java-output-version n`, so the compiler refuses an API past
  * that version and emits the matching bytecode, against the host's
  * own compile classpath: the host's root class of the same name is on
@@ -562,7 +562,7 @@ lazy val okay = crossProject(JVMPlatform, JSPlatform, NativePlatform)
  */
 /** okay.StackRoom reading the stack pointer through FFM, for JDK 22+
  * (`versioned`; specs/cont-stack.md Layer 3, Decision 12) */
-lazy val okayJdk22 = versioned("okayJdk22", "jdk22", 22, "okayFreerJVM")
+lazy val okayJdk22 = versioned("okayJdk22", "okay-freer/jdk22", 22, "okayFreerJVM")
 
 lazy val okayAsync = crossProject(JVMPlatform, JSPlatform, NativePlatform)
   .crossType(CrossType.Pure)
@@ -683,7 +683,7 @@ lazy val okayPlatform = crossProject(JVMPlatform, JSPlatform, NativePlatform)
   )
 
 /** okay.Scoped over java.lang.ScopedValue, for JDK 25+ (`versioned`) */
-lazy val okayPlatformJdk25 = versioned("okayPlatformJdk25", "jdk25", 25, "okayPlatformJVM")
+lazy val okayPlatformJdk25 = versioned("okayPlatformJdk25", "okay-platform/jdk25", 25, "okayPlatformJVM")
 
 /**
  * Streams, channels and the buffers under them (core-modules stage 1,

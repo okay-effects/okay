@@ -11,7 +11,7 @@ class TestStackRoom extends munit.FunSuite:
   private def deeper(n: Int): Long = if n == 0 then StackRoom.sp() else deeper(n - 1) + 0
 
   /** the `(os, arch)` pairs whose `ucontext_t` layout was MEASURED
-   * (jdk22/StackRoom.scala, specs/cont-stack.md Decision 13) — the JVM
+   * (okay-freer/jdk22/StackRoom.scala, specs/cont-stack.md Decision 13) — the JVM
    * must read on these from 22 up, and nowhere else */
   private val measured = Set(("Mac OS X", "aarch64"), ("Linux", "aarch64"), ("Linux", "amd64"))
 
