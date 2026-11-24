@@ -442,7 +442,7 @@ TASTy-plus-CBOR is how that price could be lifted **without** losing
 what Claim 3 bought, because a typed AST plus CBOR data is not a
 serialised JVM lambda: there is still no Kryo, no registration list,
 and no synthetic name to go stale. The Spark capability without the
-Spark mechanism. It is filed as `shipped-terms` in BACKLOG.md, with
+Spark mechanism. It is filed as `shipped-terms` in backlog.d/, with
 the one genuinely hard part — a macro reifying `'{ ... }` at the
 submission site — and the deciding test stated before anything is
 built.

@@ -1012,7 +1012,7 @@ continue — is a for-do loop with a signal in the body: the policy
 resumes each signal point, the loop keeps going (`TestConditionDirect`,
 "repair per element"). The two recorded roads onward — lexical
 restarts as capabilities (a nonexistent restart uncompilable in
-scope) and typed condition/answer pairs — are in BACKLOG.md.
+scope) and typed condition/answer pairs — are specs/condition.md's later sections.
 
 ## Choosing a layer
 

@@ -7737,3 +7737,218 @@ one that type-checked, which is a shape worth removing.
       boundaries, never frames) — and a catch frame turns on `guarding`
       for that run only. A lane in a fork that ran a handler earlier no
       longer pays for it.
+
+## Moved from BACKLOG.md on 2026-11-24 (repo-hygiene)
+
+BACKLOG.md was still the whole pre-2026-09-18 board after backlog.d/ replaced it. Every item in it
+was already in backlog.d/ or above, except these twenty, copied verbatim; each is landed since (its
+slug names a changelog.d/ entry). The full old text is in git history (`git show 943b7b9ac:BACKLOG.md`).
+
+<!-- section: okay core -->
+- [ ] two-accumulating-validators — `okay-codec`'s `Validate.gather`
+      is `Validated.app` written by hand on `Either`, and its own
+      comment says so: "the applicative step: both sides' errors
+      survive". Two answers to one question now live in this
+      repository (found 2026-09-18 while checking whether okay-ui's
+      applicative traversals work with `Validated` — they do, freely,
+      and TestUiApplicative pins it). NOT a rewrite request:
+      `Validate` works, is tested, and sits in the schema hot path.
+      What is worth doing is a BRIDGE, so a form's errors can be read
+      either way, and a line in each file pointing at the other.
+      Trigger: the first consumer that wants a schema walk's errors
+      inside a `direct` block, or the second time someone asks which
+      of the two to use.
+- [ ] di-needs-from-static — `okay-di` asks a module's author to
+      DECLARE what it needs; `Static.leaves` answers what a program may
+      perform before it runs (specs/applicative-static.md), so the
+      needs can be derived from the program instead. P13 item 4. The
+      shape to settle first: a module's body is not a `Static` today,
+      so either the declaration stays and `leaves` CHECKS it (cheap,
+      catches drift) or the body is written as a spine (honest, and a
+      bigger change). Trigger: the next time a declared need and the
+      code disagree.
+- [ ] collect-early-stop — `Delim.collect` has no way to stop: `exit`
+      inside the body does not resolve (collect hands out `Emitting`,
+      not `Prompted`), and aborting the collect's own prompt would
+      drop the cons frames of everything already emitted, so the
+      prefix cannot be answered with. The shape that wants it is
+      `take n` over a push producer; `Generate`/`Producer` already
+      covers it by making the producer lazy, and the practice doc now
+      points there. Revisit only if a consumer wants the eager form
+      with a stop (continuations-audit, 2026-09-17).
+- [ ] direct-staged — road 2: a `direct` block emitted as a `Func`
+      program over `Control` when the handlers are static at the call
+      site (`Fused.runCtrl[Func, …](s)(direct { … })`), no tree; parity to
+      the byte with the hand-written `rightCtrl[Func]` is the goal, the
+      tree version (13.7 µs / 122 641 B) the baseline. The macro's
+      pipeline gains a second emission target; the lowering is unchanged.
+- [ ] topk-insert-instead-of-sort — what §9h left on the table. An
+      element that DOES make the cut still sorts k+1 through
+      `List.sorted` (array copy out, sort, list back), and about
+      `k · ln(n/k)` elements make the cut: 57 of 10 000 at k = 8,
+      which is the whole 30 KB residual. Inserting into the
+      already-sorted list would allocate the prefix and nothing else.
+      Small, and only worth doing with the probe in front of you —
+      `compare/runMain okay.TopKProbe 10000 8` prints the exact bytes.
+- [ ] aggregator-sum-hides-its-specialization — `sum[N]`'s declared
+      return type is `Aggregator[N, N, N]`, so the `OfLong` underneath
+      is invisible and `zipLong` cannot be reached from the idiomatic
+      spelling (it needs `Aggregator.sumLong`). A match type on the
+      return, or an `OfLong`-returning overload for the `Long` case,
+      would close it. The same shape as `zip` hiding the
+      specialization, one level down.
+- [ ] ctx-reader-bridge — `(A ?=> B) <-> B ! Reader % A`, one
+      Conversion each way; GATED: no consumer named
+      (specs/context-functions.md)
+
+
+<!-- section: Build -->
+- [ ] ci-affected-tests-only — a lane that changed only a module's
+      TESTS re-tests its dependents too, which is conservative and
+      wrong; the closure should skip dependents when nothing under
+      `src/main` moved. Cheap once the numbers say it matters.
+- [ ] ci-native-flake — the nightly Native job is where the
+      native-runner-error recurrences will now show up; wire
+      `scripts/gate.sh`'s rerun-alone logic into it rather than
+      re-teaching a workflow the same lesson.
+
+<!-- section: okay-codec -->
+- [ ] schema-typed-paths — `Schema.path[A].field("address").field("city")`
+      → a checked `Lens[A, String]`: the field NAME verified at compile
+      time against the Mirror, the focus typed. The operator's third
+      ask in the schema-fold conversation (2026-09-11); `JsonOptic.path`
+      is most of it over `Json`, over `A` it is a macro over the
+      Mirror's labels. Filed by specs/schema-fold.md (Out of scope),
+      to be taken after stage 3; a different risk (macro) from the fold.
+      STALE BY TWO DAYS when written (found 2026-09-18): one level of
+      this exists — `Lens.field[S]("name")`, by name, the name checked
+      against the Mirror at compile time, the focus typed, no macro —
+      since optics-core on 2026-09-09 (c2ff5cfe). What is still asked
+      for is the CHAIN with the intermediate type inferred, and its
+      cost question is `optics-field-fuse` (the planner cannot read
+      the by-name constructor, so it pays the interpreter today).
+
+
+<!-- section: okay-rag -->
+- [ ] twonode-fixed-ports — `okay.demo.TestTwoNode` spawns two REAL
+      JVMs on HARDCODED ports 18091/18092 and is not `Live`-tagged, so
+      two agents gating at once collide on them. Seen 2026-09-11 in
+      generalized-method-syntax's first matrix: the test failed in
+      **0.337 s** with `java.io.IOException: HTTP/1.1 header parser
+      received no bytes`, and passed alone a minute later in 3.763 s.
+      The timing is the evidence, not a guess: two JVMs cannot boot in
+      300 ms, and the suite's own `whoami` swallows every exception
+      and waits up to 15 s for both to answer — so for the run to get
+      PAST readiness and then die on a later request, something was
+      already listening on those ports, and it was not this run's
+      children. A sibling's matrix running the same suite is the only
+      candidate left; nothing else in the repository uses 1809x.
+      nio-port-scope's survey could not have caught this one: it greps
+      the test tree for `new ServerSocket`/`serve(0)`/`listen(0)`, and
+      here the port is bound by a CHILD process, passed in through
+      `OKAY_CHAT_PORT`. Two fixes, and the choice is the point: an
+      ephemeral port pair (the test would have to read the port back
+      from the child, which is real work), or the `Live` tag that its
+      two neighbours in okay-demo already carry (TestChatDemo,
+      TestRepoAgent) — which keeps it out of `sbt test` and costs the
+      default gate a real distributed-failover test. Price both before
+      taking either.
+
+<!-- section: optics-arrows-effects — the questions the closed arc leaves (specs/optics.md stage 12, operator's ask 2026-09-18) -->
+- [ ] gate-jvm-first — order the gate by platform, JVM first, and pay
+      for JS/Native only after it is green. The measurement that
+      decides it: over the gate logs already kept, how many red gates
+      failed FIRST on the JVM? If it is most of them, this turns the
+      common failure from a full matrix into a third of one. If lanes
+      mostly fail on Native (the lost-process shape has its own
+      ledger), it buys nothing and should not land. `gate-fanout-what-
+      is-left` is where the 72% comes from.
+
+<!-- section: openapi — the document as a rendering (specs/openapi.md, operator's ask 2026-09-11) -->
+- [ ] openapi-ops — okay-ops builds all four of its responses by hand,
+      so its operations are the `undeclared` ones left in the
+      repository. `/stats` is a straight `out` over `Store.Stats`,
+      whose `Schema` it already summons to encode. `/metrics` is
+      `media` with Prometheus's own content-type. `/healthz` and
+      `/readyz` are the interesting pair and the shape of the next
+      decision: their STATUS is chosen per request (200 or 503), and
+      every declaring combinator fixes the status at declaration
+      time — so they need either two declared answers and a handler
+      that picks between them, or an answer type that carries its
+      status. Worth deciding on that case rather than widening the
+      whole surface for it.
+
+- [ ] optics-outside-tools-effectful — `Toolbox` handlers are
+      `A => String`, because that is the seam `Mcp.Server`,
+      `Handlers.tools` and `Stepper` already take. A tool that must do
+      I/O has to close over its own runner today. Widening to
+      `A => String ! Rest` is a separate decision with those three
+      callers to carry; see the spec's Out of scope.
+      RE-VERIFIED 2026-09-11: `Persist.append(partition, key, value,
+      ack): Long` returns a value directly — okay-persist is
+      synchronous by design, so nothing in the tree gives a tool a
+      reason to suspend. TRIGGER: the first tool that must do I/O its
+      caller cannot do for it.
+- [ ] optics-outside-policy — a projection policy is a traversal:
+      which fields of a record may be seen, embedded, logged. The
+      interpreter that earns it is the AUDIT — "name the fields this
+      policy touches", with no document in hand — and the law that
+      couples the two interpreters is that the audit names exactly
+      the fields the redaction changes. This repository has already
+      paid for not having it: price and contact in a summary's text
+      sank a priced offer from 0.63 to 0.13
+      (`weighed-not-read-out-of-the-embedding`). Cheapest of the six.
+      RE-MEASURED 2026-09-11 against okay-leads, the closest seat this
+      repository has ever had: a `Lead` never travels redacted.
+      `Demand.Report` is aggregates and cannot carry a contact BY
+      CONSTRUCTION; `Demand.deliverable` is a row filter, not a field
+      projection; `TestNoCredentialLogs` is still a regex over
+      committed source with no value to audit. TRIGGER: the first
+      place that hands a record onward with SOME fields removed AND
+      must answer "which fields does this policy touch" with no
+      document in hand. Redaction alone is a function; the AUDIT is
+      what earns the traversal.
+- [ ] optics-outside-live — subscribe to a lens. The lens compiles to
+      a wire path, the server pushes only the focused part of the
+      document, and a client write comes back as `set`. The most
+      valuable of the six to a user and the most work: the optic must
+      be reifiable and must survive serialisation. okay-live,
+      okay-persist, okay-crdt.
+      MEASURED 2026-09-11 at the only live consumer in the tree, and
+      it is already minimal: `ChatDemo` publishes a KIND
+      (`feed.publish("board")`) and the client re-fetches
+      `/board.json`. A lens-addressed delta would replace a cheap
+      re-fetch of a handful of tasks. TRIGGER: a document large enough
+      that re-fetching it on every change is the measured cost — with
+      the measurement, not the intuition.
+- [ ] optics-outside-query — a query is an optic. `Forget[Sql]`
+      compiles it to SQL, `Function1` runs the SAME predicate over a
+      `Vector` in a test, `set` compiles to UPDATE. The seat is empty
+      — okay-sql is strings plus `Schema` for rows — but typed query
+      DSLs are a swamp, which is why the spec ranks this fourth and
+      not first. Do not start it before routes and policy have
+      measured the shape. STILL BLOCKED 2026-09-11: routes did; policy
+      has no seat (above), so the shape is half-measured.
+
+<!-- section: dataflow — direction (2026-09-11; specs/dataflow.md stages 11-13, specs/federation.md) -->
+- [ ] backup-active-segment — `Backup.copy` leaves the active segment
+      home, so a backup is bounded by `segmentBytes` of unsaved books.
+      A shop wants "everything up to now": copy the active segment
+      under a distinct key (it changes, so it is not incremental) or
+      roll on demand before a backup. Found by one-binary-story.
+
+<!-- section: bulk — the loading seam (specs/bulk.md) -->
+- [ ] bulk-parquet — `Bulk.csv` is the only source; the taxi demo
+      (TestTaxiAlgebra) still reads its parquet through Spark's API.
+      A `source` per format, or `Bulk.read(Format)`, with the local
+      instance reading parquet without Spark (okay-delta already
+      carries a Delta Kernel road, specs/data.md).
+
+- [ ] bulk-flink — `flink-core` alone carries no DataStream; an
+      instance needs flink-streaming-java. The seam's `Any`-element
+      choice is what a `DataStream[AnyRef]` instance would do too.
+      (2026-09-10: flink-streaming-java and flink-clients are now on
+      okay-flink's TEST classpath for the §20 benchmark, so the
+      dependency question is answered — a `Bulk` instance would still
+      need them in `compile`.)
+

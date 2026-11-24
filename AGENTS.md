@@ -272,7 +272,7 @@ force, all already practiced, none previously written down:
   `--force` was never an option — it would have destroyed the five.
   MERGE, do not rebase, and the reason is specific rather than
   stylistic: a rebase rewrites the shas of every unpushed commit, and
-  CHANGELOG.md and BACKLOG.md cite landed commits BY SHA ("landed as
+  the changelog and the boards cite landed commits BY SHA ("landed as
   51adaf00", "fixed-in 3f09bd9c"). Seventeen such references pointed
   into the unpushed range that day. A ledger citing commits that no
   longer exist is a worse defect than a merge commit on an otherwise
@@ -328,7 +328,7 @@ force, all already practiced, none previously written down:
   main checkout: another agent's uncommitted work lives there.
 - **Run `scripts/check-citations.sh` immediately before
   `git merge --ff-only`.** It reads every 8-hex word out of
-  CHANGELOG.md and BACKLOG.md, keeps the ones that are commits, and
+  CHANGELOG.md, changelog.d/ and the boards, keeps the commits, and
   fails on any that is not an ancestor of HEAD — run it FROM THE
   WORKTREE, where HEAD is the tip about to become master, so the
   lane's own citations count. It exists because
@@ -678,7 +678,7 @@ force, all already practiced, none previously written down:
   passes — is re-run for exactly those modules and reported either
   way. `scripts/gate.sh --read <log>` says what it would have done
   with a gate log you already have. The evidence, and what is ruled
-  out, is in BACKLOG's `native-runner-error`.
+  out, is in backlog.d's `native-runner-error`.
 - **`scripts/gate.sh [sbt-command]` is the ONLY way to invoke sbt in
   this repo — one test, a compile check, a single module, or the full
   matrix, never bare `sbt`** (single-path-verification, 2026-09-22).
