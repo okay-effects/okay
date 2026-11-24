@@ -44,3 +44,5 @@ compare/jmh-result.text
 *-SingleShotTime-*/
 # symdex-hook archives large Bash/Grep outputs here (scripts/symdex-mcp.sh, AGENTS.md)
 .symdex/
+# Spark local runs write their warehouse here (okay-spark, okay-delta tests)
+spark-warehouse/
