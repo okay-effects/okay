@@ -54,7 +54,7 @@ class TestState extends munit.FunSuite {
   test("a forwarded Modify is handled by the outer State handler") {
     type Fx = State % Int + Writer % String
     val p: Int ! Fx =
-      State.modify[Int](_ + 5).at[Fx].flatMap(n => Writer.tell(s"n=$n").at[Fx].map(_ => n))
+      State.modify[Int](_ + 5).into[Fx].flatMap(n => Writer.tell(s"n=$n").into[Fx].map(_ => n))
     assertEquals(State.run[Int, (Seq[String], Int)](1)(Writer.run(p)), (6, (Seq("n=6"), 6)))
   }
 
@@ -71,7 +71,7 @@ class TestState extends munit.FunSuite {
   test("a forwarded Update is handled by the outer State handler") {
     type Fx = State % Int + Writer % String
     val p: Int ! Fx =
-      State.update[Int, Int](s => (s * 2, s + 1)).at[Fx].flatMap(n => Writer.tell(s"n=$n").at[Fx].map(_ => n))
+      State.update[Int, Int](s => (s * 2, s + 1)).into[Fx].flatMap(n => Writer.tell(s"n=$n").into[Fx].map(_ => n))
     assertEquals(State.run[Int, (Seq[String], Int)](3)(Writer.run(p)), (4, (Seq("n=6"), 6)))
   }
 
@@ -95,7 +95,7 @@ class TestState extends munit.FunSuite {
   }
 
   test("two of one effect in a row are two places: the nearer handler answers (okay-freer refused it: Distinct)") {
-    val two: Int ! State % Int + State % Int = State.get[Int].at[State % Int + State % Int]
+    val two: Int ! State % Int + State % Int = State.get[Int].into[State % Int + State % Int]
     val inner = State.handle[Int](10)(two)
     val outer = State.handle[Int](0)(inner)
     assertEquals(outer.run._2._2, 10)

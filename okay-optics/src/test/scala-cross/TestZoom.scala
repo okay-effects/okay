@@ -57,10 +57,10 @@ class TestZoom extends munit.FunSuite {
     // the effects are named by hand: `at` is how a program needing one
     // effect is seen as needing more
     type Row = [X] =>> (State % Int + Writer % String)[X]
-    def tell(s: String): Unit ! Row = Writer.tell[String](s).at[Row]
+    def tell(s: String): Unit ! Row = Writer.tell[String](s).into[Row]
     val prog: Int ! Row =
       tell("before")
-        .flatMap(_ => tick(7).at[Row])
+        .flatMap(_ => tick(7).into[Row])
         .flatMap(v => tell(s"after $v").map(_ => v))
     val zoomed: Int ! State % App + Writer % String = State.zoom[App, Int, Int, Row](appN)(prog)
     val (told, (after, v)) = (Writer.run(State.handle(app)(zoomed))).run

@@ -42,7 +42,7 @@ class TestAgentCross extends munit.FunSuite {
         val reply = rest match
           case r :: t => rest = t; r
           case Nil => """{"choices":[]}"""
-        okay.effect(Writer(reply)).at[F].map(_ => ())
+        okay.perform(Writer(reply)).into[F].map(_ => ())
 
   def answer(text: String): String =
     s"""{"choices":[{"message":{"role":"assistant","content":"$text"},"finish_reason":"stop"}]}"""
@@ -63,7 +63,7 @@ class TestAgentCross extends munit.FunSuite {
     val noContext: A ! Model + Async =
       Memory.run[Vector[Turn], A, Model + Async](Compact.all)(noTools)
     val onlyAsync: A ! Async =
-      Provider.openAiRelay[A, Async](transport, "k", "m")(noContext).at[Async]
+      Provider.openAiRelay[A, Async](transport, "k", "m")(noContext).into[Async]
     Async.runAsync(onlyAsync)
 
   test("cross: the agent loop runs with nothing that can park") {

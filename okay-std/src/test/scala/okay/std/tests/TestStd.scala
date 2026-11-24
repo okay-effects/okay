@@ -14,18 +14,18 @@ class TestStd extends munit.FunSuite {
   test("Reader: every ask answers the environment, other effects forwarded") {
     type F = Reader % Int + Produce
     val prog: Int ! F =
-      effect[Reader % Int, Int](Reader.Ask()).at[F].flatMap: x =>
-        effect[Produce, Int](10).at[F].flatMap: y =>
-          effect[Reader % Int, Int](Reader.Ask()).at[F].map(z => x + y + z)
+      perform[Reader % Int, Int](Reader.Ask()).into[F].flatMap: x =>
+        perform[Produce, Int](10).into[F].flatMap: y =>
+          perform[Reader % Int, Int](Reader.Ask()).into[F].map(z => x + y + z)
     assertEquals(Reader.run(21)(prog).runWith, 52)
   }
 
   test("Writer: run collects everything told, in order, forwarding F") {
     type F = Writer % String + Produce
     val prog: Int ! F =
-      effect[Writer % String, Unit](Writer("a")).at[F].flatMap: _ =>
-        effect[Produce, Int](1).at[F].flatMap: x =>
-          effect[Writer % String, Unit](Writer("b")).at[F].map(_ => x + 1)
+      perform[Writer % String, Unit](Writer("a")).into[F].flatMap: _ =>
+        perform[Produce, Int](1).into[F].flatMap: x =>
+          perform[Writer % String, Unit](Writer("b")).into[F].map(_ => x + 1)
     val (ws, a) = Writer.run(prog).runWith
     assertEquals(ws, Seq("a", "b"))
     assertEquals(a, 2)
@@ -81,8 +81,8 @@ class TestStd extends munit.FunSuite {
   test("Reader and Writer compose") {
     type F = Reader % Int + Writer % String
     val prog: Int ! F =
-      effect[Reader % Int, Int](Reader.Ask()).at[F].flatMap: x =>
-        effect[Writer % String, Unit](Writer(s"got $x")).at[F].map(_ => x * 2)
+      perform[Reader % Int, Int](Reader.Ask()).into[F].flatMap: x =>
+        perform[Writer % String, Unit](Writer(s"got $x")).into[F].map(_ => x * 2)
     val (ws, a) = (Writer.run(
       Reader.run(7)(prog))).run
     assertEquals(ws, Seq("got 7"))

@@ -40,7 +40,7 @@ class TestDocExamplesFrege extends munit.FunSuite:
   }
 
   def emitIn[I, G[_]](xs: Seq[I]): Unit ! Writer % I + G =
-    xs.foldRight(pure[Unit, Writer % I + G](()))((x, p) => Writer.tell(x).at[Writer % I + G].flatMap(_ => p))
+    xs.foldRight(pure[Unit, Writer % I + G](()))((x, p) => Writer.tell(x).into[Writer % I + G].flatMap(_ => p))
 
   def countedNats(produced: AtomicInteger, size: Int): Chunks[java.lang.Long] =
     Chunks.map(Chunks.nats[Long](size))(x => { produced.incrementAndGet(): Unit; Long.box(x) })

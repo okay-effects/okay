@@ -37,9 +37,9 @@ class TestChronicle extends munit.FunSuite {
 
   test("a row holds Chronicle AND Throws, and each handler answers its own") {
     type R = C + Throws % Int
-    val p: String ! R = for h <- host("my_db").at[R]; code <- raise[Int, Int](503).at[R] yield s"$h$code"
+    val p: String ! R = for h <- host("my_db").into[R]; code <- raise[Int, Int](503).into[R] yield s"$h$code"
     assertEquals(runEither(Chronicle.run(p)).run, Left(503))
-    val q: String ! R = for h <- host("my_db").at[R]; n <- pure[Int, R](1) yield s"$h$n"
+    val q: String ! R = for h <- host("my_db").into[R]; n <- pure[Int, R](1) yield s"$h$n"
     assertEquals(runEither(Chronicle.run(q)).run, Right(Warned("my_db1", Vector("host: 'my_db' has an underscore"))))
   }
 

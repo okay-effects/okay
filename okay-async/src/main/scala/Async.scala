@@ -45,12 +45,12 @@ enum Async[+A] derives Effect:
  * "cannot be checked at runtime" at thirty-four use sites. */
 
 /** suspend a (possibly blocking) computation as an operation */
-inline def async[A](a: => A): A ! Async = effect(Async.Run(() => a))
+inline def async[A](a: => A): A ! Async = perform(Async.Run(() => a))
 
 /** suspend on a callback registration (works on every platform) —
  * the simple form: success only, nothing to unregister */
 inline def await[A](register: (A => Unit) => Unit): A ! Async =
-  effect(Async.Await(k => { register(a => k(Right(a))); () => () }))
+  perform(Async.Await(k => { register(a => k(Right(a))); () => () }))
 
 /**
  * Evidence that this platform can park a thread of control until a
@@ -176,11 +176,11 @@ object Async {
 
   /** the full callback form: an error channel in, a canceller out */
   def await[A](register: (Either[Throwable, A] => Unit) => (() => Unit)): A ! Async =
-    effect(Await(register))
+    perform(Await(register))
 
   /** the handler as a value: `p.handle(Async.blocking)` — each operation executed in place, an Await parked */
   def blocking(using cb: CanBlock, w: Wait, p: Pause): Handler[Async, [A] =>> A] =
-    Handler.answering[Async]([X] => (e: Async[X]) => e match
+    Handler.tail[Async]([X] => (e: Async[X]) => e match
       case Run(f) => f()
       case Await(reg, poll) => pollThenBlock(reg, poll).fold(e => throw e, identity))
 
@@ -293,9 +293,9 @@ object Async {
     CancelScope.arm(this, once, onCollected)
     private[okay] def released(): Unit = once.run(release)
     /** the operation that opens the scope */
-    def enter: Unit ! Async = effect(Run(Enter(this)))
+    def enter: Unit ! Async = perform(Run(Enter(this)))
     /** the operation that closes it */
-    def exit: Unit ! Async = effect(Run(Exit(this)))
+    def exit: Unit ! Async = perform(Run(Exit(this)))
 
   object CancelScope:
     /** the collector's action, closing over the helper's parameters

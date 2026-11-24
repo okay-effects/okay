@@ -10,8 +10,8 @@ class TestProgram extends munit.FunSuite:
     def kernel[T <: okay.core.Row, A]: OneHandler[Reader % R, T, A, A] = Reader[R, T, A](r)
   def writer[W]: Handler[Writer % W, [A] =>> (List[W], A)] = new Handler[Writer % W, [A] =>> (List[W], A)]:
     def kernel[T <: okay.core.Row, A]: OneHandler[Writer % W, T, A, (List[W], A)] = Writer.collect[W, T, A]
-  def ask[R]: R ! Reader % R = effect(Reader.Ask[R]())
-  def tell[W](w: W): Unit ! Writer % W = effect(Writer.Tell(w))
+  def ask[R]: R ! Reader % R = perform(Reader.Ask[R]())
+  def tell[W](w: W): Unit ! Writer % W = perform(Writer.Tell(w))
 
   def prog: Int ! Reader % Int + Writer % String =
     for
@@ -24,7 +24,7 @@ class TestProgram extends munit.FunSuite:
     assertEquals(prog.handle(writer[String]).handle(reader(41)).run, (List("n=41"), 42))
 
   test("held in a val, handled later; the effects written in another order"):
-    val p: Int ! Writer % String + Reader % Int = prog.at[Writer % String + Reader % Int]
+    val p: Int ! Writer % String + Reader % Int = prog.into[Writer % String + Reader % Int]
     val q = p.handle(reader(1))
     assertEquals(q.handle(writer[String]).run, (List("n=1"), 2))
 

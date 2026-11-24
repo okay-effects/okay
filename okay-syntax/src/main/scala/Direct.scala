@@ -57,10 +57,10 @@ object Direct:
   inline def effectIn[E[_], Es[_], X](op: E[X]): X ! Es =
     effectAt[E, Es, X](op, scala.compiletime.summonInline[Within[E, Es]])(using scala.compiletime.summonInline[okay.KeyOf[E]])
   def effectAt[E[_], Es[_], X](op: E[X], w: Within[E, Es])(using k: okay.KeyOf[E]): X ! Es =
-    okay.effect[E, X](op).at[Es](using w)
+    okay.perform[E, X](op).into[Es](using w)
 
   /** a program needing fewer effects, at the block's (the macro's lift of a narrower program) */
-  inline def lifted[A, E[_], Es[_]](p: A ! E): A ! Es = p.at[Es](using scala.compiletime.summonInline[Within[E, Es]])
+  inline def lifted[A, E[_], Es[_]](p: A ! E): A ! Es = p.into[Es](using scala.compiletime.summonInline[Within[E, Es]])
 
   /** `try fa catch h` around a program: a throw while it is built, and one raised in any of its steps, given to
    * `h` (the kernel's `recover`) — what a `try` in a block over programs is */

@@ -38,9 +38,9 @@ object Fetch:
   /** the constructors carry the row, so a block needs no type argument
    * and no ascription: `effect(User(token))` on its own would infer
    * `Nothing ! Fetch` — no answer type, and no Once beside it */
-  def user(token: String): Api.User ! Row = effect[Fetch, Api.User](User(token)).at[Row]
-  def feed(id: Int): List[String] ! Row = effect[Fetch, List[String]](Feed(id)).at[Row]
-  def time: Long ! Row = effect[Fetch, Long](Time()).at[Row]
+  def user(token: String): Api.User ! Row = perform[Fetch, Api.User](User(token)).into[Row]
+  def feed(id: Int): List[String] ! Row = perform[Fetch, List[String]](Feed(id)).into[Row]
+  def time: Long ! Row = perform[Fetch, Long](Time()).into[Row]
 
   extension (e: Fetch[?]) def show: String = e match
     case User(t) => s"GET /user?token=$t"

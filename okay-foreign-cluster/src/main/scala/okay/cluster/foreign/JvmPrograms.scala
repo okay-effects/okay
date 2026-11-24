@@ -30,7 +30,7 @@ object CljModule:
         case Right(f) =>
           given okay.Foreign.Member[F] = JvmPrograms.callbacksOnly[F]
           okay.clojure.Program.run[F, AnyRef](f.invoke(JvmPrograms.arg(a)), s"clojure ${module.ns}/$fn",
-            JvmPrograms.calls(cbs)).map(JvmPrograms.answer[Out]).at[F + Op]
+            JvmPrograms.calls(cbs)).map(JvmPrograms.answer[Out]).into[F + Op]
     def run[A](module: CljModule)(prog: A ! Op): A = prog.runWith(using JvmPrograms.none)
 
 /**
@@ -55,7 +55,7 @@ object FregeModule:
         case Some(make) =>
           given okay.Foreign.Member[F] = JvmPrograms.callbacksOnly[F]
           okay.frege.Frege.run[F, AnyRef](make(JvmPrograms.arg(a)), s"frege ${module.name}.$fn",
-            JvmPrograms.calls(cbs)).map(JvmPrograms.answer[Out]).at[F + Op]
+            JvmPrograms.calls(cbs)).map(JvmPrograms.answer[Out]).into[F + Op]
     def run[A](module: FregeModule)(prog: A ! Op): A = prog.runWith(using JvmPrograms.none)
 
 private[foreign] object JvmPrograms:

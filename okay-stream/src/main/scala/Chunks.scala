@@ -167,7 +167,7 @@ object Chunks {
    * name is unstable across compiler versions, which breaks a
    * downstream JAR on a mere recompile. */
   def mapWith[A, B](p: Chunks[A])(g: Chunk[A] => Chunk[B]): Chunks[B] =
-    Writer.map[Chunk[A], Chunk[B], Unit, Writer % Chunk[A]](p)(g).at[Writer % Chunk[B]]
+    Writer.map[Chunk[A], Chunk[B], Unit, Writer % Chunk[A]](p)(g).into[Writer % Chunk[B]]
 
   /** keep the elements satisfying pred (empty result chunks are skipped) */
   inline def filter[A](p: Chunks[A])(inline pred: A => Boolean): Chunks[A] =
@@ -179,7 +179,7 @@ object Chunks {
     Writer.expand[Chunk[A], Chunk[A], Unit, Writer % Chunk[A]](p) { c =>
       val fc = g(c)
       if fc.isEmpty then IndexedSeq.empty else IndexedSeq(fc)
-    }.at[Writer % Chunk[A]]
+    }.into[Writer % Chunk[A]]
 
   /** the first n elements (the last chunk truncated) */
   def take[A](p: Chunks[A])(n: Int): Chunks[A] = defer:
@@ -523,7 +523,7 @@ object Chunks {
       else pull(rest) match
         case Some((c2, r)) => ch = c2; i = 0; rest = r; fetch()
         case None => rest = end; None
-    c.handle(Handler.answering[Take % W]([X] => (op: Take[W, X]) => op match
+    c.handle(Handler.tail[Take % W]([X] => (op: Take[W, X]) => op match
       case Take.Await() => fetch())).run
 
   private[okay] def mapChunk[A, B](c: Chunk[A])(f: A => B): Chunk[B] =

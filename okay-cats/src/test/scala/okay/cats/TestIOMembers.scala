@@ -4,7 +4,7 @@ import _root_.cats.effect.IO
 import _root_.cats.effect.unsafe.implicits.global
 import okay.{Async, asOkay, async, via}
 import okay.{%, +}
-import okay.{!, Handler, effect}
+import okay.{!, Handler}
 import okay.std.{State}
 import okay.given
 import java.util.concurrent.atomic.AtomicInteger
@@ -15,7 +15,7 @@ import java.util.concurrent.atomic.AtomicInteger
  */
 class TestIOMembers extends munit.FunSuite with okay.testkit.Munit.Diagnosed {
   // okay-freer's `op.perform`, which the root does not have: the operation as a program needing its effect
-  extension [A](io: IO[A]) private def perform: A ! IO = effect[IO, A](io)
+  extension [A](io: IO[A]) private def perform: A ! IO = okay.perform[IO, A](io)
 
   test("an IO kept in the tree: building runs nothing, toIO runs it") {
     val ran = AtomicInteger()
@@ -40,7 +40,7 @@ class TestIOMembers extends munit.FunSuite with okay.testkit.Munit.Diagnosed {
   test("a handler of our own answers the IO operations") {
     val p: Int ! IO = IO(1).perform.flatMap(a => IO(a + 1).perform)
     val seen = AtomicInteger()
-    val sync = Handler.answering[IO]([X] => (io: IO[X]) => { seen.incrementAndGet(); io.unsafeRunSync() })
+    val sync = Handler.tail[IO]([X] => (io: IO[X]) => { seen.incrementAndGet(); io.unsafeRunSync() })
     assertEquals(p.handle(sync).run, 2)
     assertEquals(seen.get, 2)
   }

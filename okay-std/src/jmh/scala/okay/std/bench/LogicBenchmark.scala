@@ -1,6 +1,6 @@
 package okay.std.bench
 
-import okay.{!, effect, pure}
+import okay.{!, perform, pure}
 import okay.std.*
 
 import org.openjdk.jmh.annotations.{State as JmhState, *}
@@ -31,13 +31,13 @@ class LogicBenchmark {
   type R = Choose
 
   def tree(d: Int): Int ! R =
-    if d == 0 then pure(1) else effect[Choose, Int](Choose(Seq(0, 1))).flatMap(x => tree(d - 1).map(_ + x))
+    if d == 0 then pure(1) else perform[Choose, Int](Choose(Seq(0, 1))).flatMap(x => tree(d - 1).map(_ + x))
 
   val alternatives: Seq[Int] = 0 until 100
 
   def scope: Int ! R =
     Resource.run[Int, okay.+[Resource, Choose]](Resource.acquire(1)(_ => ()).flatMap(_ =>
-      effect[Choose, Int](Choose(alternatives))))
+      perform[Choose, Int](Choose(alternatives))))
 
   @Benchmark def observe_tree(): Int = Logic.observe[Int, R](1024)(tree(10)).run.sum
   @Benchmark def shared_scope(): Int = runChoice[Int, R](scope).run.sum

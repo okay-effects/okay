@@ -182,7 +182,7 @@ object Models:
         // the recursion is only through the program's flatMap: trampolined
         def go(rest: List[Progress]): Unit ! F = rest match
           case Nil => pure(())
-          case e :: t => Writer.tell(e).at[F].flatMap(_ => go(t))
+          case e :: t => Writer.tell(e).into[F].flatMap(_ => go(t))
         go(ls.iterator.flatMap(eventOf).toList)
       }
     def remove(id: ModelId): Either[Refused, Unit] ! Async =

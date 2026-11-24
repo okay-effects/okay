@@ -53,7 +53,7 @@ class TestWire extends munit.FunSuite {
 
   /** drive the pure serve stage with lines, collect its lines */
   def talk(lines: String*): (Seq[String], Int) =
-    val (out, s) = !.run(Writer.run(through(Writer.of(lines.toList).at[Writer % String])(
+    val (out, s) = !.run(Writer.run(through(Writer.of(lines.toList).into[Writer % String])(
       Wire.serve(0)(view)(update))))
     (out, s)
 
@@ -82,7 +82,7 @@ class TestWire extends munit.FunSuite {
   }
 
   test("a reconnecting client: a fresh serve of the SAME state leads with the full tree") {
-    val (out, _) = !.run(Writer.run(through(Writer.of(List(Protocol.line(Protocol.hello(Set.empty)))).at[Writer % String])(
+    val (out, _) = !.run(Writer.run(through(Writer.of(List(Protocol.line(Protocol.hello(Set.empty)))).into[Writer % String])(
       Wire.serve(41)(view)(update)))): @unchecked
     assertEquals(Protocol.treeOf(out.head), Some(view(41)))
   }
@@ -100,7 +100,7 @@ class TestWire extends munit.FunSuite {
           case Right((l, rest)) => down.send(l).map(_ => ()).flatMap(_ => drain(rest))
         }
       drain(through[String, String, Async, Unit, Int](src)(
-        Wire.serve(0)(view)(update).at[okay.Take % String + (Writer % String + Async)]))
+        Wire.serve(0)(view)(update).into[okay.Take % String + (Writer % String + Async)]))
     }: Unit
 
     // the client: a scripted user on a value host
@@ -135,7 +135,7 @@ class TestWire extends munit.FunSuite {
           case Right((l, rest)) => down.send(l).map(_ => ()).flatMap(_ => drain(rest))
         }
       drain(through[String, String, Async, Unit, Int](src)(
-        Wire.serveClosing(0)(view)(closingUpdate).at[okay.Take % String + (Writer % String + Async)]))
+        Wire.serveClosing(0)(view)(closingUpdate).into[okay.Take % String + (Writer % String + Async)]))
     }: Unit
 
     val frames = scala.collection.mutable.Buffer[Ui]()

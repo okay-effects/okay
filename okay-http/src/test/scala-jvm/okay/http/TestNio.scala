@@ -38,7 +38,7 @@ class TestNio extends munit.FunSuite {
             c.send("hello\n").flatMap(_ =>
               Writer.run[String, Unit, Writer % String + Async](
                 through[Chunk[Byte], String, Async, Unit, Unit](c.bytes)(
-                  Http.framing.at[Take % Chunk[Byte] + (Writer % String + Async)])).map(_._1))
+                  Http.framing.into[Take % Chunk[Byte] + (Writer % String + Async)])).map(_._1))
           }).runWith
       }).runWith
     assertEquals(got, Seq("HELLO"))
@@ -57,7 +57,7 @@ class TestNio extends munit.FunSuite {
           Nio.connect("127.0.0.1", Nio.port(server)).flatMap { c =>
             Writer.run[String, Unit, Writer % String + Async](
               through[Chunk[Byte], String, Async, Unit, Unit](c.bytes)(
-                Http.framing.at[Take % Chunk[Byte] + (Writer % String + Async)])).map { (ls, _) =>
+                Http.framing.into[Take % Chunk[Byte] + (Writer % String + Async)])).map { (ls, _) =>
               assertEquals(ls.head, "line-0")
               assertEquals(ls.last, s"line-${n - 1}")
               ls.length
@@ -79,7 +79,7 @@ class TestNio extends munit.FunSuite {
           Nio.connect("127.0.0.1", Nio.port(server)).flatMap { c =>
             Writer.run[String, Unit, Writer % String + Async](
               through[Chunk[Byte], String, Async, Unit, Unit](c.bytes)(
-                Http.framing.at[Take % Chunk[Byte] + (Writer % String + Async)])).map(_._1.map(_.length).sum)
+                Http.framing.into[Take % Chunk[Byte] + (Writer % String + Async)])).map(_._1.map(_.length).sum)
           }).runWith
       }).runWith
     assertEquals(got, big.length)
@@ -108,7 +108,7 @@ class TestNio extends munit.FunSuite {
             Nio.connect("127.0.0.1", port).flatMap { c =>
               Writer.run[String, Unit, Writer % String + Async](
                 through[Chunk[Byte], String, Async, Unit, Unit](c.bytes)(
-                  Http.framing.at[Take % Chunk[Byte] + (Writer % String + Async)])).map(_._1.length)
+                  Http.framing.into[Take % Chunk[Byte] + (Writer % String + Async)])).map(_._1.length)
             }).runWith
           if lines == n then ok += 1
         ok

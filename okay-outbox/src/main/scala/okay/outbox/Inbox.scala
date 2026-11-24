@@ -41,10 +41,10 @@ final class Inbox(table: String = "okay_inbox",
   def once[A](db: Sql, id: String)(body: => A ! Async): Option[A] ! Async =
     Resource.run(
       Typed.transact[Option[A], Pure](db) { _ =>
-        first(db, id).at[Resource + Async + Pure].flatMap { fresh =>
-          if fresh then body.at[Resource + Async + Pure].map(Some(_))
+        first(db, id).into[Resource + Async + Pure].flatMap { fresh =>
+          if fresh then body.into[Resource + Async + Pure].map(Some(_))
           else pure(None)
         }
-      }).at[Async]
+      }).into[Async]
 
 private final case class Seen(id: String, seenAt: Long) derives Schema

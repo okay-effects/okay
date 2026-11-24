@@ -130,8 +130,8 @@ class TestChannel extends munit.FunSuite {
     type S = Produce + Async
     def ticks(xs: List[Int]): Int ! S = xs match
       case Nil => pure(0)
-      case x :: t => effect[Async, Unit](Async.Run(() => Thread.sleep(1))).at[S].flatMap: _ =>
-        produce(x).at[S].flatMap(_ => ticks(t))
+      case x :: t => perform[Async, Unit](Async.Run(() => Thread.sleep(1))).into[S].flatMap: _ =>
+        produce(x).into[S].flatMap(_ => ticks(t))
     val merged = Channel.merge(ticks(List(1, 3, 5)), ticks(List(2, 4, 6)))
     assertEquals(merged.toLazyList.toList.sorted, List(1, 2, 3, 4, 5, 6))
   }
@@ -139,8 +139,8 @@ class TestChannel extends munit.FunSuite {
   test("merge joins two sources of DIFFERENT types, as their union") {
     def ticks[A](xs: List[A]): Source[A] =
       xs.foldRight(pure[Unit, Writer % A + Async](())): (x, rest) =>
-        effect[Async, Unit](Async.Run(() => Thread.sleep(1))).at[Writer % A + Async]
-          .flatMap(_ => Writer.tell(x).at[Writer % A + Async])
+        perform[Async, Unit](Async.Run(() => Thread.sleep(1))).into[Writer % A + Async]
+          .flatMap(_ => Writer.tell(x).into[Writer % A + Async])
           .flatMap(_ => rest)
 
     val merged: Source[Int | String] = ticks(List(1, 3, 5)) merge ticks(List("a", "b"))
@@ -153,8 +153,8 @@ class TestChannel extends munit.FunSuite {
   test("merge starts its fibers at the first pull, not before") {
     val pulled = java.util.concurrent.atomic.AtomicInteger(0)
     def counted: Source[Int] =
-      effect[Async, Int](Async.Run(() => pulled.incrementAndGet())).at[Writer % Int + Async]
-        .flatMap(n => Writer.tell(n).at[Writer % Int + Async])
+      perform[Async, Int](Async.Run(() => pulled.incrementAndGet())).into[Writer % Int + Async]
+        .flatMap(n => Writer.tell(n).into[Writer % Int + Async])
 
     val merged = counted merge counted
     Thread.sleep(20)
@@ -166,8 +166,8 @@ class TestChannel extends munit.FunSuite {
   test("merge is CONCURRENT: the sources overlap, chained or not") {
     def slow[A](ms: Long)(as: List[A]): Source[A] =
       as.foldRight(pure[Unit, Writer % A + Async](())): (a, rest) =>
-        effect[Async, Unit](Async.Run(() => Thread.sleep(ms))).at[Writer % A + Async]
-          .flatMap(_ => Writer.tell(a).at[Writer % A + Async])
+        perform[Async, Unit](Async.Run(() => Thread.sleep(ms))).into[Writer % A + Async]
+          .flatMap(_ => Writer.tell(a).into[Writer % A + Async])
           .flatMap(_ => rest)
 
     def took(body: => Any): Long =
@@ -183,8 +183,8 @@ class TestChannel extends munit.FunSuite {
 
   test("merge answers by READINESS: a silent source holds up nobody") {
     val silent: Source[String] =
-      effect[Async, Unit](Async.Run(() => Thread.sleep(300))).at[Writer % String + Async]
-        .flatMap(_ => Writer.tell("late").at[Writer % String + Async])
+      perform[Async, Unit](Async.Run(() => Thread.sleep(300))).into[Writer % String + Async]
+        .flatMap(_ => Writer.tell("late").into[Writer % String + Async])
     val t0 = System.nanoTime()
     val first = (Source.of((1 to 10).toList) merge silent).toLazyList.take(10).toList
     val ms = (System.nanoTime() - t0) / 1000000
@@ -194,8 +194,8 @@ class TestChannel extends munit.FunSuite {
 
   test("merge is BOUNDED by default: an endless source does not run away") {
     def endless(produced: java.util.concurrent.atomic.AtomicInteger): Source[Int] =
-      effect[Async, Int](Async.Run(() => produced.incrementAndGet())).at[Writer % Int + Async]
-        .flatMap(n => Writer.tell(n).at[Writer % Int + Async])
+      perform[Async, Int](Async.Run(() => produced.incrementAndGet())).into[Writer % Int + Async]
+        .flatMap(n => Writer.tell(n).into[Writer % Int + Async])
         .flatMap(_ => endless(produced))
 
     val p = java.util.concurrent.atomic.AtomicInteger(0)

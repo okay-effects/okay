@@ -62,13 +62,13 @@ class TestBisim extends munit.FunSuite:
   test("SCOPE: `get; get` and `get` differ FREELY, and agree after State's own handler") {
     given Answers[Mixed] = Answers.state(0, 1, 2) + Answers.writer[String]
     val twice: Unit ! Mixed = for
-      a <- State.get[Int].at[Mixed]
-      b <- State.get[Int].at[Mixed]
-      _ <- Writer.tell(s"$a$b").at[Mixed]
+      a <- State.get[Int].into[Mixed]
+      b <- State.get[Int].into[Mixed]
+      _ <- Writer.tell(s"$a$b").into[Mixed]
     yield ()
     val once: Unit ! Mixed = for
-      a <- State.get[Int].at[Mixed]
-      _ <- Writer.tell(s"$a$a").at[Mixed]
+      a <- State.get[Int].into[Mixed]
+      _ <- Writer.tell(s"$a$a").into[Mixed]
     yield ()
     assert(!Bisim.check(twice, once).same, "a handler may answer the two gets differently")
     given Answers[Writer % String] = Answers.writer[String]

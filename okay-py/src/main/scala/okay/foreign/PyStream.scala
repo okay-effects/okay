@@ -1,6 +1,6 @@
 package okay.foreign
 
-import okay.{!, %, +, Handler, Take, effect, pure}
+import okay.{!, %, +, Handler, Take, perform, pure}
 import okay.std.{Writer}
 import okay.codec.Schema
 
@@ -70,7 +70,7 @@ object PyStream:
   def releasing[A, O](p: A ! SourceRow[O]): A ! Released[O] =
     // what is held is the state of a kernel `Stateful` handler, each Holding answered in place; released at the end
     // by the same handler as every other call: the program's own ForeignEval, in the rest
-    p.handle(Handler.state[Holding, Held](Held(Nil, Nil))([X] => (held: Held, op: Holding[X]) => op match
+    p.handle(Handler.stateful[Holding, Held](Held(Nil, Nil))([X] => (held: Held, op: Holding[X]) => op match
         case Holding.Hold(r) => (held.copy(refs = r :: held.refs), ())
         case Holding.Let(r) => (held.copy(refs = held.refs.filterNot(_ == r)), ())
         case Holding.HoldStream(s) => (held.copy(streams = s :: held.streams), ())
@@ -82,7 +82,7 @@ object PyStream:
 
   private def releaseAll[R[_]](held: Held)(using okay.Within[ForeignEval, R]): Unit ! R =
     val ops: List[ForeignEval[Unit]] = held.streams.map(ForeignEval.Cancel(_)) ++ held.refs.map(ForeignEval.Release(_))
-    !.each(ops)(op => effect(op).at[R])
+    !.each(ops)(op => perform(op).into[R])
 
   /**
    * A STREAM THE FAR SIDE DRIVES (foreign-mux-duplex part 3): `fn` of `args`
@@ -100,20 +100,20 @@ object PyStream:
     type R = SourceRow[O]
     require(credit >= 1, "a stream's credit is at least one chunk")
     def tellAll(os: Vector[O]): Unit ! R =
-      !.each(os)(o => Writer.tell(o).at[R])
+      !.each(os)(o => Writer.tell(o).into[R])
     def loop(s: Long): Unit ! R =
-      effect(ForeignEval.Pull(s)).at[R].flatMap {
-        case Left(c) => effect(Holding.LetStream(s)).at[R].flatMap(_ => throw Failed(c))
-        case Right(None) => effect(Holding.LetStream(s)).at[R]
+      perform(ForeignEval.Pull(s)).into[R].flatMap {
+        case Left(c) => perform(Holding.LetStream(s)).into[R].flatMap(_ => throw Failed(c))
+        case Right(None) => perform(Holding.LetStream(s)).into[R]
         case Right(Some(v)) => shape.decode[Vector[O]](v) match
-          case Left(c) => effect(Holding.LetStream(s)).at[R].flatMap(_ => throw Failed(c))
+          case Left(c) => perform(Holding.LetStream(s)).into[R].flatMap(_ => throw Failed(c))
           case Right(os) => tellAll(os).flatMap(_ => loop(s))
       }
     pure[Unit, R](()).flatMap { _ =>
       val s = id()
-      effect(ForeignEval.Stream(s, fn, args, credit, input)).at[R].flatMap {
+      perform(ForeignEval.Stream(s, fn, args, credit, input)).into[R].flatMap {
         case Left(c) => throw Failed(c)
-        case Right(()) => effect(Holding.HoldStream(s)).at[R].flatMap(_ => loop(s))
+        case Right(()) => perform(Holding.HoldStream(s)).into[R].flatMap(_ => loop(s))
       }
     }
 
@@ -138,11 +138,11 @@ object PyStream:
     // released by the source itself at its end or its failure; `Let` first,
     // so the scope does not release it a second time
     def release(r: Handle): Unit ! R =
-      effect(Holding.Let(r)).at[R].flatMap(_ => effect(ForeignEval.Release(r)).at[R])
+      perform(Holding.Let(r)).into[R].flatMap(_ => perform(ForeignEval.Release(r)).into[R])
     def tellAll(os: Vector[O]): Unit ! R =
-      !.each(os)(o => Writer.tell(o).at[R])
+      !.each(os)(o => Writer.tell(o).into[R])
     def loop(r: Handle): Unit ! R =
-      effect(next(r)).at[R].flatMap {
+      perform(next(r)).into[R].flatMap {
         case Left(c) if ended(c) => release(r)
         case Left(c) => release(r).flatMap(_ => throw Failed(c))
         case Right(v) if empty(v) => release(r)
@@ -150,8 +150,8 @@ object PyStream:
           case Left(c) => release(r).flatMap(_ => throw Failed(c))
           case Right(os) => tellAll(os).flatMap(_ => loop(r))
       }
-    effect(open).at[R].flatMap {
-      case Right(Value.Ref(r)) => effect(Holding.Hold(r)).at[R].flatMap(_ => loop(r))
+    perform(open).into[R].flatMap {
+      case Right(Value.Ref(r)) => perform(Holding.Hold(r)).into[R].flatMap(_ => loop(r))
       case Right(other) => throw Failed(Condition("WireError", s"a source's open answered $other, not a held iterator"))
       case Left(c) => throw Failed(c)
     }
@@ -171,19 +171,19 @@ object PyStream:
     def tellAll(answer: Either[Condition, Value]): Unit ! R =
       answer.flatMap(shape.decode[Vector[O]](_)) match
         case Left(c) => throw Failed(c)
-        case Right(os) => !.each(os)(o => Writer.tell(o).at[R])
+        case Right(os) => !.each(os)(o => Writer.tell(o).into[R])
 
     def end: Unit ! R = finish match
       case None => pure(())
-      case Some(op) => effect(op).at[R].flatMap(tellAll)
+      case Some(op) => perform(op).into[R].flatMap(tellAll)
 
     def flush(buf: Vector[Value], more: Boolean): Unit ! R =
-      effect(call(buf)).at[R].flatMap(tellAll)
+      perform(call(buf)).into[R].flatMap(tellAll)
         .flatMap(_ => if more then fill(Vector.empty) else end)
 
     def fill(buf: Vector[Value]): Unit ! R =
       if buf.size == chunk then flush(buf, more = true)
-      else effect[Take % I, Option[I]](Take.Await()).at[R].flatMap {
+      else perform[Take % I, Option[I]](Take.Await()).into[R].flatMap {
         case Some(i) => fill(buf :+ ToPy(i))
         case None => if buf.isEmpty then end else flush(buf, more = false)
       }

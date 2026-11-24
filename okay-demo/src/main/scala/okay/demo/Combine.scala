@@ -145,7 +145,7 @@ object Combine {
   def joined(repo: StateRepo, battery: Source[Battery], charging: Source[Charging])
             (using Scheduler, CanBlock): StateRepo ! Writer % Output + Async =
     through[Event, Output, Async, Unit, StateRepo](battery merge charging)(
-      combine(repo).at[Take % Event + (Writer % Output + Async)])
+      combine(repo).into[Take % Event + (Writer % Output + Async)])
 
   /** the outputs, and the repository the run ended with */
   def outputs(repo: StateRepo, battery: Source[Battery], charging: Source[Charging])

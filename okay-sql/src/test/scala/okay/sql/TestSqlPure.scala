@@ -71,7 +71,7 @@ class TestSqlPure extends munit.FunSuite {
   final class OneFrame(cols: Vector[Col], rows: Vector[Vector[SqlValue]]) extends Sql:
     def describe(sql: String): Vector[Col] ! Async = pure(cols)
     def query(sql: String, params: Vector[SqlValue]): Source[Chunk[Vector[SqlValue]]] =
-      Writer.tell[Chunk[Vector[SqlValue]]](scala.collection.immutable.ArraySeq.from(rows)).at[Writer % Chunk[Vector[SqlValue]] + Async]
+      Writer.tell[Chunk[Vector[SqlValue]]](scala.collection.immutable.ArraySeq.from(rows)).into[Writer % Chunk[Vector[SqlValue]] + Async]
     def update(sql: String, params: Vector[SqlValue]): Long ! Async = pure(0L)
     def batch(sql: String, rows: Chunk[Vector[SqlValue]]): Long ! Async = pure(0L)
     def begin(isolation: Isolation, readOnly: Boolean): Granted ! Async = pure(Granted(isolation, isolation))

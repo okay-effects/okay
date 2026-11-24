@@ -96,9 +96,9 @@ class TestTables extends munit.FunSuite {
 
   test("Sort is an operation Bulk does not have, answered through the primitives") {
     val prog: Vector[(Int, Long)] ! Tables + Sort =
-      of(sales).select(s => s.shop -> s.amount).at[Tables + Sort]
+      of(sales).select(s => s.shop -> s.amount).into[Tables + Sort]
         .aggregate(Aggregator.groupBy((kv: (Int, Long)) => kv._1)(Aggregator.sum[Long].contramap(_._2)))
-        .flatMap(byShop => of(byShop.toVector).at[Tables + Sort].sortBy(-_._2).collect.map(_.elements.toVector))
+        .flatMap(byShop => of(byShop.toVector).into[Tables + Sort].sortBy(-_._2).collect.map(_.elements.toVector))
     val got = Tables.run(localBulk)(Sort.viaTables(prog))
     assertEquals(got.map(_._1), sales.groupMapReduce(_.shop)(_.amount)(_ + _).toVector.sortBy(-_._2).map(_._1))
   }

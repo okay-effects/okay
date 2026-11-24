@@ -112,9 +112,9 @@ class TestStaged extends munit.FunSuite:
     val s1 = State.modify[Int](_ + k).?                                  // an inline combinator
     val s2 = State.get[Int].flatMap(s => State.set[Int](s * 2)).?         // a hand-written chain
     val s3 = (for                                                           // a for-comprehension over the row
-        s <- State.get[Int].at[Row]
-        _ <- Writer.tell(s"saw $s").at[Row]
-        t <- State.set[Int](s + 1).at[Row]
+        s <- State.get[Int].into[Row]
+        _ <- Writer.tell(s"saw $s").into[Row]
+        t <- State.set[Int](s + 1).into[Row]
       yield t - s).?
     for x <- xs do State.modify[Int](_ + x).?
     val s4 = State.get[Int].map(_ * 10).?                                  // map: Bind into Pure

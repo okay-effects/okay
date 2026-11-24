@@ -92,7 +92,7 @@ class TestStepper extends munit.FunSuite {
   test("the transparent driver over PROGRAMS: an effectful tool performs in the stepper's row, and the run is the direct one") {
     var performed = 0
     val tableF = Map[String, ToolCall => String ! Rest]("search" -> (_ =>
-      okay.async { performed += 1; "found" }.at[Rest]))
+      okay.async { performed += 1; "found" }.into[Rest]))
     val table = Map[String, ToolCall => String]("search" -> (_ => "found"))
     def model = Handlers.scripted(Seq(Reply("", Seq(search)), Reply("fin", Nil)))
     val direct =

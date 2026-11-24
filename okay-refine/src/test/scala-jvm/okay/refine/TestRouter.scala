@@ -115,7 +115,8 @@ class TestRouter extends Diagnosed:
     val swaps = Channel[Swap]()
     val boom: Source[String] =
       Source.of(List("swap:s1,EUR")).flatMap(_ =>
-        okay.effect[Async, Unit](Async.Run(() => throw IllegalStateException("disk gone"))).at[Writer % String + Async])
+        okay.perform[Async, Unit](Async.Run(() => throw IllegalStateException("disk gone")))
+          .into[Writer % String + Async])
     val e = intercept[IllegalStateException](Router(any).route[Swap](swaps).run(boom).runWith)
     assertEquals(e.getMessage, "disk gone")
     assertEquals(swaps.failed.map(_.getMessage), Some("disk gone"))

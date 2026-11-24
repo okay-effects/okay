@@ -94,8 +94,8 @@ object Source {
   private def through[I, O](s: okay.Source[I])(st: Unit ! St[I, O]): Source[O] =
     of(okay.through[I, O, okay.Async, Unit, Unit](s)(st))
 
-  private def await[I, O]: Option[I] ! St[I, O] = okay.Stage.await[I, O].at[St[I, O]]
-  private def tell[I, O](o: O): Unit ! St[I, O] = okay.Stage.tell[I, O](o).at[St[I, O]]
+  private def await[I, O]: Option[I] ! St[I, O] = okay.Stage.await[I, O].into[St[I, O]]
+  private def tell[I, O](o: O): Unit ! St[I, O] = okay.Stage.tell[I, O](o).into[St[I, O]]
   private def done[I, O]: Unit ! St[I, O] = okay.pure(())
 
   private def passAll[A]: Unit ! St[A, A] =

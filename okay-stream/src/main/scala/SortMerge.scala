@@ -211,7 +211,7 @@ object SortMerge {
                         (using Scheduler, CanBlock, Wait, Pause): Source[O] =
     type R = Writer % O + Async
     def receive[X](c: Channel[X]): Option[X] ! R =
-      effect[Async, Option[X]](Async.Await[Option[X]] { k => c.receiveAsync(k); () => c.cancelReceive(k) }).at[R]
+      perform[Async, Option[X]](Async.Await[Option[X]] { k => c.receiveAsync(k); () => c.cancelReceive(k) }).into[R]
     defer:
       val m = fresh()
       val out = ArrayBuffer.empty[O]
@@ -220,10 +220,10 @@ object SortMerge {
       val scope = Async.CancelScope(Merge.closing(cl, cr))
       def tellAll(i: Int): Unit ! R =
         if i >= out.length then { out.clear(); pure[Unit, R](()) }
-        else Writer.tell(out(i)).at[R].flatMap(_ => tellAll(i + 1))
+        else Writer.tell(out(i)).into[R].flatMap(_ => tellAll(i + 1))
       def end: Unit ! R =
         cl.close(); cr.close()
-        effect[Async, Unit](Async.Run(Async.Exit(scope))).at[R]
+        perform[Async, Unit](Async.Run(Async.Exit(scope))).into[R]
       def go: Unit ! R =
         m.step(o => { out += o; () }) match
           case Need.Done => tellAll(0).flatMap(_ => end)
@@ -235,5 +235,5 @@ object SortMerge {
             tellAll(0).flatMap(_ => receive(cr)).flatMap:
               case None => m.rightEnd(); go
               case Some((k, b)) => m.right(k, b); go
-      effect[Async, Unit](Async.Run(Async.Enter(scope))).at[R].flatMap(_ => go)
+      perform[Async, Unit](Async.Run(Async.Enter(scope))).into[R].flatMap(_ => go)
 }

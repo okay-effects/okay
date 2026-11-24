@@ -3,7 +3,7 @@ package okay.rag
 import okay.{Answers}
 
 import okay.{+}
-import okay.{!, effect, pure}
+import okay.{!, perform, pure}
 import okay.std.{Choose, Logic, runChoice}
 /**
  * Retrieval pipelines (specs/rag.md, P10c). Every stage that other
@@ -23,8 +23,8 @@ object Retrieve {
   def vector[F[_]](store: VectorStore[F]): Retriever[Embed + F] =
     new Retriever[Embed + F]:
       def retrieve(query: String, k: Int): Seq[Scored] ! Embed + F =
-        embed(Seq(query)).at[Embed + F].flatMap { vs =>
-          store.search(vs.head, k).at[Embed + F]
+        embed(Seq(query)).into[Embed + F].flatMap { vs =>
+          store.search(vs.head, k).into[Embed + F]
         }
 
   /**
@@ -95,7 +95,7 @@ object Retrieve {
     def retrieve(query: String, k: Int): Seq[Scored] ! F =
       val qs = (query +: rewrites(query)).distinct
       val search: Seq[Scored] ! Choose + F =
-        effect(Choose(qs)).at[Choose + F].flatMap(q => r.retrieve(q, k).at[Choose + F])
+        perform(Choose(qs)).into[Choose + F].flatMap(q => r.retrieve(q, k).into[Choose + F])
       runChoice(search).map(ls => Fusion.rrf(ls).take(k))
 
   /**
@@ -109,7 +109,7 @@ object Retrieve {
     // the alternatives never perform an F: built in Choose alone and
     // observed there, no re-typing needed (F stays the signature's
     // promise to callers)
-    def alts(xs: Seq[Scored]): Scored ! Choose = effect(Choose(xs))
+    def alts(xs: Seq[Scored]): Scored ! Choose = perform(Choose(xs))
     val mixed = Logic.interleave(alts(a), alts(b))
     // observe is the lazy take: only k answers are ever computed
     Logic.observe(k)(mixed).run

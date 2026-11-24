@@ -1,7 +1,7 @@
 package okay.foreign
 
 
-import okay.{effect}
+import okay.{perform}
 
 
 import okay.std.{Choose, runChoice}
@@ -41,7 +41,7 @@ class TestPyProgramShape extends munit.FunSuite {
 
   test("a Choice handler continues the SAME continuation twice, and every branch answers") {
     val far = Far()
-    val choose = Py.callback[Vector[Long], Long]("choose")(xs => effect[Choose, Long](Choose(xs)))
+    val choose = Py.callback[Vector[Long], Long]("choose")(xs => perform[Choose, Long](Choose(xs)))
     val run = Py.program[Long]("m:pairs").calling(Py.callbacks(choose))()
     assertEquals(runChoice(run.program).runWith(using far).toList, List(Right(11L), Right(21L), Right(12L), Right(22L)))
     // k=1 (the first choice) twice; each branch then makes its own second choice

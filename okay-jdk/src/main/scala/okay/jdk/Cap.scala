@@ -1,6 +1,5 @@
 package okay.jdk
 
-import okay.effect
 import java.util.function.{BiFunction, Function as JFunction, Supplier, UnaryOperator}
 import Rows.{Top, answered, top}
 
@@ -32,7 +31,7 @@ final class Cap[O] private[jdk] (cls: Class[O]) {
     via[R](op)
 
   /** an operation tagged with this capability, at the answer type its maker states */
-  private[jdk] def via[R](op: Any): Eff[R] = new Eff(effect[Top, R](top[R](Cap.Tagged(this, op))))
+  private[jdk] def via[R](op: Any): Eff[R] = new Eff(okay.perform[Top, R](top[R](Cap.Tagged(this, op))))
 
   override def toString: String = s"Cap(${cls.getName})@${Integer.toHexString(System.identityHashCode(this))}"
 }

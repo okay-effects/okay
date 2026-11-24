@@ -98,7 +98,7 @@ object Server {
    * hole.
    */
   def serve(s: Serving): Stage[Rpc, Rpc, Unit] =
-    serveIn[Pure](s)(c => pure(run(s.call, c))).at[Take % Rpc + Writer % Rpc]
+    serveIn[Pure](s)(c => pure(run(s.call, c))).into[Take % Rpc + Writer % Rpc]
 
   /** the row `serveIn` runs in: the protocol's two, and the tools' G */
   type Row[G[_]] = Take % Rpc + (Writer % Rpc + G)
@@ -140,9 +140,9 @@ object Server {
   def serveIn[G[_]](s: Serving, around: Around[G] = Around.none[G])
                      (runTool: ToolCall => Json ! G): Unit ! Row[G] =
     val info = s.info
-    def tell(m: Rpc): Unit ! Row[G] = Stage.tell[Rpc, Rpc](m).at[Row[G]]
-    def await: Option[Rpc] ! Row[G] = Stage.await[Rpc, Rpc].at[Row[G]]
-    def lift[X](p: X ! G): X ! Row[G] = p.at[Row[G]]
+    def tell(m: Rpc): Unit ! Row[G] = Stage.tell[Rpc, Rpc](m).into[Row[G]]
+    def await: Option[Rpc] ! Row[G] = Stage.await[Rpc, Rpc].into[Row[G]]
+    def lift[X](p: X ! G): X ! Row[G] = p.into[Row[G]]
     def tool(c: ToolCall): Json ! Row[G] = lift(runTool(c))
     // What a server DECLARES is exactly what it answers: a method of
     // a capability it does not have is `MethodNotFound`, not a polite
@@ -335,12 +335,12 @@ object Server {
    */
   def over(link: Link)(stage: Stage[Rpc, Rpc, Unit]): Unit ! Async =
     drain(link)(through[Rpc, Rpc, Async, Unit, Unit](framed(link))(
-      stage.at[Row[Async]]))
+      stage.into[Row[Async]]))
 
   /** the incoming lines, framed as messages */
   private def framed(link: Link): Source[Rpc] =
     through[String, Rpc, Async, Unit, Unit](link.lines)(
-      Rpc.messages.at[Take % String + (Writer % Rpc + Async)])
+      Rpc.messages.into[Take % String + (Writer % Rpc + Async)])
 
   /** everything told, put on the wire */
   private def drain(link: Link)(p: Source[Rpc]): Unit ! Async =
@@ -390,6 +390,6 @@ object Server {
     val out = Channel[Rpc]()
     val answers: Source[Rpc] =
       through[Rpc, Rpc, Async, Unit, Unit](framed(link))(
-        serve(serving).at[Row[Async]])
+        serve(serving).into[Row[Async]])
     (drain(link)(answers merge Writer.of(out)), Pushes(out, serving.subscriptions))
 }

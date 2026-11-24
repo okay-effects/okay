@@ -13,7 +13,7 @@ class TestFeedOfferFirst extends munit.FunSuite:
 
   private def collect(src: Source[Int]): Vector[Int] =
     val out = Vector.newBuilder[Int]
-    src.runForeach(x => effect[Async, Unit](Async.Run(() => out += x))).runWith
+    src.runForeach(x => perform[Async, Unit](Async.Run(() => out += x))).runWith
     out.result()
 
   test("law: an element the ring refused is not lost -- every element arrives, in order, through a ring of 2") {

@@ -55,8 +55,8 @@ class TestDocExamplesEffects extends munit.FunSuite:
         case Some(n) => pure(n)
         case None    => raise(s"not a number: $s")
 
-    val good = parse("42").handle(Throws.either).run   // Right(42)
-    val bad  = parse("x").handle(Throws.either).run    // Left(not a number: x)
+    val good = parse("42").handle(Throws.run).run   // Right(42)
+    val bad  = parse("x").handle(Throws.run).run    // Left(not a number: x)
 
     val nothing = runOption(abort[Int]).run   // None
     assertEquals(good, Right(42))
@@ -115,7 +115,7 @@ class TestDocExamplesEffects extends munit.FunSuite:
   test("supply.md") {
     val three = for a <- Fresh.next; b <- Fresh.next; c <- Fresh.next yield List(a, b, c)
 
-    val ids = three.handle(Fresh.counter).run   // List(0, 1, 2)
+    val ids = three.handle(Fresh.run).run   // List(0, 1, 2)
 
     val (after, letters) = Supply.next[Char].flatMap(x => Supply.next[Char].map(y => s"$x$y")).handle(Supply.from('a')(c => (c + 1).toChar)).run   // ('c', "ab")
     assertEquals(ids, List(0L, 1L, 2L))

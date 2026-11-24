@@ -134,7 +134,7 @@ class TestGoTcpAuth extends WireConformance:
  * middle of a multi-shot program and started again on the same port; the
  * supervisor reconnects and replays, and every branch comes back */
 class TestGoTcpSupervised extends munit.FunSuite:
-  import okay.{effect}
+  import okay.{perform}
   import okay.std.{Choose, runChoice}
   override def munitTests(): Seq[Test] = super.munitTests().map(_.tag(new munit.Tag("Live")))
   override def munitIgnore: Boolean = !GoWorkerBinary.available
@@ -150,7 +150,7 @@ class TestGoTcpSupervised extends munit.FunSuite:
         restarted = true
         server.destroyForcibly().waitFor(): Unit
         server = GoWorkerBinary.listen(Map("OKAY_LISTEN" -> s"127.0.0.1:$port"))._2
-      effect[Choose, Long](Choose(xs))
+      perform[Choose, Long](Choose(xs))
     }
     try
       val pairs = Foreign.program[Long]("pairs").calling(Foreign.callbacks(choose))()

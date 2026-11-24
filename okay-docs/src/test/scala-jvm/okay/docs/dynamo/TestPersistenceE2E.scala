@@ -48,24 +48,24 @@ class TestPersistenceE2E extends munit.FunSuite:
     val pool = Pool[PgSql](2, 5000L)(() => connect())(_.close())
     run(pool.borrow(db =>
       db.update("drop table if exists e2e_ssi").flatMap(_ => db.update("create table e2e_ssi(k int not null)"))
-        .at[Resource + Async])): Unit
+        .into[Resource + Async])): Unit
     var runs = 0
     // b's first run: read, then a whole transaction on ANOTHER borrowed
     // connection between b's read and b's write — the rw-conflict cycle
     def aWrites(): Unit = run(pool.borrow(a => Resource.run(
       Typed.transact[Long, Pure](a, Isolation.Serializable)(_ =>
-        count(a, "e2e_ssi").flatMap(_ => a.update("insert into e2e_ssi values (1)")).at[Resource + Async + Pure]))
-      .at[Resource + Async])): Unit
+        count(a, "e2e_ssi").flatMap(_ => a.update("insert into e2e_ssi values (1)")).into[Resource + Async + Pure]))
+      .into[Resource + Async])): Unit
     val r = run(pool.borrow(b =>
       Typed.transactRetry(b, Isolation.Serializable, Typed.Retry(3)) { _ =>
         count(b, "e2e_ssi").flatMap { _ =>
           runs += 1
           if runs == 1 then aWrites()
           b.update("insert into e2e_ssi values (2)")
-        }.at[Resource + Async]
-      }.at[Resource + Async]))
+        }.into[Resource + Async]
+      }.into[Resource + Async]))
     assertEquals(r.attempts, 2, "the first run lost to a, the second landed")
-    assertEquals(run(pool.borrow(db => count(db, "e2e_ssi").at[Resource + Async])), 2L)
+    assertEquals(run(pool.borrow(db => count(db, "e2e_ssi").into[Resource + Async])), 2L)
     val st = pool.stats
     assertEquals((st.busy, st.waiting, st.closed), (0, 0, false))
     assert(st.created <= 2 && st.idle == st.created, s"$st")

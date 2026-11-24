@@ -24,4 +24,4 @@ object WsLink:
 
     def lines: Source[String] =
       through[Frame, String, Async, Unit, Unit](s.frames)(
-        Ws.texts.at[Take % Frame + (Writer % String + Async)])
+        Ws.texts.into[Take % Frame + (Writer % String + Async)])

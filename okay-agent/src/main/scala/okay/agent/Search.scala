@@ -1,6 +1,6 @@
 package okay.agent
 
-import okay.{!, +, effect, guard}
+import okay.{!, +, perform, guard}
 import okay.std.{Choose, Logic, runChoice}
 import okay.std.given
 /**
@@ -28,7 +28,7 @@ object Search {
   /** N samples of the same program — the multi-shot handler runs
    * each branch, so the model is asked N times */
   def samples[A, F[_]](n: Int)(gen: A ! Choose + F): A ! Choose + F =
-    effect(Choose(1 to n)).at[Choose + F].flatMap(_ => gen)
+    perform(Choose(1 to n)).into[Choose + F].flatMap(_ => gen)
 
   /** the first sample that passes the check; none pass = no answer */
   def bestOf[A, F[_]](n: Int)(gen: A ! Choose + F)

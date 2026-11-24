@@ -31,15 +31,15 @@ enum Tx[+A] {
 }
 
 object Tx {
-  def read[A](r: TRef[A]): A ! Tx = effect(Read(r))
-  def write[A](r: TRef[A], a: A): Unit ! Tx = effect(Write(r, a))
-  def modify[A, B](r: TRef[A])(f: A => (A, B)): B ! Tx = effect(Modify(r, f))
-  def update[A](r: TRef[A])(f: A => A): Unit ! Tx = effect(Modify(r, (a: A) => (f(a), ())))
-  def retry[A]: A ! Tx = effect(Retry())
+  def read[A](r: TRef[A]): A ! Tx = perform(Read(r))
+  def write[A](r: TRef[A], a: A): Unit ! Tx = perform(Write(r, a))
+  def modify[A, B](r: TRef[A])(f: A => (A, B)): B ! Tx = perform(Modify(r, f))
+  def update[A](r: TRef[A])(f: A => A): Unit ! Tx = perform(Modify(r, (a: A) => (f(a), ())))
+  def retry[A]: A ! Tx = perform(Retry())
   /** `retry` unless the condition holds */
   def check(cond: Boolean): Unit ! Tx = if cond then pure(()) else retry
   /** `a`, or `b` if `a` retries — specs/stm.md, stm-orelse */
-  def orElse[A](a: A ! Tx, b: A ! Tx): A ! Tx = effect(OrElse(a, b))
+  def orElse[A](a: A ! Tx, b: A ! Tx): A ! Tx = perform(OrElse(a, b))
 }
 
 /** the door: WHERE a transaction runs, and by which strategy */

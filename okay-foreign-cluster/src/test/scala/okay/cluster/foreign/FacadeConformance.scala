@@ -6,7 +6,7 @@ import okay.arrow.Rows
 import okay.cluster.{Flow, Flows}
 import okay.given
 import okay.%
-import okay.effect
+import okay.perform
 import okay.std.{Choose, Reader, runChoice}
 /**
  * THE CONFORMANCE SUITE (specs/foreign-facade.md): one body per
@@ -78,7 +78,7 @@ object FacadeConformance:
     val price = Cb[Reader % Map[String, Double], String, Double]("price_of")(sku => Reader.ask[Map[String, Double]].map(_(sku)))
     val order = P.run(module)(Reader.run(Map("tea" -> 4.0))(P.program[Order, Double, Reader % Map[String, Double]](module, priced, Vector(price))(Order("tea", 3L))))
     assertEquals(order, Right(12.0), s"${P.name}: priced")
-    val choose = Cb[Choose, Vector[Long], Long]("choose")(xs => effect[Choose, Long](Choose(xs)))
+    val choose = Cb[Choose, Vector[Long], Long]("choose")(xs => perform[Choose, Long](Choose(xs)))
     val all = P.run(module)(runChoice(P.program[Int, Long, Choose](module, pairs, Vector(choose))(0)))
     assertEquals(all.toList, List(Right(11L), Right(21L), Right(12L), Right(22L)), s"${P.name}: pairs, multi-shot")
 
@@ -153,7 +153,7 @@ object FacadeConformance:
   def observedPrograms[M](module: M, link: String, pairs: String)(using p: Maybe[Programs[M]]): String = p.get match
     case None => if link == "in-jvm" then "in-jvm" else "none"
     case Some(pr) =>
-      val choose = Cb[Choose, Vector[Long], Long]("choose")(xs => effect[Choose, Long](Choose(xs)))
+      val choose = Cb[Choose, Vector[Long], Long]("choose")(xs => perform[Choose, Long](Choose(xs)))
       pr.run(module)(runChoice(pr.program[Int, Long, Choose](module, pairs, Vector(choose))(0))).toList match
         case List(Right(11L), Right(21L), Right(12L), Right(22L)) => "multi-shot"
         case List(Right(11L)) => "one-shot"

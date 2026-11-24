@@ -59,17 +59,17 @@ object Nio {
     /** the bytes as they arrive; end of stream ends the source */
     def bytes: Source[Chunk[Byte]] =
       def go: Source[Chunk[Byte]] =
-        effect[Async, Chunk[Byte] | Null](Async.Run[Chunk[Byte] | Null] { () =>
+        perform[Async, Chunk[Byte] | Null](Async.Run[Chunk[Byte] | Null] { () =>
           val buf = ByteBuffer.allocate(size)
           if ch.read(buf) < 0 then null
           else
             buf.flip()
             val out = new Array[Byte](buf.remaining()); buf.get(out)
             scala.collection.immutable.ArraySeq.unsafeWrapArray(out)
-        }).at[F].flatMap {
+        }).into[F].flatMap {
           case null => pure(())
           case c =>
-            Writer.tell[Chunk[Byte]](c).at[F].flatMap(_ => go)
+            Writer.tell[Chunk[Byte]](c).into[F].flatMap(_ => go)
         }
 
       go

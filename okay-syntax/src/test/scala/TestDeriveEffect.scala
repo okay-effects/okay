@@ -24,15 +24,15 @@ class TestDeriveEffect extends munit.FunSuite {
       case Db.Put(k, v) => store = store + (k -> v); ()
 
   test("an operation is a program needing its effect") {
-    val p: Option[Int] ! Db = effect[Db, Option[Int]](Db.Get("a"))
+    val p: Option[Int] ! Db = perform[Db, Option[Int]](Db.Get("a"))
     assertEquals(p.runWith(using handler), Some(1))
-    assertEquals(effect[Db, Option[Int]](Db.Get("zz")).runWith(using handler), None)
+    assertEquals(perform[Db, Option[Int]](Db.Get("zz")).runWith(using handler), None)
   }
 
   test("derives Effect registers the signature for direct auto-coloring") {
     // no `.?`, no `.reflect`: the marker comes with the declaration,
     // and the DirectCtx gate still means this colors only in here
-    def get(k: String): Option[Int] ! Db = effect[Db, Option[Int]](Db.Get(k))
+    def get(k: String): Option[Int] ! Db = perform[Db, Option[Int]](Db.Get(k))
     val prog: Option[Int] ! Db = direct {
       val a: Option[Int] = get("a")
       a.map(_ * 10)

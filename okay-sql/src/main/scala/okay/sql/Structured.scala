@@ -1,6 +1,6 @@
 package okay.sql
 
-import okay.{!, Effect, Tables, Within, effect}
+import okay.{!, Effect, Tables, Within, perform}
 import okay.codec.Schema
 import okay.Tables.{Table, select, join, where}
 
@@ -34,18 +34,18 @@ object Structured:
   // ------------------------------------------- on a handle: ! Structured
   extension [A](t: Table[A])
     inline def matching(w: Query.Where[A])(using s: Schema[A]): Table[A] ! Structured =
-      effect(Matching(t, w, s))
+      perform(Matching(t, w, s))
     inline def joinOn[B, K](r: Table[B])(lf: Query.Field[A, K], rf: Query.Field[B, K])
                            (using sa: Schema[A], sb: Schema[B]): Table[(A, B)] ! Structured =
-      effect(JoinOn(t, r, lf, rf, sa, sb))
+      perform(JoinOn(t, r, lf, rf, sa, sb))
 
   // ------------------------- on a program: any row that has Structured
   extension [A, F[_]](p: Table[A] ! F)(using Within[Structured, F])
     def matching(w: Query.Where[A])(using Schema[A]): Table[A] ! F =
-      p.flatMap(t => t.matching(w).at[F])
+      p.flatMap(t => t.matching(w).into[F])
     def joinOn[B, K](r: Table[B] ! F)(lf: Query.Field[A, K], rf: Query.Field[B, K])
                     (using Schema[A], Schema[B]): Table[(A, B)] ! F =
-      p.flatMap(t => r.flatMap(rt => t.joinOn(rt)(lf, rf).at[F]))
+      p.flatMap(t => r.flatMap(rt => t.joinOn(rt)(lf, rf).into[F]))
 
   /** the key a field names, as the value's own encoding of it: two equal
    * `K`s encode to equal `SqlValue`s, which is what a hash join needs.

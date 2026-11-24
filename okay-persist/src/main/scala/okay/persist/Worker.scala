@@ -240,7 +240,7 @@ final class Worker[Q, A, R, F[_], G[_]](topic: Topic, program: String, timers: T
    */
   private def broken(d: Dialogue[Wf.Ask[Q], Wf.Ans[A], R, F],
                      stopped: Dialogue.Stopped): Worker.Progress[R] ! G =
-    d.diagnosis.at[G].map: found =>
+    d.diagnosis.into[G].map: found =>
       Worker.Progress.Broken(
         found.getOrElse(Dialogue.Diagnosis(stopped, 0, None, None)))
 
@@ -296,8 +296,8 @@ final class Worker[Q, A, R, F[_], G[_]](topic: Topic, program: String, timers: T
     val look: Either[Throwable, Either[Dialogue.Stopped,
                 (Wf.Dialogue[Wf.Ask[Q], Wf.Ans[A], R, F], Int)]] ! G =
       isolate match
-        case None => d.standing.at[G].map(Right(_))
-        case Some(iso) => iso(d.standing.at[G])
+        case None => d.standing.into[G].map(Right(_))
+        case Some(iso) => iso(d.standing.into[G])
     look.flatMap:
       case Left(e) => pure(Left(Worker.Progress.Incompatible(e.toString)))
       case Right(Left(stopped)) => broken(d, stopped).map(Left(_))
@@ -350,7 +350,7 @@ final class Worker[Q, A, R, F[_], G[_]](topic: Topic, program: String, timers: T
             // and this is the moment it becomes an answer
             signals.flatMap(_.next(id, name)) match
               case Some((off, payload)) =>
-                d.answer(Left(Wf.SysA.Got(payload))).at[G].flatMap: _ =>
+                d.answer(Left(Wf.SysA.Got(payload))).into[G].flatMap: _ =>
                   // the cursor moves ONLY after the journal took it, so
                   // a crash in between re-delivers and `expect` refuses
                   // the duplicate — a repeated attempt, never a doubled
@@ -369,7 +369,7 @@ final class Worker[Q, A, R, F[_], G[_]](topic: Topic, program: String, timers: T
             // result does not change, so `expect` is the whole guard.
             children.flatMap(_.resultOf(kid)) match
               case Some(result) =>
-                d.answer(Left(Wf.SysA.Got(result))).at[G].flatMap: _ =>
+                d.answer(Left(Wf.SysA.Got(result))).into[G].flatMap: _ =>
                   resume.foreach(_.drop(id))   // the journal moved
                   step(id)
               case None =>
@@ -419,7 +419,7 @@ final class Worker[Q, A, R, F[_], G[_]](topic: Topic, program: String, timers: T
         pure(verdict)
       case Right((p, _)) => p.asking match
         case Some(Left(Wf.Sys.Timer(t))) if t <= nowMillis =>
-          d.answer(Left(Wf.SysA.Elapsed)).at[G].flatMap(_ => advance(id))
+          d.answer(Left(Wf.SysA.Elapsed)).into[G].flatMap(_ => advance(id))
         case _ =>
           // the record was stale: this run is not waiting on a timer,
           // or not on one that has passed. Cost: one read.

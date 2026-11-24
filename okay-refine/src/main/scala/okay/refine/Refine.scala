@@ -3,7 +3,7 @@ package okay.refine
 import scala.reflect.ClassTag
 import okay.{Prism, Stage}
 import okay.{%}
-import okay.{!, effect, pure}
+import okay.{!, perform, pure}
 import okay.std.{Choose, Throws, choose, raise}
 import okay.codec.{Json, Schema}
 
@@ -62,7 +62,7 @@ sealed trait Refine[A, B] extends Serializable:
   final def search(a: A): B ! Choose = run(a) match
     case Verdict.Took(b, _, _) => pure(b)
     case Verdict.Unclear(cs, _) => choose(cs.map(_._2)*)
-    case Verdict.Declined(_) => effect(Choose(Seq.empty))
+    case Verdict.Declined(_) => perform(Choose(Seq.empty))
 
   /** a path: the second pattern over what the first learnt */
   infix def andThen[C](next: Refine[B, C]): Refine[A, C] = Refine.AndThen(this, next)

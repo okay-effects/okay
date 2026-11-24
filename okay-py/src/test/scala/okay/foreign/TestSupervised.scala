@@ -1,7 +1,7 @@
 package okay.foreign
 
 
-import okay.{effect}
+import okay.{perform}
 
 
 import okay.std.{Choose, runChoice}
@@ -86,7 +86,7 @@ class TestSupervised extends munit.FunSuite:
     var crashed = false
     val choose = Foreign.callback[Vector[Long], Long]("choose") { xs =>
       if !crashed && xs == Vector(10L, 20L) then { crashed = true; crash }
-      effect[Choose, Long](Choose(xs))
+      perform[Choose, Long](Choose(xs))
     }
     val pairs = Foreign.program[Long]("rel:pairs").calling(Foreign.callbacks(choose))()
     assertEquals(runChoice(pairs.program).runWith.toList, List(Right(11L), Right(21L), Right(12L), Right(22L)))
@@ -100,7 +100,7 @@ class TestSupervised extends munit.FunSuite:
     val w = ForeignWorker.supervised(fresh())
     given okay.Answers[ForeignEval] = w.handler
     var crashed = false
-    val choose = Foreign.callback[Vector[Long], Long]("choose")(xs => effect[Choose, Long](Choose(xs)))
+    val choose = Foreign.callback[Vector[Long], Long]("choose")(xs => perform[Choose, Long](Choose(xs)))
     val anyStep = (name: String) => Foreign.callback[Long, Long](name) { x =>
       if !crashed then { crashed = true; crash }
       okay.pure[Long, Choose](x)

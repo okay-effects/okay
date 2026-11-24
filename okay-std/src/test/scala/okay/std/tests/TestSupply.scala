@@ -19,10 +19,10 @@ class TestSupply extends munit.FunSuite {
     type R = Fresh + Writer % String
     val p: Long ! R =
       for
-        a <- Fresh.next.at[R]
-        _ <- Writer.tell(s"got $a").at[R]
-        b <- Fresh.next.at[R]
-        _ <- Writer.tell(s"got $b").at[R]
+        a <- Fresh.next.into[R]
+        _ <- Writer.tell(s"got $a").into[R]
+        b <- Fresh.next.into[R]
+        _ <- Writer.tell(s"got $b").into[R]
       yield a + b
     assertEquals(Writer.run[String, Long, Writer % String](Fresh.run(p)).run, (List("got 0", "got 1"), 1L))
   }
@@ -31,9 +31,9 @@ class TestSupply extends munit.FunSuite {
     type R = Fresh + Choose
     val p: (String, Long, Long) ! R =
       for
-        a <- Fresh.next.at[R]
-        s <- choose("l", "r").at[R]
-        b <- Fresh.next.at[R]
+        a <- Fresh.next.into[R]
+        s <- choose("l", "r").into[R]
+        b <- Fresh.next.into[R]
       yield (s, a, b)
     assertEquals(runChoice(Fresh.run(p)).run, Seq(("l", 0L, 1L), ("r", 0L, 1L)))
   }

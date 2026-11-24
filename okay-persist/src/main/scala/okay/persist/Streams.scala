@@ -2,7 +2,7 @@ package okay.persist
 
 import okay.{Async, ChunkBuf, Chunks, Source, Timer}
 
-import okay.{+, %, effect}
+import okay.{+, %, perform}
 import okay.std.{Chunk, Writer}
 /**
  * Streaming reads over a topic (specs/persist.md, Interface): a
@@ -38,11 +38,11 @@ object Streams:
              onTooEarly: OnTooEarly = OnTooEarly.Fail)
   : Source[Chunk[Record]] =
     def go(at: Long): Source[Chunk[Record]] =
-      effect[Async, Topic.Read](Async.Run(() => t.read(partition, at, chunk))).at[F].flatMap {
+      perform[Async, Topic.Read](Async.Run(() => t.read(partition, at, chunk))).into[F].flatMap {
         case Topic.Read.TooEarly(b) => tooEarly(at, b, onTooEarly)(go)
         case Topic.Read.Records(rs) =>
           if rs.isEmpty then okay.pure(())
-          else Writer.tell(ChunkBuf.of(rs)).at[F].flatMap(_ => go(rs.last.offset + 1))
+          else Writer.tell(ChunkBuf.of(rs)).into[F].flatMap(_ => go(rs.last.offset + 1))
       }
     go(from)
 
@@ -92,12 +92,12 @@ object Streams:
           (using Timer)
   : Source[Chunk[Record]] =
     def go(at: Long): Source[Chunk[Record]] =
-      effect[Async, Topic.Read](Async.Run(() => t.read(partition, at, chunk))).at[F].flatMap {
+      perform[Async, Topic.Read](Async.Run(() => t.read(partition, at, chunk))).into[F].flatMap {
         case Topic.Read.TooEarly(b) => tooEarly(at, b, onTooEarly)(go)
         case Topic.Read.Records(rs) =>
           if rs.isEmpty then
-            Async.sleep(pollMillis).at[F].flatMap(_ => go(at))
-          else Writer.tell(ChunkBuf.of(rs)).at[F].flatMap(_ => go(rs.last.offset + 1))
+            Async.sleep(pollMillis).into[F].flatMap(_ => go(at))
+          else Writer.tell(ChunkBuf.of(rs)).into[F].flatMap(_ => go(rs.last.offset + 1))
       }
     go(from)
 
@@ -106,4 +106,4 @@ object Streams:
     on match
       case OnTooEarly.Resume => resume(begin)
       case OnTooEarly.Fail =>
-        effect[Async, Unit](Async.Run(() => throw DroppedHistory(asked, begin))).at[F]
+        perform[Async, Unit](Async.Run(() => throw DroppedHistory(asked, begin))).into[F]

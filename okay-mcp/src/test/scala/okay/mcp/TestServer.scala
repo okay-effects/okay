@@ -25,7 +25,7 @@ class TestServer extends munit.FunSuite {
 
   /** drive the stage with a list of messages, collect what it tells */
   def talk(msgs: Rpc*): Seq[Rpc] =
-    !.run(Writer.run(through(Writer.of(msgs.toList).at[Writer % Rpc])(Server.serve(info, box.specs, box.table))))._1
+    !.run(Writer.run(through(Writer.of(msgs.toList).into[Writer % Rpc])(Server.serve(info, box.specs, box.table))))._1
 
   val hello = Rpc.Request(Json.JNum(1), Mcp.Initialize,
     Mcp.initializeParams(Mcp.Info("client", "1")))
@@ -70,7 +70,7 @@ class TestServer extends munit.FunSuite {
     val bad = Map[String, ToolCall => String]("boom" -> (_ => throw RuntimeException("kaboom")))
     val out = !.run(Writer.run(through(Writer.of(List(hello,
       Rpc.Request(Json.JNum(5), Mcp.ToolsCall,
-        Mcp.callParams(ToolCall("x", "boom", Json.JObj(Vector.empty)))))).at[Writer % Rpc])(
+        Mcp.callParams(ToolCall("x", "boom", Json.JObj(Vector.empty)))))).into[Writer % Rpc])(
       Server.serve(info, Nil, bad))))._1
     val Rpc.Answer(_, result) = out(1): @unchecked
     assertEquals(Mcp.textOf(result), "error: kaboom")

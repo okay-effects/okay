@@ -30,7 +30,7 @@ class TestCutStops extends munit.FunSuite {
   : Unit ! Writer % String + Async =
     type F = Writer % String + Async
     pieces.foldRight(okay.pure(()): Unit ! F) { (p, rest) =>
-      Writer.tell[String](p).at[F].flatMap { _ =>
+      Writer.tell[String](p).into[F].flatMap { _ =>
         emitted.incrementAndGet(): Unit
         rest
       }

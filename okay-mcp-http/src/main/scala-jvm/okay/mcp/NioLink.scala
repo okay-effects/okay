@@ -22,4 +22,4 @@ object NioLink:
 
     def lines: Source[String] =
       through[Chunk[Byte], String, Async, Unit, Unit](c.bytes)(
-        Http.framing.at[Take % Chunk[Byte] + (Writer % String + Async)])
+        Http.framing.into[Take % Chunk[Byte] + (Writer % String + Async)])

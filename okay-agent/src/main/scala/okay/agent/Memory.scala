@@ -33,7 +33,7 @@ object Memory {
 
     // the kernel's Stateful: the state a register of the machine, a
     // continuation taken past it keeps the state as it was then
-    prog.handle(Handler.state[Context, S](init)([X] => (s: S, e: Context[X]) => answer(s, e)))
+    prog.handle(Handler.stateful[Context, S](init)([X] => (s: S, e: Context[X]) => answer(s, e)))
   }
 
   /** the common case: start empty, keep the answer only */

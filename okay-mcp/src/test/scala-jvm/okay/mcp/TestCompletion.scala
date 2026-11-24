@@ -32,7 +32,7 @@ class TestCompletion extends munit.FunSuite {
     })
 
   def talk(serving: Server.Serving)(msgs: Rpc*): Seq[Rpc] =
-    !.run(Writer.run(through(Writer.of(msgs.toList).at[Writer % Rpc])(Server.serve(serving))))._1
+    !.run(Writer.run(through(Writer.of(msgs.toList).into[Writer % Rpc])(Server.serve(serving))))._1
 
   val hello = Rpc.Request(Json.JNum(1), Mcp.Initialize, Json.JObj(Vector.empty))
   def ask(c: Mcp.Complete, id: Int = 2): Rpc =

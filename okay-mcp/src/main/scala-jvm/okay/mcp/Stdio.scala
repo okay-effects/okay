@@ -33,10 +33,10 @@ object Stdio {
      * looks like from here */
     def lines: Source[String] =
       def go: Source[String] =
-        effect(Async.Run(() => reader.readLine())).at[Writer % String + Async]
+        perform(Async.Run(() => reader.readLine())).into[Writer % String + Async]
           .flatMap(l =>
             if l == null then pure(())
-            else effect(Writer(l)).at[Writer % String + Async].flatMap(_ => go))
+            else perform(Writer(l)).into[Writer % String + Async].flatMap(_ => go))
 
       go
 

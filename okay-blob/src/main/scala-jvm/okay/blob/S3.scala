@@ -228,11 +228,11 @@ final class S3(http: Http, endpoint: String, bucket: String, region: String,
       Seq("host" -> hostHeader) ++ headers, SigV4.emptyHash, region, stamp(), creds)
     val send = http.send(Request(Method.Get,
       s"$endpoint${SigV4.uriEncode(keyPath(key), keepSlash = true)}", auth ++ headers))
-    send.at[F].flatMap { r =>
+    send.into[F].flatMap { r =>
       if r.status == 404 then
-        r.release.map(_ => Left(s"no such key '$key'")).at[F]
+        r.release.map(_ => Left(s"no such key '$key'")).into[F]
       else if !r.ok && r.status != 206 then
-        r.release.map(_ => Left(s"get '$key': HTTP ${r.status}")).at[F]
+        r.release.map(_ => Left(s"get '$key': HTTP ${r.status}")).into[F]
       else emit(r.body)
     }
 
@@ -269,7 +269,7 @@ final class S3(http: Http, endpoint: String, bucket: String, region: String,
         token.map("continuation-token" -> _)
       val send = http.send(signed(Method.Get, s"/$bucket", query.sortBy(_._1)))
         .flatMap(r => Http.text(r).map(t => (r.status, t)))
-      send.at[FM].flatMap { (status, xml) =>
+      send.into[FM].flatMap { (status, xml) =>
           if status != 200 then throw IllegalStateException(s"list '$prefix': HTTP $status")
           val metas = contents(xml)
           val next =

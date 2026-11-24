@@ -146,8 +146,8 @@ class TestCatsClasses extends munit.ScalaCheckSuite with okay.testkit.Munit.Diag
     enum Ask[+A]:
       case Num(k: String) extends Ask[Int]
     val p: Int ! Ask = for
-      a <- okay.effect(Ask.Num("a"))
-      b <- okay.effect(Ask.Num("bb"))
+      a <- okay.perform(Ask.Num("a"))
+      b <- okay.perform(Ask.Num("bb"))
     yield a * 10 + b
     val toIO: Ask ==> IO = [X] => (e: Ask[X]) => e match
       case Ask.Num(k) => IO(k.length)

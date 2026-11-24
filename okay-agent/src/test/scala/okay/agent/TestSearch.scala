@@ -28,7 +28,7 @@ class TestSearch extends munit.FunSuite {
   type Row[A] = A ! Choose + Rest
 
   def complete: Row[String] =
-    okay.effect(Model.Complete(Nil, Nil)).at[Choose + Rest].map(_.text)
+    okay.perform(Model.Complete(Nil, Nil)).into[Choose + Rest].map(_.text)
 
   def ok(p: Boolean): Row[Unit] = guard[[X] =>> X ! Choose + Rest](p)
 
@@ -41,7 +41,7 @@ class TestSearch extends munit.FunSuite {
   def perBranch[A](prog: Row[A])(model: Answers[Model]): Seq[A] =
     given Answers[Model] = model
     val threaded: A ! Choose + Model =
-      Memory.run[Vector[Turn], A, Choose + Model](Compact.all)(prog.at[Context + (Choose + Model)])
+      Memory.run[Vector[Turn], A, Choose + Model](Compact.all)(prog.into[Context + (Choose + Model)])
     runChoice(threaded).runWith
 
   test("best-of-N: sample until one validates, then commit") {
@@ -73,8 +73,8 @@ class TestSearch extends munit.FunSuite {
     // each branch remembers its own sample, then reads the context back
     val prog: Row[Int] =
       Search.samples[String, Rest](2)(complete).flatMap { s =>
-        okay.effect(Context.Remember(Turn.Assistant(s))).at[Choose + Rest].flatMap(_ =>
-          okay.effect(Context.Recall()).at[Choose + Rest].map(_.length))
+        okay.perform(Context.Remember(Turn.Assistant(s))).into[Choose + Rest].flatMap(_ =>
+          okay.perform(Context.Recall()).into[Choose + Rest].map(_.length))
       }
     assertEquals(perBranch(prog)(cycling(Seq("a", "b"))), Seq(1, 1))
   }
@@ -84,13 +84,13 @@ class TestSearch extends munit.FunSuite {
     given Answers[Model] = cycling(Seq("a", "b"))
     val prog: Row[Int] =
       Search.samples[String, Rest](2)(complete).flatMap { s =>
-        okay.effect(Context.Remember(Turn.Assistant(s))).at[Choose + Rest].flatMap(_ =>
-          okay.effect(Context.Recall()).at[Choose + Rest].map(_.length))
+        okay.perform(Context.Remember(Turn.Assistant(s))).into[Choose + Rest].flatMap(_ =>
+          okay.perform(Context.Recall()).into[Choose + Rest].map(_.length))
       }
     val shared: Seq[Int] ! Model + Context = runChoice(prog)
     val (state, lengths) =
       Memory.runWithState[Vector[Turn], Seq[Int], Model](Compact.all)(
-        shared.at[Context + Model]).runWith
+        shared.into[Context + Model]).runWith
     assertEquals(lengths, Seq(1, 2))     // the second branch sees the first
     assertEquals(state.length, 2)        // one transcript, both attempts
   }
@@ -100,7 +100,7 @@ class TestSearch extends munit.FunSuite {
     val answers: Seq[String] ! Model + Context =
       Search.all[String, Rest](3)(complete)(_ => true)
     val got = Memory.run[Vector[Turn], Seq[String], Model](Compact.all)(
-      answers.at[Context + Model]).runWith
+      answers.into[Context + Model]).runWith
     assertEquals(got.length, 3)
     assertEquals(Search.majority(got), Some("7"))
   }

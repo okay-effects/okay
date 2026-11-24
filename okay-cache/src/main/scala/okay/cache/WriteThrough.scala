@@ -22,4 +22,4 @@ object WriteThrough:
    * construction, so a review points here instead of auditing call
    * sites */
   def write[K, V, A, Es[_]](cache: Cache[K, V], k: K)(commit: => A ! Es)(using Within[Async, Es]): A ! Es =
-    commit.flatMap(a => cache.invalidate(k).map(_ => a).at[Es])
+    commit.flatMap(a => cache.invalidate(k).map(_ => a).into[Es])

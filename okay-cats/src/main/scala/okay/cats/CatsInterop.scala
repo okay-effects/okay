@@ -1,6 +1,6 @@
 package okay.cats
 
-import okay.{!, %, +, Async, effect}
+import okay.{!, %, +, Async, perform}
 import okay.Walk
 import okay.std.{Throws, runEither}
 import _root_.cats.effect.IO
@@ -33,9 +33,9 @@ given [E, F[_]]: _root_.cats.MonadError[[A] =>> A ! Throws % E + F, E] =
     with _root_.cats.MonadError[[A] =>> A ! Throws % E + F, E]:
     def pure[A](a: A): A ! Throws % E + F = okay.pure(a)
     def flatMap[A, B](fa: A ! Throws % E + F)(f: A => B ! Throws % E + F) = fa.flatMap(f)
-    def raiseError[A](e: E): A ! Throws % E + F = okay.std.raise[E, A](e).at[Throws % E + F]
+    def raiseError[A](e: E): A ! Throws % E + F = okay.std.raise[E, A](e).into[Throws % E + F]
     def handleErrorWith[A](fa: A ! Throws % E + F)(f: E => A ! Throws % E + F) =
-      runEither[A, Throws % E + F, E](fa).at[Throws % E + F]
+      runEither[A, Throws % E + F, E](fa).into[Throws % E + F]
         .flatMap {
           case Right(a) => okay.pure(a)
           case Left(e) => f(e)
@@ -122,5 +122,5 @@ object CatsInterop {
    * our Monad instance through the injecting FunctionK) */
   def fromCats[F[_], A](c: _root_.cats.free.Free[F, A])(using okay.KeyOf[F]): A ! F =
     c.foldMap(new _root_.cats.arrow.FunctionK[F, [X] =>> X ! F]:
-      def apply[X](fx: F[X]): X ! F = effect(fx))
+      def apply[X](fx: F[X]): X ! F = perform(fx))
 }

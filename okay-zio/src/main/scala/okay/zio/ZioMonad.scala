@@ -48,9 +48,9 @@ given zioForeignAsync[E <: Throwable]: okay.ForeignEffect[[X] =>> ZIO[Any, E, X]
 given zioForeignThrows[E]: okay.ForeignEffect[[X] =>> ZIO[Any, E, X]] with
   type G[X] = (Throws % E + Async)[X]
   def lift[A](m: ZIO[Any, E, A]): A ! G =
-    ZioInterop.fromZIO(m.either).at[G].flatMap {
+    ZioInterop.fromZIO(m.either).into[G].flatMap {
       case Right(a) => okay.pure[A, G](a)
-      case Left(e) => raise[E, A](e).at[G]
+      case Left(e) => raise[E, A](e).into[G]
     }
 
 given zioForeignRow[R, E]: okay.ForeignEffect[[X] =>> ZIO[R, E, X]] with

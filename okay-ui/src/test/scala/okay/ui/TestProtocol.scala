@@ -24,7 +24,7 @@ class TestProtocol extends munit.FunSuite {
 
   def talk(vocab: Option[Set[String]], lines: String*): Seq[String] =
     val hello = vocab.map(v => Protocol.line(Protocol.hello(v))).toList
-    !.run(Writer.run(through(Writer.of(hello ++ lines.toList).at[Writer % String])(Wire.serve(0)(view)(update))))._1
+    !.run(Writer.run(through(Writer.of(hello ++ lines.toList).into[Writer % String])(Wire.serve(0)(view)(update))))._1
 
   test("every message shape round-trips through JSON lines and CBOR bytes, and the enumerations spell themselves short") {
     val msgs = Vector[Msg](Protocol.hello(Set("table", "form")),

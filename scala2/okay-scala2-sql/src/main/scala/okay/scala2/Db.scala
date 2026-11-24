@@ -63,7 +63,7 @@ final class Db private (sql: okay.sql.Sql) {
                     (body: Db => Eff[Async, A]): Eff[Async, A] =
     Async.lift(okay.std.Resource.run(
       Typed.transact[A, okay.Pure](sql, isolation, readOnly)(_ =>
-        Async.core(body(this)).at[okay.std.Resource + okay.Async + okay.Pure])).at[okay.Async])
+        Async.core(body(this)).into[okay.std.Resource + okay.Async + okay.Pure])).into[okay.Async])
 }
 
 object Db {

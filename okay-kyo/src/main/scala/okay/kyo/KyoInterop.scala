@@ -49,7 +49,7 @@ object KyoInterop {
   // kernel): each operation handed out with the rest, a program again,
   // the next step taken inside kyo's own `flatMap`.
 
-  import okay.{%, effect}
+  import okay.{%, perform}
   import okay.std.{Reader, Writer, Throws, Choose}
   import _root_.kyo.{Tag, Frame, Env, Emit, Choice, Abort}
   import _root_.kyo.kernel.ArrowEffect
@@ -64,7 +64,7 @@ object KyoInterop {
 
   /** Env → Reader: one ask, then their computation runs with it */
   def fromKyoEnv[R, A: Flat](v: A < Env[R])(using Tag[R], Frame): A ! Reader % R =
-    effect[Reader % R, R](Reader.Ask()).map(r => Env.run(r)(v).eval)
+    perform[Reader % R, R](Reader.Ask()).map(r => Env.run(r)(v).eval)
 
   /** Writer → Emit, tell for tell */
   def toKyoEmit[W, A](p: A ! Writer % W)(using Tag[Emit[W]], Frame): A < Emit[W] = Walk.view(p) match
@@ -81,7 +81,7 @@ object KyoInterop {
   def fromKyoEmit[W, A: Flat](v: A < Emit[W])(using Tag[W], Tag[Emit[W]], Frame): A ! Writer % W =
     ArrowEffect.handleFirst(Tag[Emit[W]], v)(
       handle = [C] => (w, cont) =>
-        effect[Writer % W, Unit](Writer(w)).flatMap(_ => fromKyoEmit(cont(()))),
+        perform[Writer % W, Unit](Writer(w)).flatMap(_ => fromKyoEmit(cont(()))),
       done = a => (okay.pure(a): A ! Writer % W)
     ).eval
 
@@ -107,7 +107,7 @@ object KyoInterop {
   def fromKyoChoice[A: Flat](v: A < Choice)(using Frame): A ! Choose =
     ArrowEffect.handleFirst(Tag[Choice], v)(
       handle = [C] => (as, cont) =>
-        effect[Choose, C](Choose(as)).flatMap(c => fromKyoChoice(cont(c))),
+        perform[Choose, C](Choose(as)).flatMap(c => fromKyoChoice(cont(c))),
       done = a => (okay.pure(a): A ! Choose)
     ).eval
 }

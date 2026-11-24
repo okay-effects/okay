@@ -3,7 +3,7 @@ package okay.jdbc
 import okay.{Async, async, Source}
 
 import okay.{+, %}
-import okay.{!, effect}
+import okay.{!, perform}
 import okay.std.{Chunk, Writer}
 import java.sql.{Connection, DriverManager, PreparedStatement, ResultSet}
 
@@ -41,20 +41,20 @@ object JdbcInterop {
       buf.take(i)
 
     def go(rs: ResultSet, st: java.sql.Statement): Source[Chunk[A]] =
-      effect(Async.Run(() => readChunk(rs))).at[F].flatMap { c =>
+      perform(Async.Run(() => readChunk(rs))).into[F].flatMap { c =>
         if c.length < fetchSize then
-          effect(Async.Run { () => rs.close(); st.close() }).at[F].flatMap { _ =>
+          perform(Async.Run { () => rs.close(); st.close() }).into[F].flatMap { _ =>
             if c.isEmpty then okay.pure(())
-            else effect(Writer(c)).at[F]
+            else perform(Writer(c)).into[F]
           }
-        else effect(Writer(c)).at[F].flatMap(_ => go(rs, st))
+        else perform(Writer(c)).into[F].flatMap(_ => go(rs, st))
       }
 
-    effect(Async.Run { () =>
+    perform(Async.Run { () =>
       val st = conn.createStatement()
       st.setFetchSize(fetchSize)
       (st.executeQuery(sql), st)
-    }).at[F].flatMap(go)
+    }).into[F].flatMap(go)
 
   /** one chunk, one batch: bind each row, execute, count updates */
   def batch[A](conn: Connection, sql: String)(bind: (PreparedStatement, A) => Unit)

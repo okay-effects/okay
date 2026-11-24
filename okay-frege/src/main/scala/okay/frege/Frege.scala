@@ -72,7 +72,7 @@ object Frege {
    * (`.at`), and there is one walker, not two.
    */
   def stage[I, O: ClassTag](prog: => TProg[?], name: String = "a Frege stage"): Stage[I, O, Unit] =
-    stageWith[I, O, Pure](prog, name).at[Take % I + Writer % O]
+    stageWith[I, O, Pure](prog, name).into[Take % I + Writer % O]
 
   /**
    * A Frege stage that also PERFORMS: `await` and `tell` are the stage's

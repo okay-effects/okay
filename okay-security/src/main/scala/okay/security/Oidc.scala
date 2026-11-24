@@ -75,12 +75,12 @@ object Oidc {
     val client = OAuth2.Client(clientId, None, p.authEndpoint, p.tokenEndpoint,
       redirectUri, Seq("openid"))
     type Failing = Throws % String + Async
-    def fail[A](why: String): A ! Failing = raise[String, A](why).at[Failing]
+    def fail[A](why: String): A ! Failing = raise[String, A](why).into[Failing]
     runEither(for
-      tokens <- OAuth2.exchange(http, client, code, attempt.verifier).at[Failing]
+      tokens <- OAuth2.exchange(http, client, code, attempt.verifier).into[Failing]
         .flatMap(_.fold(e => fail(s"token endpoint: $e"), pure))
       idt <- tokens.idToken.fold(fail[String]("no id_token in the answer"))(pure)
-      keys <- Jwks.fetch(http, p.jwksUri).at[Failing]
+      keys <- Jwks.fetch(http, p.jwksUri).into[Failing]
       principal <- validate(idt, keys.get, p.issuer, clientId, attempt.nonce,
         tokens.access, now, skew).fold(fail, pure)
     yield (principal, tokens))

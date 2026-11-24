@@ -69,7 +69,7 @@ object Transports {
   def ofReader(reader: Web.Reader): Source[Chunk[Byte]] =
     type F = Writer % Chunk[Byte] + Async
     def go: Source[Chunk[Byte]] =
-      effect[Async, Chunk[Byte] | Null](Async.Await[Chunk[Byte] | Null] { k =>
+      perform[Async, Chunk[Byte] | Null](Async.Await[Chunk[Byte] | Null] { k =>
         reader.read().`then`({ (r: Web.ReadResult) =>
           r.value.toOption match
             case Some(v) if !r.done => k(Right(chunkOf(v)))
@@ -77,10 +77,10 @@ object Transports {
           ()
         }: js.Function1[Web.ReadResult, Unit]): Unit
         () => ()
-      }).at[F].flatMap {
+      }).into[F].flatMap {
         case null => pure(())
         case c =>
-          Writer.tell[Chunk[Byte]](c).at[F].flatMap(_ => go)
+          Writer.tell[Chunk[Byte]](c).into[F].flatMap(_ => go)
       }
 
     go

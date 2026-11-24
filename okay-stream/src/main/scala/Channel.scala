@@ -560,10 +560,10 @@ extension [A](c: Channel[A])
       k => { c.receiveManyAsync(Drain.Batch)(k); () => () }
     val now: () => (Either[Throwable, Chunk[A]] | Null) = () => c.receiveManyNow(Drain.Batch)
     def pull: Source[A] =
-      effect[Async, Chunk[A]](Async.Await[Chunk[A]](reg, now)).at[R].flatMap: got =>
+      perform[Async, Chunk[A]](Async.Await[Chunk[A]](reg, now)).into[R].flatMap: got =>
         if got.isEmpty then last else tellFrom(got, 0)
     def tellFrom(got: Chunk[A], i: Int): Source[A] =
-      Writer.tell(got(i)).at[R].flatMap: _ =>
+      Writer.tell(got(i)).into[R].flatMap: _ =>
         if i + 1 < got.length then tellFrom(got, i + 1) else pull
     defer(pull)
 
@@ -582,9 +582,9 @@ extension [A](c: Channel[A])
       k => { c.receiveManyAsync(Drain.Batch)(k); () => () }
     val now: () => (Either[Throwable, Chunk[A]] | Null) = () => c.receiveManyNow(Drain.Batch)
     def go: Source[Chunk[A]] =
-      effect[Async, Chunk[A]](Async.Await[Chunk[A]](reg, now)).at[Writer % Chunk[A] + Async].flatMap: got =>
+      perform[Async, Chunk[A]](Async.Await[Chunk[A]](reg, now)).into[Writer % Chunk[A] + Async].flatMap: got =>
         if got.isEmpty then pure(())
-        else Writer.tell(got).at[Writer % Chunk[A] + Async].flatMap(_ => go)
+        else Writer.tell(got).into[Writer % Chunk[A] + Async].flatMap(_ => go)
     defer(go)
 
 given Stream[Channel, Async] with

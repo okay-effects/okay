@@ -85,7 +85,7 @@ object Cut {
   /** abort the generation with a violation — the non-local exit */
   def cut[A, X](p: Prompt[Either[Violation, A]])(v: Violation)
   : X ! (Writer % String + (Cutting + Async)) =
-    Escape.escape[X, Either[Violation, A]](p)(Left(v)).at[R]
+    Escape.escape[X, Either[Violation, A]](p)(Left(v)).into[R]
 
   /**
    * The recurring shape: pull a token source, CHECK each token, emit
@@ -103,7 +103,7 @@ object Cut {
         case Left(_) => pure(())
         case Right((t, rest)) => check(i, t) match
           case Some(v) => cut[A, Unit](p)(v)
-          case None => Writer.tell(t).at[R].flatMap(_ => go(rest, i + 1))
+          case None => Writer.tell(t).into[R].flatMap(_ => go(rest, i + 1))
       }
     go(tokens, 0)
 
@@ -165,7 +165,7 @@ object Cut {
                  (check: (Int, String) => Option[Violation])
                  (using p: Prompted[Either[Violation, A]])
   : Unit ! Screened =
-    def emit(t: String): Unit ! Screened = Writer.tell(t).at[Screened]
+    def emit(t: String): Unit ! Screened = Writer.tell(t).into[Screened]
     // the recursion is only through the program's flatMap: trampolined
     def go(src: Unit ! Writer % String + Async, i: Int): Unit ! Screened =
       Writer.uncons[String, Unit, Async](src).flatMap[Unit, Screened] {
@@ -174,7 +174,7 @@ object Cut {
           case None => emit(t).flatMap(_ => go(rest, i + 1))
           case Some(v) =>
             Condition.within[Option[String], R]("drop")(
-              Condition.signal[String](v).map[Option[String]](Some(_)).at[Screened])(_ => None).flatMap {
+              Condition.signal[String](v).map[Option[String]](Some(_)).into[Screened])(_ => None).flatMap {
               case Some(t2) => emit(t2).flatMap(_ => go(rest, i + 1))
               case None => go(rest, i + 1)
             }
@@ -183,7 +183,7 @@ object Cut {
     // Violation or is refused named (the ClassTag door), not cast
     Condition.frame[Option[Violation], Violation, R]("cut")(go(tokens, 0).map(_ => None))(
       v => Some(v)).flatMap[Unit, Screened] {
-      case Some(v) => violation[A, Unit](v).at[Screened]
+      case Some(v) => violation[A, Unit](v).into[Screened]
       case None => pure(())
     }
 }

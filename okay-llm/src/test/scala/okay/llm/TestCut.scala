@@ -21,7 +21,7 @@ class TestCut extends munit.FunSuite {
           // the count is an Async op — DATA until run — so it ticks
           // when the token is pulled, not when the node is built
           !.widen[Unit, Async, Writer % String](async { pulled += 1 }).flatMap(_ =>
-            Writer.tell(t).at[Writer % String + Async]).flatMap(_ => go(rest))
+            Writer.tell(t).into[Writer % String + Async]).flatMap(_ => go(rest))
       go(tokens)
 
   def collect[A](p: Either[Violation, A] ! Writer % String + Async)
@@ -62,7 +62,7 @@ class TestCut extends munit.FunSuite {
       guarded[Unit] { p2 =>
         checked(p2, Counted(List("ok", "BAD")).source)((i, t) =>
           if t == "BAD" then Some(Violation("inner", i, t)) else None)
-      }.at[Writer % String + (Cutting + Async)].flatMap {
+      }.into[Writer % String + (Cutting + Async)].flatMap {
         case Left(v) =>
           // the inner scope cut; the OUTER stream continues past it
           checked(po, Counted(List("outer-goes-on")).source)((_, _) => None)

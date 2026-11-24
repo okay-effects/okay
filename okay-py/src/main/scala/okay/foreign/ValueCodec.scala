@@ -1,6 +1,6 @@
 package okay.foreign
 
-import okay.{+, !, effect, pure}
+import okay.{+, !, perform, pure}
 import okay.{/>>, Cps}
 import okay.codec.Codecs
 import okay.codec.Schema
@@ -381,14 +381,14 @@ object Foreign {
         case Right(PyNode.Perform(name, as, k, _)) => cbs.get(name) match
           case None => pure[Either[Condition, Out], R](Left(Condition("NoCallback",
             s"'$name' is not among this program's callbacks (${cbs.names.mkString(", ")})")))
-          case Some(cb) => cb.run(as).at[R].flatMap {
+          case Some(cb) => cb.run(as).into[R].flatMap {
             case Left(c) => pure[Either[Condition, Out], R](Left(c))
-            case Right(a) => effect[ForeignEval, Either[Condition, PyNode]](ForeignEval.Continue(id, k, Right(a))).at[R].flatMap(step)
+            case Right(a) => perform[ForeignEval, Either[Condition, PyNode]](ForeignEval.Continue(id, k, Right(a))).into[R].flatMap(step)
           }
-      effect[ForeignEval, Either[Condition, PyNode]](ForeignEval.Program(id, address, args, cbs.names)).at[R].flatMap(step)
+      perform[ForeignEval, Either[Condition, PyNode]](ForeignEval.Program(id, address, args, cbs.names)).into[R].flatMap(step)
 
     /** drop every continuation the far side keeps for this run */
-    def forget: Unit ! ForeignEval = effect[ForeignEval, Unit](ForeignEval.Forget(id))
+    def forget: Unit ! ForeignEval = perform[ForeignEval, Unit](ForeignEval.Forget(id))
 
   /**
    * A Python GENERATOR as an okay source (foreign-one-mux): `address` is a
@@ -472,7 +472,7 @@ object Foreign {
     def apply[A: ToPy, B: ToPy, C: ToPy](a: A, b: B, c: C): Either[Condition, Handle] ! ForeignEval =
       go(Vector(ToPy(a), ToPy(b), ToPy(c)))
     private def go(args: Vector[Value]): Either[Condition, Handle] ! ForeignEval =
-      effect[ForeignEval, Either[Condition, Value]](ForeignEval.Call(address, args, held = true))
+      perform[ForeignEval, Either[Condition, Value]](ForeignEval.Call(address, args, held = true))
         .map(_.flatMap(Wire.asRef).map(_.copy(shape = shape)))
 
   /**
@@ -524,7 +524,7 @@ object Foreign {
       call(Vector(ToPy(a), ToPy(b), ToPy(c), ToPy(d)))
 
     private def call(args: Vector[Value]): Either[Condition, Out] ! ForeignEval =
-      effect[ForeignEval, Either[Condition, Value]](ForeignEval.Call(address, args))
+      perform[ForeignEval, Either[Condition, Value]](ForeignEval.Call(address, args))
         .map(_.flatMap(shape.decode[Out](_)))
 
     /** this function, offered `cbs` to call back into (foreign-callbacks) */
@@ -555,9 +555,9 @@ object Foreign {
           case Right(PyNode.Done(v)) => pure[Either[Condition, Out], R](shape.decode[Out](v))
           case Right(PyNode.Perform(name, as, k, _)) =>
             val answered: Either[Condition, Value] ! R = cbs.get(name) match
-              case Some(cb) => cb.run(as).at[R]
+              case Some(cb) => cb.run(as).into[R]
               case None => pure[Either[Condition, Value], R](Left(Condition("NoCallback",
                 s"'$name' is not among this call's callbacks (${cbs.names.mkString(", ")})")))
-            answered.flatMap(a => effect[ForeignEval, Either[Condition, PyNode]](ForeignEval.Continue(run, k, a)).at[R]).flatMap(go)
-        effect[ForeignEval, Either[Condition, PyNode]](ForeignEval.Program(run, address, args, cbs.names, direct = true)).at[R].flatMap(go)
+            answered.flatMap(a => perform[ForeignEval, Either[Condition, PyNode]](ForeignEval.Continue(run, k, a)).into[R]).flatMap(go)
+        perform[ForeignEval, Either[Condition, PyNode]](ForeignEval.Program(run, address, args, cbs.names, direct = true)).into[R].flatMap(go)
 }

@@ -55,8 +55,8 @@ enum Users[+A] derives Effect:
   case Save(id: Long, name: String) extends Users[Option[String]]
 
 object Users:
-  inline def find(id: Long): Option[String] ! Users = effect(Find(id))
-  inline def save(id: Long, name: String): Option[String] ! Users = effect(Save(id, name))
+  inline def find(id: Long): Option[String] ! Users = perform(Find(id))
+  inline def save(id: Long, name: String): Option[String] ! Users = perform(Save(id, name))
 
 object UsersDemo:
 
@@ -82,8 +82,8 @@ object UsersDemo:
    */
   def rename(id: Long, to: String): Option[String] ! Users = runOption {
     for
-      case Some(old) <- Users.find(id).at[Users + Abort]
-      _              <- Users.save(id, to).at[Users + Abort]
+      case Some(old) <- Users.find(id).into[Users + Abort]
+      _              <- Users.save(id, to).into[Users + Abort]
     yield old
   }
 
@@ -248,7 +248,7 @@ object UsersDemo:
   def tracked[A, S : Store, F[_]](prog: A ! Users + F): A ! Tracked[S] + F =
     stored[A, S, Writer % String + F](
       Writer.tracing[A, Users, String, Users + F](prog)([X] => (e: Users[X]) => e.toString)
-        .at[Users + (Writer % String + F)]).at[Tracked[S] + F]
+        .into[Users + (Writer % String + F)]).into[Tracked[S] + F]
 
   private def nameOf(c: Connection, id: Long): String =
     val rs = c.createStatement().executeQuery(s"select name from users where id = $id")
@@ -289,7 +289,7 @@ object UsersDemo:
       def pureRun[S : Store](init: S): (S, (Seq[String], Option[String])) =
         State.run[S, (Seq[String], Option[String])](init)(
           Writer.run[String, Option[String], Tracked[S] + Pure](
-            tracked[Option[String], S, Pure](rename(7L, "grace").at[Users + Pure])).at[State % S])
+            tracked[Option[String], S, Pure](rename(7L, "grace").into[Users + Pure])).into[State % S])
       val (store, (told, answer)) = pureRun(Map(7L -> "ada"))
       println(s"PURE  $answer / log=${told.mkString(", ")} / store=$store")
       val (vecStore, (vecTold, vecAnswer)) = pureRun(Vector(7L -> "ada"))

@@ -14,11 +14,11 @@ class TestLogic extends munit.FunSuite {
   type Row = Choose
   type P[A] = A ! Row
 
-  def amb[A](as: A*): P[A] = effect(Choose(as))
+  def amb[A](as: A*): P[A] = perform(Choose(as))
 
-  def fail[A]: P[A] = effect(Choose(Seq.empty))
+  def fail[A]: P[A] = perform(Choose(Seq.empty))
 
-  def nats: P[Long] = effect(Choose(LazyList.from(0).map(_.toLong)))
+  def nats: P[Long] = perform(Choose(LazyList.from(0).map(_.toLong)))
 
   test("guard prunes: pythagorean triples by MonadPlus, searched by Choose") {
     val triples: (Int, Int, Int) ! Choose =
@@ -78,8 +78,8 @@ class TestLogic extends munit.FunSuite {
   test("effects forward through the search: a Writer on the crossed path") {
     type F = Writer % String
     val prog: Int ! Choose + F =
-      effect[Choose, Int](Choose(Seq(1, 2))).at[Choose + F].flatMap(x =>
-        effect[F, Unit](Writer(s"seen $x")).at[Choose + F].map(_ => x * 10))
+      perform[Choose, Int](Choose(Seq(1, 2))).into[Choose + F].flatMap(x =>
+        perform[F, Unit](Writer(s"seen $x")).into[Choose + F].map(_ => x * 10))
     val (told, found) = (Writer.run(
       runChoice(prog))).run
     assertEquals(found, Seq(10, 20))

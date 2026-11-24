@@ -20,20 +20,20 @@ class TestMaybe extends munit.FunSuite {
   test("a row holds Maybe AND Throws, and each handler answers its own") {
     type R = Maybe + Throws % String
     def adult(name: String): Int ! R =
-      age(name).at[R].flatMap(a => if a >= 18 then pure(a) else raise[String, Int]("minor").at[R])
+      age(name).into[R].flatMap(a => if a >= 18 then pure(a) else raise[String, Int]("minor").into[R])
     def both(n: String) = runEither(Maybe.run(adult(n))).run
     assertEquals(both("ann"), Right(Some(31)))
     assertEquals(both("eve"), Right(None))
-    val young: Int ! R = pure[Int, R](7).flatMap(a => if a >= 18 then pure(a) else raise[String, Int]("minor").at[R])
+    val young: Int ! R = pure[Int, R](7).flatMap(a => if a >= 18 then pure(a) else raise[String, Int]("minor").into[R])
     assertEquals(runEither(Maybe.run(young)).run, Left("minor"))
   }
 
   test("effects after a Some run, effects after a None do not") {
     def logged(name: String): Int ! Maybe + Writer % String =
       for
-        _ <- Writer.tell(s"looking up $name").at[Maybe + Writer % String]
-        a <- age(name).at[Maybe + Writer % String]
-        _ <- Writer.tell(s"found $a").at[Maybe + Writer % String]
+        _ <- Writer.tell(s"looking up $name").into[Maybe + Writer % String]
+        a <- age(name).into[Maybe + Writer % String]
+        _ <- Writer.tell(s"found $a").into[Maybe + Writer % String]
       yield a
     assertEquals((Writer.run[String, Option[Int], Writer % String](Maybe.run(logged("ann")))).run, (List("looking up ann", "found 31"), Some(31)))
     assertEquals((Writer.run[String, Option[Int], Writer % String](Maybe.run(logged("eve")))).run, (List("looking up eve"), None))
@@ -60,7 +60,7 @@ class TestMaybe extends munit.FunSuite {
   }
 
   test("prune: under Choose a branch that found nothing dies, the others go on") {
-    val known: Int ! Maybe + Choose = for n <- choose("ann", "eve", "bob").at[Maybe + Choose]; a <- age(n).at[Maybe + Choose] yield a
+    val known: Int ! Maybe + Choose = for n <- choose("ann", "eve", "bob").into[Maybe + Choose]; a <- age(n).into[Maybe + Choose] yield a
     assertEquals(runChoice(Maybe.prune(known)).run, Seq(31, 42))
   }
 

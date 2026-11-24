@@ -12,7 +12,7 @@ class TestSourceToldBeforeThrow extends munit.FunSuite {
   private def told: Source[Int] =
     (
       Writer.tell(1).flatMap(_ => Writer.tell(2)).flatMap(_ => Writer.tell(3))
-        .flatMap(_ => throw RuntimeException("after 3"))).at[Writer % Int + Async]
+        .flatMap(_ => throw RuntimeException("after 3"))).into[Writer % Int + Async]
 
   private def drain(next: () => Option[Int]): (List[Int], String) =
     var out = List.empty[Int]

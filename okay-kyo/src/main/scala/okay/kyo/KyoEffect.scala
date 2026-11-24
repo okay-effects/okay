@@ -1,6 +1,6 @@
 package okay.kyo
 
-import okay.{!, Async, effect}
+import okay.{!, Async}
 import _root_.kyo.{<, Abort, Flat}
 
 /**
@@ -13,11 +13,11 @@ import _root_.kyo.{<, Abort, Flat}
  * the wrong parameter of `A < S`).
  */
 object KyoEffect:
-  def perform[A: Flat, S](v: A < S): A ! <[*, S] = effect[<[*, S], A](v)
+  def perform[A: Flat, S](v: A < S): A ! <[*, S] = okay.perform[<[*, S], A](v)
 
   /** every kyo step run as one okay `Async` operation, as `fromKyoAsync` runs one */
   def run[A, S >: Abort[Nothing] & _root_.kyo.Async](p: A ! <[*, S]): A ! Async =
-    p.translate[<[*, S], Async]([X] => (e: X < S) => step[X, S](e)).at[Async]
+    p.translate[<[*, S], Async]([X] => (e: X < S) => step[X, S](e)).into[Async]
 
   // `Flat[X]` was proven at the door (`perform` asks for it); the step only names it again for kyo's runner
   private def step[X, S >: Abort[Nothing] & _root_.kyo.Async](e: X < S): X ! Async =

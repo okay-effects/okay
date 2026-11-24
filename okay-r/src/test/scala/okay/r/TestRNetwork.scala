@@ -1,7 +1,7 @@
 package okay.r
 
 
-import okay.{effect}
+import okay.{perform}
 
 
 import okay.std.{Choose, Reader, runChoice}
@@ -38,7 +38,7 @@ class TestRNetwork extends munit.FunSuite {
   override def afterAll(): Unit =
     if !munitIgnore then { plain._2.destroy(); guarded._2.destroy() }
 
-  private val choose = R.callback[Vector[Double], Double]("choose")(xs => effect[Choose, Double](Choose(xs)))
+  private val choose = R.callback[Vector[Double], Double]("choose")(xs => perform[Choose, Double](Choose(xs)))
 
   test("an R worker behind the gateway: a call, the network's preferred compression, a program resumed twice") {
     val r = RSubprocess.connect("127.0.0.1", plain._1)
@@ -83,7 +83,7 @@ class TestRNetwork extends munit.FunSuite {
         replaced = true
         val late = r.handler.handle(REval.Call("rep::slow", Vector.empty))
         assert(late.left.exists(_.kind == "timeout"), late.toString)
-      effect[Choose, Double](Choose(xs))
+      perform[Choose, Double](Choose(xs))
     }
     try
       val pairs = R.program[Double]("rep::pairs").calling(R.callbacks(chooseLate))()

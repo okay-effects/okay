@@ -1,7 +1,7 @@
 package okay.foreign.workflow
 
 
-import okay.{effect}
+import okay.{perform}
 
 
 import okay.std.{Choose, runChoice}
@@ -33,7 +33,7 @@ class TestDurableForeign extends okay.testkit.Munit.Diagnosed:
       if crash && xs == Vector(10L, 20L) then
         crash = false
         throw HostCrash()
-      effect[Choose, Long](Choose(xs))
+      perform[Choose, Long](Choose(xs))
     }
     val run = Foreign.program[Long]("rel:pairs").calling(Foreign.callbacks(choose))()
     intercept[HostCrash](runChoice(run.program).runWith(using

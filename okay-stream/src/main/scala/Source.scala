@@ -36,7 +36,7 @@ enum Flush[+A] derives Effect:
 object Flush:
 
   /** emit whatever the chunker holds, full or not */
-  def now[F[_]]: Unit ! Flush + F = effect[Flush, Unit](Flush.Now).at[Flush + F]
+  def now[F[_]]: Unit ! Flush + F = perform[Flush, Unit](Flush.Now).into[Flush + F]
 
 /** a source that can also mark its own chunk boundaries. An ordinary
  * `Source` widens into it (it simply never uses the operation), so
@@ -55,10 +55,10 @@ type Source[W] = Unit ! Writer % W + Async
  */
 given Put[Source] with
   final override inline def put[W](w: W): Unit />> Source[W] =
-    Cps.shift(k => Writer.tell(w).at[Writer % W + Async].flatMap(_ => k(())))
+    Cps.shift(k => Writer.tell(w).into[Writer % W + Async].flatMap(_ => k(())))
   /** each element told, the next step deferred into the bind */
   override def unfold[A, B](a: A)(f: A => B)(g: A => A): Source[B] =
-    Writer.tell(f(a)).at[Writer % B + Async].flatMap(_ => okay.defer(unfold(g(a))(f)(g)))
+    Writer.tell(f(a)).into[Writer % B + Async].flatMap(_ => okay.defer(unfold(g(a))(f)(g)))
 
 object Source {
   /**
@@ -69,7 +69,7 @@ object Source {
    * effects the stream itself has.
    */
   def of[S[_], A](s: S[A])(using Stream[S, Pure]): Source[A] =
-    Writer.of(s).at[Writer % A + Async]
+    Writer.of(s).into[Writer % A + Async]
 
   /** these elements, told in order */
   def apply[A](as: A*): Source[A] = of(as.toList)
@@ -109,14 +109,14 @@ object Source {
   def unfold[S, A](s: S)(f: S => Option[(A, S)]): Source[A] =
     def go(s: S): Source[A] = f(s) match
       case Some((a, s2)) =>
-        Writer.tell(a).at[Writer % A + Async].flatMap(_ => go(s2))
+        Writer.tell(a).into[Writer % A + Async].flatMap(_ => go(s2))
       case None => pure(())
     defer(go(s))
 
   def range(from: Long, until: Long): Source[Long] =
     def go(i: Long): Source[Long] =
       if i >= until then pure(())
-      else Writer.tell(i).at[Writer % Long + Async].flatMap(_ => go(i + 1))
+      else Writer.tell(i).into[Writer % Long + Async].flatMap(_ => go(i + 1))
     defer(go(from))
 
   /**
@@ -228,9 +228,9 @@ object Source {
   private[okay] def releasing[A](release: () => Unit)(s: Source[A]): Source[A] =
     defer:
       val scope = Async.CancelScope(release)
-      effect[Async, Unit](Async.Run(Async.Enter(scope))).at[Writer % A + Async]
+      perform[Async, Unit](Async.Run(Async.Enter(scope))).into[Writer % A + Async]
         .flatMap(_ => s)
-        .flatMap(_ => effect[Async, Unit](Async.Run(Async.Exit(scope))).at[Writer % A + Async])
+        .flatMap(_ => perform[Async, Unit](Async.Run(Async.Exit(scope))).into[Writer % A + Async])
 
 
   /**
@@ -282,7 +282,7 @@ object Source {
     // one receive as a program on THIS row, the way `Channel.drained`
     // spells its await — `receive` answers `! Async` alone
     def receive[X](c: Channel[X]): Option[X] ! R =
-      effect[Async, Option[X]](Async.Await[Option[X]] { k => c.receiveAsync(k); () => c.cancelReceive(k) }).at[R]
+      perform[Async, Option[X]](Async.Await[Option[X]] { k => c.receiveAsync(k); () => c.cancelReceive(k) }).into[R]
     // the sides' fibers start HERE, at the first pull (a Source is a
     // value, and running it twice zips twice)
     defer:
@@ -302,15 +302,15 @@ object Source {
       val scope = Async.CancelScope(Merge.closing(cl, cr))
       def end(other: Channel[?]): Unit ! R =
         other.close()
-        effect[Async, Unit](Async.Run(Async.Exit(scope))).at[R]
+        perform[Async, Unit](Async.Run(Async.Exit(scope))).into[R]
       def go: Unit ! R =
         receive(cl).flatMap:
           case None => end(cr)
           case Some(a) =>
             receive(cr).flatMap:
               case None => end(cl)
-              case Some(b) => Writer.tell((a, b)).at[R].flatMap(_ => go)
-      effect[Async, Unit](Async.Run(Async.Enter(scope))).at[R].flatMap(_ => go)
+              case Some(b) => Writer.tell((a, b)).into[R].flatMap(_ => go)
+      perform[Async, Unit](Async.Run(Async.Enter(scope))).into[R].flatMap(_ => go)
 
   /** `zip`, the pair folded by `f` as it is told — one `Writer.map`
    * walk over the zipped program, not a second join */
@@ -360,9 +360,9 @@ object Source {
     type Ev = WindowJoin.Event[K, A, B]
     def ended[X](s: Source[X]): Source[Option[X]] =
       Writer.map[X, Option[X], Unit, Writer % X + Async](s)(x => Some(x))
-        .flatMap(_ => Writer.tell[Option[X]](None).at[Writer % Option[X] + Async])
+        .flatMap(_ => Writer.tell[Option[X]](None).into[Writer % Option[X] + Async])
     through(ended(l).either(ended(r), capacity))(
-      WindowJoin.stage[K, A, B](within, lateness)(atL, atR).at[Take % Ev + (Writer % (K, (A, B)) + Async)])
+      WindowJoin.stage[K, A, B](within, lateness)(atL, atR).into[Take % Ev + (Writer % (K, (A, B)) + Async)])
 
   /** what `merge(chunked = true)` batches by. Not a parameter: the
    * size barely moves the number (16 against 64 measured ~10% apart
@@ -639,7 +639,7 @@ extension [A](s: Source[A])
    * case still needs only ONE channel.
    */
   def chunked(size: Int = Source.ChunkSize): Source[Chunk[A]] =
-    through(s)(Stage.chunked[A](size).at[Take % A + (Writer % Chunk[A] + Async)])
+    through(s)(Stage.chunked[A](size).into[Take % A + (Writer % Chunk[A] + Async)])
 
 extension [A](s: Source[Chunk[A]])
   /** chunks back into elements — the inverse of `chunked`, so a
@@ -660,7 +660,7 @@ extension [A](s: Source[Chunk[A]])
  * for the compound `Flush + Async`, so the split is spelled out here,
  * the same two-step `feedFlushing` (Channel.scala) already does */
 private def mapFlushing[A, B](a: Flushing[A])(f: A => B): Flushing[B] =
-  Writer.map[A, B, Unit, Flush + (Writer % A + Async)](a)(f).at[Flush + (Writer % B + Async)]
+  Writer.map[A, B, Unit, Flush + (Writer % A + Async)](a)(f).into[Flush + (Writer % B + Async)]
 
 /** a flushing source's elements seen at a wider type: Writer is covariant in what it tells, so this is
  * `Writer.widen`'s claim (one cast, there and here) */

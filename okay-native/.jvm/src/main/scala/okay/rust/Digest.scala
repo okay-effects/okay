@@ -15,7 +15,7 @@ object Digest:
 
   /** the SHA-256 of `bytes` */
   def sha256(bytes: Array[Byte]): Either[String, Array[Byte]] ! Digest =
-    okay.effect(Sha256(bytes))
+    okay.perform(Sha256(bytes))
 
   /** the operations answered by `f` */
   def using(f: Sha256 => Either[String, Array[Byte]]): Answers[Digest] = new:

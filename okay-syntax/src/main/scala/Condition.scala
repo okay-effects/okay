@@ -69,7 +69,7 @@ object Condition {
    * ClassTag is the evidence, so `signal[Int]` needs none written
    * and a generic caller passes its own */
   def signal[A](condition: Any)(using tag: scala.reflect.ClassTag[A]): A ! Op =
-    effect(Op.Signal[A](condition, checked(condition, tag)))
+    perform(Op.Signal[A](condition, checked(condition, tag)))
 
   /** the policy's Any, admitted as an A or refused named */
   private def checked[A](condition: Any, tag: scala.reflect.ClassTag[A]): Any => A =
@@ -112,7 +112,7 @@ object Condition {
     /** unwind to this frame with v — the body's remaining work is
      * abandoned, the frame answers recover(v) */
     def invoke[X](v: V): X ! Op =
-      effect[Op, X](Op.Leave(this, v))   // Op[Nothing] is an Op[X]: the answer never comes
+      perform[Op, X](Op.Leave(this, v))   // Op[Nothing] is an Op[X]: the answer never comes
 
   /**
    * `within`, handing the body its restart as a CAPABILITY: the
@@ -135,8 +135,8 @@ object Condition {
   /** the frame on the menu around `body`; an escape to it (by its name or its identity) its `recover`, any other
    * error off the menu and on */
   private def region[A, F[_]](f: Frame, body: A ! Op + F, recover: Any => A): A ! Op + F =
-    val enter: Unit ! Op + F = effect[Op, Unit](Op.Enter(f)).at[Op + F]
-    val exit: Unit ! Op + F = effect[Op, Unit](Op.Exit(f.id)).at[Op + F]
+    val enter: Unit ! Op + F = perform[Op, Unit](Op.Enter(f)).into[Op + F]
+    val exit: Unit ! Op + F = perform[Op, Unit](Op.Exit(f.id)).into[Op + F]
     val guarded = Direct.tryProgram[A, Op + F](body.flatMap(a => Run.map(exit)(_ => a))(using Join.same)) {
       case e: Escape if e.target == f.name || (e.target eq f.id) => Run.map(exit)(_ => recover(e.value))
       case e => exit.flatMap[A, Op + F](_ => throw e)(using Join.same)

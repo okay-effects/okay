@@ -20,8 +20,8 @@ class TestFoldUntilStreams extends munit.FunSuite:
   private def counted(n: Int, performed: () => Unit): Source[Int] =
     def go(i: Int): Source[Int] =
       if i > n then pure(())
-      else Writer.tell(i).at[R]
-        .flatMap(_ => effect[Async, Unit](Async.Run(() => performed())).at[R])
+      else Writer.tell(i).into[R]
+        .flatMap(_ => perform[Async, Unit](Async.Run(() => performed())).into[R])
         .flatMap(_ => go(i + 1))
     pure[Unit, R](()).flatMap(_ => go(1))
 

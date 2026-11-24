@@ -20,7 +20,7 @@ class TestHandleRest extends munit.FunSuite:
 
   test("Fresh.counter and Supply.from") {
     val f: (Long, Long) ! Fresh = Fresh.next.flatMap(a => Fresh.next.map(b => (a, b)))
-    assertEquals(f.handle(Fresh.counter).run, (0L, 1L))
+    assertEquals(f.handle(Fresh.run).run, (0L, 1L))
     val s: Int ! Supply % Int = Supply.next[Int].flatMap(a => Supply.next[Int].map(b => a + b))
     assertEquals(s.handle(Supply.from(10)(_ + 1)).run, (12, 21))
   }

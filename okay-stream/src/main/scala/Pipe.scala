@@ -25,7 +25,7 @@ enum Take[V, +A] derives Effect:
 
 object Take:
   /** the next element, or None at the end of the input */
-  inline def await[V]: Option[V] ! Take % V = effect(Await())
+  inline def await[V]: Option[V] ! Take % V = perform(Await())
 
   /** the input as a SOURCE (specs/direct-loops.md v3): `for i <-
    * Take.each[I] do …` in a direct block is the iteratee written as
@@ -62,7 +62,7 @@ object Take:
  */
 def pipe[W, A, B](p: A ! Writer % W)(c: B ! Take % W): B =
   val u = Pulling.PureUp[W, A](p)
-  c.handle(Handler.answering[Take % W]([X] => (op: Take[W, X]) => op match
+  c.handle(Handler.tail[Take % W]([X] => (op: Take[W, X]) => op match
     case Take.Await() => u.next())).run
 
 /**
@@ -79,11 +79,11 @@ object Stage {
 
   /** the next input, or None — upstream ended */
   inline def await[I, O]: Option[I] ! Take % I + Writer % O =
-    effect[Take % I, Option[I]](Take.Await()).at[Take % I + Writer % O]
+    perform[Take % I, Option[I]](Take.Await()).into[Take % I + Writer % O]
 
   /** emit one output — it answers nothing, like every tell */
   inline def tell[I, O](o: O): Unit ! Take % I + Writer % O =
-    Writer.tell(o).at[Take % I + Writer % O]
+    Writer.tell(o).into[Take % I + Writer % O]
 
   /** the identity stage: every input becomes an output */
   def id[T]: Stage[T, T, Unit] =
@@ -388,7 +388,7 @@ private[okay] object Pulling:
 
 def through[I, M, O, A, B](up: Stage[I, M, A])(down: Stage[M, O, B]): Stage[I, O, B] =
   defer:
-    val u = Pulling.Up[M, A, Take % I](up.at[Writer % M + Take % I])
+    val u = Pulling.Up[M, A, Take % I](up.into[Writer % M + Take % I])
     down.translate[Take % M, Take % I]([X] => (op: Take[M, X]) => op match
       case Take.Await() => u.next)
 
@@ -398,7 +398,7 @@ def through[I, M, O, A, B](up: Stage[I, M, A])(down: Stage[M, O, B]): Stage[I, O
 def through[W, M, A, B](p: A ! Writer % W)(s: Stage[W, M, B]): B ! Writer % M =
   defer:
     val u = Pulling.PureUp[W, A](p)
-    s.handle(Handler.answering[Take % W]([X] => (op: Take[W, X]) => op match
+    s.handle(Handler.tail[Take % W]([X] => (op: Take[W, X]) => op match
       case Take.Await() => u.next()))
 
 /**
@@ -414,9 +414,9 @@ def through[I, M, O, G[_], A, B](up: A ! (Take % I + (Writer % M + G)))
                                 (down: B ! (Take % M + (Writer % O + G)))
                                 : B ! (Take % I + (Writer % O + G)) =
   defer:
-    val u = Pulling.Up[M, A, Take % I + G](up.at[Writer % M + (Take % I + G)])
+    val u = Pulling.Up[M, A, Take % I + G](up.into[Writer % M + (Take % I + G)])
     down.translate[Take % M, Take % I + G]([X] => (op: Take[M, X]) => op match
-      case Take.Await() => u.next).at[Take % I + (Writer % O + G)]
+      case Take.Await() => u.next).into[Take % I + (Writer % O + G)]
 
 /**
  * An effectful producer through an effectful stage: the producer's
@@ -431,7 +431,7 @@ def through[W, M, G[_], A, B](p: A ! Writer % W + G)
   defer:
     val u = Pulling.Up[W, A, G](p)
     s.translate[Take % W, G]([X] => (op: Take[W, X]) => op match
-      case Take.Await() => u.next).at[Writer % M + G]
+      case Take.Await() => u.next).into[Writer % M + G]
 
 /**
  * The same pipe for a producer performing arbitrary effects G: the
@@ -442,4 +442,4 @@ def pipe[W, A, B, G[_]](p: A ! Writer % W + G)(c: B ! Take % W): B ! G =
   defer:
     val u = Pulling.Up[W, A, G](p)
     c.translate[Take % W, G]([X] => (op: Take[W, X]) => op match
-      case Take.Await() => u.next).at[G]
+      case Take.Await() => u.next).into[G]

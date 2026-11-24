@@ -1,6 +1,6 @@
 package okay.zio
 
-import okay.{!, +, Walk, Within, effect}
+import okay.{!, +, Walk, Within, perform}
 import _root_.zio.{ZEnvironment, ZIO}
 
 /**
@@ -16,16 +16,16 @@ import _root_.zio.{ZEnvironment, ZIO}
 extension [A, R[_]](p: A ! R)
   /** the program's ZIO steps as ONE ZIO */
   def toZIO(using m: ZioEffect.Members[R]): ZIO[m.Env, m.E, A] =
-    ZioEffect.run[A, m.Env, m.E](p.at[ZioEffect.Z[m.Env, m.E]](using m.within))
+    ZioEffect.run[A, m.Env, m.E](p.into[ZioEffect.Z[m.Env, m.E]](using m.within))
 
   /** every step given the environment: the row's `Env` is gone, as ZIO's `provideEnvironment` takes it */
   def provideEnvironment(using m: ZioEffect.Members[R])(env: ZEnvironment[m.Env]): A ! ZioEffect.Z[Any, m.E] =
-    ZioEffect.mapSteps[A, m.Env, m.E, ZioEffect.Z[Any, m.E]](p.at[ZioEffect.Z[m.Env, m.E]](using m.within))(
+    ZioEffect.mapSteps[A, m.Env, m.E, ZioEffect.Z[Any, m.E]](p.into[ZioEffect.Z[m.Env, m.E]](using m.within))(
       [X] => (z: ZIO[m.Env, m.E, X]) => z.provideEnvironment(env))
 
   /** every step's typed failure mapped, as ZIO's `mapError` */
   def mapError[Err](using m: ZioEffect.Members[R])(f: m.E => Err): A ! ZioEffect.Z[m.Env, Err] =
-    ZioEffect.mapSteps[A, m.Env, m.E, ZioEffect.Z[m.Env, Err]](p.at[ZioEffect.Z[m.Env, m.E]](using m.within))(
+    ZioEffect.mapSteps[A, m.Env, m.E, ZioEffect.Z[m.Env, Err]](p.into[ZioEffect.Z[m.Env, m.E]](using m.within))(
       [X] => (z: ZIO[m.Env, m.E, X]) => z.mapError(f))
 
 object ZioEffect:
@@ -66,4 +66,4 @@ object ZioEffect:
 
   /** each step rebuilt by `f`, in place: the operation translated where it is performed */
   private[zio] def mapSteps[A, Env, E, G[_]](p: A ! Z[Env, E])(f: [X] => ZIO[Env, E, X] => G[X])(using okay.KeyOf[G]): A ! G =
-    p.translate[Z[Env, E], G]([X] => (z: ZIO[Env, E, X]) => effect[G, X](f(z))).at[G]
+    p.translate[Z[Env, E], G]([X] => (z: ZIO[Env, E, X]) => perform[G, X](f(z))).into[G]

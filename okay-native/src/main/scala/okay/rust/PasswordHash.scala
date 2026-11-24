@@ -21,7 +21,7 @@ object PasswordHash extends PasswordHashPlatform:
   /** Argon2id of `password` and `salt`, `length` bytes */
   def argon2id(password: Array[Byte], salt: Array[Byte], memoryKb: Int, iterations: Int,
                parallelism: Int, length: Int = 32): Either[String, Array[Byte]] ! PasswordHash =
-    okay.effect(Argon2id(password, salt, memoryKb, iterations, parallelism, length))
+    okay.perform(Argon2id(password, salt, memoryKb, iterations, parallelism, length))
 
   /** the operations answered by `f` */
   def using(f: Argon2id => Either[String, Array[Byte]]): Answers[PasswordHash] = new:

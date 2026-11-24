@@ -39,7 +39,7 @@ object Chat {
     def go(ts: List[String]): Unit ! Writer % String + Async = ts match
       case Nil => pure(())
       case t :: rest =>
-        Writer.tell(t + " ").at[Writer % String + Async].flatMap(_ => go(rest))
+        Writer.tell(t + " ").into[Writer % String + Async].flatMap(_ => go(rest))
     go(reply.split(' ').toList)
 
   /** the config rides the Secrets capability as `env:NAME`
@@ -109,9 +109,9 @@ object Chat {
           else policy(i, t))
       }
     Writer.map(guarded)(t => sse("data", Json.print(JStr(t)))).flatMap {
-      case Right(_) => Writer.tell(sse("done", "")).at[Writer % Chunk[Byte] + Async]
+      case Right(_) => Writer.tell(sse("done", "")).into[Writer % Chunk[Byte] + Async]
       case Left(v) => Writer.tell(
-        sse("cut", Json.print(obj("rule" -> JStr(v.rule), "at" -> JNum(v.at))))).at[Writer % Chunk[Byte] + Async]
+        sse("cut", Json.print(obj("rule" -> JStr(v.rule), "at" -> JNum(v.at))))).into[Writer % Chunk[Byte] + Async]
     }
 
   // ---- request parsing -------------------------------------------------

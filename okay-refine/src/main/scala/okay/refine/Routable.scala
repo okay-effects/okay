@@ -3,7 +3,7 @@ package okay.refine
 import okay.{Async, Bulk, Channel, Chunks, Scheduler, Source, drained, runForeach}
 
 import okay.{%, +}
-import okay.{!, effect, pure}
+import okay.{!, perform, pure}
 import okay.std.{Writer}
 import okay.Bulk.{aggregate, cache, flatMap, map}
 
@@ -141,7 +141,7 @@ object Routable:
               pure((per.toVector, rj))
             case Left(e) =>
               all.foreach(_.fail(e))
-              effect(Async.Await[(Vector[Int], Int)](k => { k(Left(e)); () => () }))
+              perform(Async.Await[(Vector[Int], Int)](k => { k(Left(e)); () => () }))
           }
     def select[T, X](o: Source[T])(f: T => Option[X]): Source[X] = Writer.expand[T, X, Unit, Writer % T + Async](o)(t => f(t).toVector)
     def done[X, Y](d: X ! Async)(f: X => Y): Y ! Async = d.map(f)

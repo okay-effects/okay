@@ -39,7 +39,7 @@ object Transports {
    */
   def http(c: HttpClient = client()): Http = new Http:
     def send(r: Request): Response ! Async =
-      effect[Async, HttpResponse[java.io.InputStream]](Async.Run { () =>
+      perform[Async, HttpResponse[java.io.InputStream]](Async.Run { () =>
         val b = HttpRequest.newBuilder(URI.create(r.url))
         r.headers.foreach((k, v) => b.header(k, v))
         val pub =
@@ -65,16 +65,16 @@ object Transports {
   def ofInputStream(in: java.io.InputStream, size: Int = 8192): Source[Chunk[Byte]] =
     type F = Writer % Chunk[Byte] + Async
     def go: Source[Chunk[Byte]] =
-      effect[Async, Chunk[Byte] | Null](Async.Run[Chunk[Byte] | Null] { () =>
+      perform[Async, Chunk[Byte] | Null](Async.Run[Chunk[Byte] | Null] { () =>
         val buf = new Array[Byte](size)
         val n = in.read(buf)
         if n < 0 then { in.close(); null }
         else scala.collection.immutable.ArraySeq.unsafeWrapArray(
           if n == size then buf else java.util.Arrays.copyOf(buf, n))
-      }).at[F].flatMap {
+      }).into[F].flatMap {
         case null => pure(())
         case c =>
-          Writer.tell[Chunk[Byte]](c).at[F].flatMap(_ => go)
+          Writer.tell[Chunk[Byte]](c).into[F].flatMap(_ => go)
       }
 
     go

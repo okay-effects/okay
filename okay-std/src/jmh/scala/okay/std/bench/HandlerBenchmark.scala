@@ -1,6 +1,6 @@
 package okay.std.bench
 
-import okay.{!, +, %, Effect, Handler, Pure, effect, pure, tailcall}
+import okay.{!, +, %, Effect, Handler, Pure, perform, pure, tailcall}
 import okay.std.*
 import okay.given
 import okay.std.given
@@ -32,15 +32,15 @@ class HandlerBenchmark {
 
   /** 10k ops, every 100th handled (Ask), the rest forwarded (Produce) */
   def prog: Int ! AP =
-    (1 to N).foldLeft(effect[Ask, Int](Ask(0)).at[AP]): (m, i) =>
-      m.flatMap(x => if i % 100 == 0 then effect[Ask, Int](Ask(x + 1)).at[AP] else produce(x + 1).at[AP])
+    (1 to N).foldLeft(perform[Ask, Int](Ask(0)).into[AP]): (m, i) =>
+      m.flatMap(x => if i % 100 == 0 then perform[Ask, Int](Ask(x + 1)).into[AP] else produce(x + 1).into[AP])
 
   /** Ask answered in place (the classic's `FreeEffects.control.pure(a.a)`: no capture) */
-  val askAnswer: Handler[Ask, [A] =>> A] = Handler.answering[Ask]([X] => (a: Ask[X]) => a.a)
+  val askAnswer: Handler[Ask, [A] =>> A] = Handler.tail[Ask]([X] => (a: Ask[X]) => a.a)
 
   /** Ask answered by resuming its captured `k` (the classic's `FreeEffects.control.shift(k => k(a.a))`) */
   val askCapture: Handler[Ask, [A] =>> A] =
-    Handler.deep[Ask, [A] =>> A]([A] => (a: A) => a)([A, X] => (op: Ask[X], k: X => A ! Pure) => k(op.a))
+    Handler.general[Ask, [A] =>> A]([A] => (a: A) => a)([A, X] => (op: Ask[X], k: X => A ! Pure) => k(op.a))
 
   /** construction alone (a program is a value: on this road one `Run` node a bind, not a tree node) */
   @Benchmark
@@ -130,13 +130,13 @@ class HandlerBenchmark {
 
   type FRow = State % Long + Ask
   val forwardProg: Long ! FRow =
-    (1 to M).foldLeft(effect[State % Long, Long](State.Get[Long, Long]()).at[FRow]): (m, i) =>
-      m.flatMap(_ => effect[State % Long, Long](State.Get[Long, Long]()).at[FRow].flatMap(s =>
-          effect[State % Long, Long](State.Update[Long, Long](_ => (s + 1, s + 1))).at[FRow]))
-       .flatMap(s => if i % 10 == 0 then effect[Ask, Long](Ask(s)).at[FRow] else pure[Long, FRow](s))
+    (1 to M).foldLeft(perform[State % Long, Long](State.Get[Long, Long]()).into[FRow]): (m, i) =>
+      m.flatMap(_ => perform[State % Long, Long](State.Get[Long, Long]()).into[FRow].flatMap(s =>
+          perform[State % Long, Long](State.Update[Long, Long](_ => (s + 1, s + 1))).into[FRow]))
+       .flatMap(s => if i % 10 == 0 then perform[Ask, Long](Ask(s)).into[FRow] else pure[Long, FRow](s))
 
   /** NEAREST EQUIVALENT for the residue: the classic runs the forwarded `Ask` tree by a tail loop over freer's
-   * nodes (`askLoop`, `Ask(a)` answers `a`); here by `Handler.answering` — the same answer, the kernel's handler */
+   * nodes (`askLoop`, `Ask(a)` answers `a`); here by `Handler.tail` — the same answer, the kernel's handler */
   @Benchmark
   def stateForward(): (Long, Long) = State.handle(0L)(forwardProg).handle(askAnswer).run
 }

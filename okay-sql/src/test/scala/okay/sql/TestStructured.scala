@@ -57,7 +57,7 @@ class TestStructured extends munit.FunSuite {
     val got = run(
       Tables.of(stops).plus[Structured].matching(seq < 10)
         .joinOn(Tables.of(trips).plus[Structured].matching(tram === true))(stopTrip, tripId)
-        .select((s, t) => (t.route, s.time)).at[R]
+        .select((s, t) => (t.route, s.time)).into[R]
         .collect.map(_.elements.toVector.sorted))
     val expected = (for s <- stops if s.seq < 10; t <- trips if t.tram && s.trip == t.id yield (t.route, s.time)).sorted
     assertEquals(got, expected)

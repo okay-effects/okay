@@ -353,7 +353,7 @@ object Typed:
       planOf(s, cols) match
         case Left(bad) =>
           // the whole statement cannot decode: one chunk of the answer
-          Writer.tell[W](ArraySeq(Left(bad))).at[Writer % W + Async]
+          Writer.tell[W](ArraySeq(Left(bad))).into[Writer % W + Async]
         case Right(dec) =>
           def go(p: Source[Chunk[Vector[SqlValue]]], row: Long): Source[W] =
             Writer.uncons[Chunk[Vector[SqlValue]], Unit, Async](p).flatMap[Unit, Writer % W + Async] {
@@ -365,7 +365,7 @@ object Typed:
                   r += 1
                   out
                 }
-                Writer.tell[W](decoded).at[Writer % W + Async].flatMap(_ => go(rest, r))
+                Writer.tell[W](decoded).into[Writer % W + Async].flatMap(_ => go(rest, r))
             }
           go(db.query(sql, params), 0L)
     }
@@ -396,9 +396,9 @@ object Typed:
                        (body: Granted => A ! Resource + Async + G)
   : A ! Resource + Async + G =
     type Es[x] = (Resource + Async + G)[x]
-    db.begin(isolation, readOnly).at[Es].flatMap[A, Es] { g =>
-      Resource.acquire(())(_ => db.cancel()).at[Es].flatMap[A, Es](_ =>
-        body(g).flatMap[A, Es](a => db.commit().at[Es].map(_ => a)))
+    db.begin(isolation, readOnly).into[Es].flatMap[A, Es] { g =>
+      Resource.acquire(())(_ => db.cancel()).into[Es].flatMap[A, Es](_ =>
+        body(g).flatMap[A, Es](a => db.commit().into[Es].map(_ => a)))
     }
 
   /** how many times a region may run, and the pause between runs */
@@ -433,7 +433,7 @@ object Typed:
                       (body: Granted => A ! Resource + Async)
                       (using Scheduler, Timer): Retried[A] ! Async =
     // `G` none: the body's effects are the region's own
-    def once: A ! Async = Resource.run(transact[A, Pure](db, isolation, readOnly)(g => body(g).at[Resource + Async + Pure])).at[Async]
+    def once: A ! Async = Resource.run(transact[A, Pure](db, isolation, readOnly)(g => body(g).into[Resource + Async + Pure])).into[Async]
     def go(n: Int): Retried[A] ! Async =
       Async.attempt(once).flatMap {
         case Right(a) => pure(Retried(a, n))

@@ -82,7 +82,7 @@ object Program {
 
   /** a Clojure stage that awaits and tells, as an okay `Stage` */
   def stage[I, O: ClassTag](prog: => AnyRef, name: String = "a Clojure stage"): Stage[I, O, Unit] =
-    stageWith[I, O, Pure](prog, name).at[Take % I + Writer % O]
+    stageWith[I, O, Pure](prog, name).into[Take % I + Writer % O]
 
   /**
    * A Clojure stage that also PERFORMS operations of F — okay-stream's

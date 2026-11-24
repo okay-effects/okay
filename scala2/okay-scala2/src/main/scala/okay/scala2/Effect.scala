@@ -1,6 +1,6 @@
 package okay.scala2
 
-import okay.{Foreign, Run, TypeableK, effect}
+import okay.{Foreign, Run, TypeableK, perform}
 import scala.reflect.ClassTag
 import Rows.Top
 
@@ -43,7 +43,7 @@ abstract class Effect[F[_]](implicit tag: ClassTag[F[Any]]) { self =>
   private def narrow[X](op: Op[X]): F[X] = op.asInstanceOf[F[X]]
 
   /** perform one operation */
-  def send[A](op: F[A] & Op[A]): Eff[Effect[F], A] = Eff.of(effect[Top, A](Rows.top[A](op)))
+  def send[A](op: F[A] & Op[A]): Eff[Effect[F], A] = Eff.of(perform[Top, A](Rows.top[A](op)))
 
   /** handle this effect: `ret` for the answer, `h` for each operation — the kernel's `Deep` written out, this
    * effect's operations moved to `Op` beside `Top` (`Rows.moved`), the clauses' programs at `Top`'s place outside */
@@ -53,7 +53,7 @@ abstract class Effect[F[_]](implicit tag: ClassTag[F[Any]]) { self =>
     Eff.of(Run.install[Op, A, B, okay.+[Op, Top], Top](p)(new okay.one.handler.Deep[Op, okay.one.row.Pure, A, B]:
       def ret(a: A) = Run.kernel(answer(a).program)
       def apply[X](op: Op[X], k: X => okay.one.![B, okay.one.row.Pure]) =
-        Run.kernel(h(narrow(op), (x: X) => Eff.of[R, B](okay.Program.lift(k(x)).at[Top])).program)))
+        Run.kernel(h(narrow(op), (x: X) => Eff.of[R, B](okay.Program.lift(k(x)).into[Top])).program)))
 
   /**
    * handle the LAST effect and answer. Not a convenience: `handle` at the

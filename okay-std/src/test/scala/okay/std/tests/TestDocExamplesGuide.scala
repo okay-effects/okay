@@ -20,8 +20,8 @@ object GuideUsers:
     case Save(id: Long, name: String) extends Users[Unit]
 
   object Users:                       // optional: `Users.Find(id).perform`
-    inline def find(id: Long): Option[String] ! Users = effect(Find(id))
-    inline def save(id: Long, name: String): Unit ! Users = effect(Save(id, name))
+    inline def find(id: Long): Option[String] ! Users = perform(Find(id))
+    inline def save(id: Long, name: String): Unit ! Users = perform(Save(id, name))
 
   import Users.*
 
@@ -34,14 +34,14 @@ object GuideUsers:
         [X] => (e: Users[X]) => e match
           case Find(id) =>
             for
-              store <- State.get[Store].at[R]
-              _     <- Writer.tell(s"find($id)").at[R]
+              store <- State.get[Store].into[R]
+              _     <- Writer.tell(s"find($id)").into[R]
             yield store.get(id)
           case Save(id, name) =>
             for
-              store <- State.get[Store].at[R]
-              _     <- Writer.tell(s"save($id)").at[R]
-              _     <- State.set(store + (id -> name)).at[R]
+              store <- State.get[Store].into[R]
+              _     <- Writer.tell(s"save($id)").into[R]
+              _     <- State.set(store + (id -> name)).into[R]
             yield ()
 
   /** the storage half the page names and does not print */

@@ -1,6 +1,6 @@
 package okay.std.bench
 
-import okay.{!, %, Effect, Handler, Pure, effect, pure, tailcall}
+import okay.{!, %, Effect, Handler, Pure, perform, pure, tailcall}
 import okay.std.*
 
 import org.openjdk.jmh.annotations.{State as JmhState, *}
@@ -8,11 +8,11 @@ import java.util.concurrent.TimeUnit
 
 /**
  * specs/handler-forms.md: each author's form against the built-in handler it re-expresses, on N operations.
- * `reader`: N asks (Reader(r) vs Handler.answering). `state`: N get-and-set pairs (State(s) vs Handler.state).
- * `maybe`: N operations that resume (Maybe.option vs Handler.deep).
+ * `reader`: N asks (Reader(r) vs Handler.tail). `state`: N get-and-set pairs (State(s) vs Handler.stateful).
+ * `maybe`: N operations that resume (Maybe.option vs Handler.general).
  *
- * On the new road the root has ONE form per kind, a polymorphic function (`Handler.answering`, `Handler.state`,
- * `Handler.deep`): the classic's `.poly` lanes map to it directly. The classic's `{ case … }` lanes (`tick_cases`,
+ * On the new road the root has ONE form per kind, a polymorphic function (`Handler.tail`, `Handler.stateful`,
+ * `Handler.general`): the classic's `.poly` lanes map to it directly. The classic's `{ case … }` lanes (`tick_cases`,
  * `count_cases`) are NEAREST EQUIVALENTS: the case form as the classic's macro expands it — the cases a function
  * of the operation at one type, its answer cast to the operation's — over the same root form.
  */
@@ -38,25 +38,25 @@ class HandlerFormsBenchmark {
     if n == 0 then State.get[Int] else State.get[Int].flatMap(s => State.set(s + 1).flatMap(_ => tailcall(steps(n - 1))))
 
   def somes(n: Int): Int ! Maybe =
-    if n == 0 then pure(0) else effect[Maybe, Int](Maybe(Some(1))).flatMap(x => tailcall(somes(n - 1)).map(_ + x))
+    if n == 0 then pure(0) else perform[Maybe, Int](Maybe(Some(1))).flatMap(x => tailcall(somes(n - 1)).map(_ + x))
 
-  val readerForm = Handler.answering[Reader % Int]([X] => (e: Reader[Int, X]) => e match
+  val readerForm = Handler.tail[Reader % Int]([X] => (e: Reader[Int, X]) => e match
     case Reader.Ask() => 1
     case Reader.Asks(g) => g(1)
   )
 
-  val stateForm = Handler.state[State % Int, Int](0)([X] => (s: Int, e: State[Int, X]) => e match
+  val stateForm = Handler.stateful[State % Int, Int](0)([X] => (s: Int, e: State[Int, X]) => e match
     case State.Get() => (s, s)
     case State.Update(g) => { val (b, n) = g(s); (n, b) }
   )
 
-  val maybeForm = Handler.deep[Maybe, Option]([A] => (a: A) => Some(a))(
+  val maybeForm = Handler.general[Maybe, Option]([A] => (a: A) => Some(a))(
     [A, X] => (e: Maybe[X], resume: X => Option[A] ! Pure) => e.value match
       case Some(x) => resume(x)
       case None => pure[Option[A], Pure](None))
 
   def ticks(n: Int): Int ! FormTick =
-    if n == 0 then pure(0) else effect[FormTick, Int](FormTick.Next()).flatMap(x => tailcall(ticks(n - 1)).map(_ + x))
+    if n == 0 then pure(0) else perform[FormTick, Int](FormTick.Next()).flatMap(x => tailcall(ticks(n - 1)).map(_ + x))
 
   // the case form as the classic's macro expands it: the cases at one type, the answer cast to the operation's
   private val tickCaseFn: FormTick[Any] => Any = {
@@ -68,13 +68,13 @@ class HandlerFormsBenchmark {
     case (n, FormTick.Peek()) => (n, n)
   }
 
-  val tickCases = Handler.answering[FormTick]([X] => (e: FormTick[X]) => tickCaseFn(e).asInstanceOf[X])
-  val tickPoly = Handler.answering[FormTick]([X] => (e: FormTick[X]) => e match
+  val tickCases = Handler.tail[FormTick]([X] => (e: FormTick[X]) => tickCaseFn(e).asInstanceOf[X])
+  val tickPoly = Handler.tail[FormTick]([X] => (e: FormTick[X]) => e match
     case FormTick.Next() => 1
     case FormTick.Peek() => 0
   )
-  val countCases = Handler.state[FormTick, Int](0)([X] => (n: Int, e: FormTick[X]) => countCaseFn(n, e).asInstanceOf[(Int, X)])
-  val countPoly = Handler.state[FormTick, Int](0)([X] => (n: Int, e: FormTick[X]) => e match
+  val countCases = Handler.stateful[FormTick, Int](0)([X] => (n: Int, e: FormTick[X]) => countCaseFn(n, e).asInstanceOf[(Int, X)])
+  val countPoly = Handler.stateful[FormTick, Int](0)([X] => (n: Int, e: FormTick[X]) => e match
     case FormTick.Next() => (n + 1, n)
     case FormTick.Peek() => (n, n)
   )

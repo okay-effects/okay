@@ -18,23 +18,23 @@ class TestKyoInterop extends munit.FunSuite {
   }
 
   test("structural mapping: Reader <-> Env") {
-    import okay.{%, effect, pure}
+    import okay.{%, perform, pure}
     import okay.std.{Reader}
     import _root_.kyo.Env
     val ours: Int ! Reader % Int =
-      effect[Reader % Int, Int](Reader.Ask()).flatMap(x => pure(x * 2))
+      perform[Reader % Int, Int](Reader.Ask()).flatMap(x => pure(x * 2))
     assertEquals(Env.run(21)(toKyoEnv(ours)).eval, 42)
     val theirs: Int < Env[Int] = Env.get[Int].flatMap((x: Int) => x + 1)
     assertEquals(!.run(okay.std.Reader.run[Int, Int, Reader % Int](41)(fromKyoEnv(theirs))), 42)
   }
 
   test("structural mapping: Writer <-> Emit, tell for tell") {
-    import okay.{%, effect}
+    import okay.{%, perform}
     import okay.std.{Writer}
     import _root_.kyo.Emit
     val ours: Int ! Writer % String =
-      effect[Writer % String, Unit](Writer("a")).flatMap(_ =>
-        effect[Writer % String, Unit](Writer("b")).map(_ => 7))
+      perform[Writer % String, Unit](Writer("a")).flatMap(_ =>
+        perform[Writer % String, Unit](Writer("b")).map(_ => 7))
     val (told, a) = Emit.run[String](toKyoEmit(ours)).eval
     assertEquals(told.toList, List("a", "b"))
     assertEquals(a, 7)
@@ -47,11 +47,11 @@ class TestKyoInterop extends munit.FunSuite {
   }
 
   test("structural mapping: Throws <-> Abort") {
-    import okay.{%, effect}
+    import okay.{%, perform}
     import okay.std.{Throws}
     import _root_.kyo.Abort
     val ours: Int ! Throws % String =
-      effect[Throws % String, Int](Throws("boom"))
+      perform[Throws % String, Int](Throws("boom"))
     assertEquals(Abort.run[String](toKyoAbort(ours)).eval.foldFailureOrThrow(e => e)(_.toString), "boom")
     val theirs: Int < Abort[String] = Abort.fail("bad")
     assertEquals(!.run(okay.std.runEither[Int, Throws % String, String](fromKyoAbort(theirs))),

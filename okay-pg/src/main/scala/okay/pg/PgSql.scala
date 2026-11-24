@@ -3,7 +3,7 @@ package okay.pg
 import okay.{Async, ChunkBuf, Net, NetConn, Source}
 
 import okay.{+, %}
-import okay.{!, effect, pure}
+import okay.{!, perform, pure}
 import okay.std.{Chunk, Writer}
 import okay.sql.{Col, Granted, Isolation, Sql, SqlType, SqlValue, Temporal}
 import okay.crypto.Crypto
@@ -134,9 +134,9 @@ final class PgSql private (conn: NetConn) extends Sql:
           if !more then
             !.widen[Unit, Async, Writer % W](finishPortal).flatMap { _ =>
               if c.isEmpty then pure(())
-              else effect(Writer(c)).at[F]
+              else perform(Writer(c)).into[F]
             }
-          else effect(Writer(c)).at[F].flatMap(_ => emit(oids))
+          else perform(Writer(c)).into[F].flatMap(_ => emit(oids))
         }
 
     !.widen[Unit, Async, Writer % W](settled(pure(())))

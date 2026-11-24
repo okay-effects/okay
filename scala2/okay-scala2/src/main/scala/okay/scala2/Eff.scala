@@ -1,6 +1,6 @@
 package okay.scala2
 
-import okay.{!, +, %, Answers, Erased, Foreign, Run, effect}
+import okay.{!, +, %, Answers, Erased, Foreign, Run, perform}
 import okay.given
 import scala.util.control.NonFatal
 
@@ -64,16 +64,16 @@ private[scala2] object Rows {
   /** `E`'s operations moved to it beside `Top` (its `Member` says which); the others stay at `Top` */
   def moved[E[_], A](p: A ! Top)(using m: Foreign.Member[E]): A ! E + Top =
     p.translate[Top, E + Top]([X] => (op: Top[X]) => m.operation(Foreign.obj(op)) match
-      case Some(q) => q.map(answered[X]).at[E + Top]
-      case None => effect[Top, X](op).at[E + Top]
-    ).at[E + Top]
+      case Some(q) => q.map(answered[X]).into[E + Top]
+      case None => perform[Top, X](op).into[E + Top]
+    ).into[E + Top]
 
   /** the program at the core row `F`: each operation checked to be one of F's as it is performed */
   def typed[F[_], A](p: A ! Top)(using m: Foreign.Member[F]): A ! F =
     p.translate[Top, F]([X] => (op: Top[X]) => m.operation(Foreign.obj(op)) match
       case Some(q) => q.map(answered[X])
       case None => throw IllegalStateException(s"okay.scala2: ${named(op)} is not an operation of the row")
-    ).at[F]
+    ).into[F]
 
   /** an operation's answer at its answer type: `X` is erased, and `Member` performed the operation that has it */
   private def answered[X](a: Any): X = a.asInstanceOf[X]

@@ -3,7 +3,7 @@ package okay.jdbc
 import okay.{Async, Source}
 
 import okay.{+, %}
-import okay.{!, effect}
+import okay.{!, perform}
 import okay.std.{Chunk, Stream, Writer}
 import okay.given
 import okay.std.given
@@ -85,7 +85,7 @@ class MeasureSqlFold extends munit.FunSuite:
         else
           val (c, more) = rest.splitAt(per)
           val chunk: Chunk[Vector[SqlValue]] = scala.collection.immutable.ArraySeq.from(c)
-          effect(Writer(chunk)).at[F].flatMap(_ => go(more))
+          perform(Writer(chunk)).into[F].flatMap(_ => go(more))
       go(frames)
     def update(sql: String, params: Vector[SqlValue] = Vector.empty): Long ! Async = okay.pure(0L)
     def batch(sql: String, rows: Chunk[Vector[SqlValue]]): Long ! Async = okay.pure(0L)

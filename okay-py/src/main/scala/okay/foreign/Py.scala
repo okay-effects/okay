@@ -152,10 +152,10 @@ final case class Handle(id: Long, pyType: String,
   def hold(method: String): Handle.HoldMethod = Handle.HoldMethod(this, method)
   /** an attribute of the held object */
   def attr[Out: okay.codec.Schema](name: String): Either[Condition, Out] ! ForeignEval =
-    okay.effect(ForeignEval.Call(Address.Attr(this, name), Vector.empty))
+    okay.perform(ForeignEval.Call(Address.Attr(this, name), Vector.empty))
       .map(_.flatMap(shape.decode[Out](_)))
   /** drop the object in the worker; idempotent */
-  def release: Unit ! ForeignEval = okay.effect(ForeignEval.Release(this))
+  def release: Unit ! ForeignEval = okay.perform(ForeignEval.Release(this))
   /** this object as a STATEFUL stage over chunks (foreign-streaming):
    * `method` per chunk, `finish` once at the end */
   def stage[I: ToPy, O: okay.codec.Schema](method: String, chunk: Int = 64,
@@ -173,7 +173,7 @@ object Handle:
     def apply[A: ToPy, B: ToPy, C: ToPy](a: A, b: B, c: C): Either[Condition, Out] ! ForeignEval =
       go(Vector(ToPy(a), ToPy(b), ToPy(c)))
     private def go(args: Vector[Value]): Either[Condition, Out] ! ForeignEval =
-      okay.effect(ForeignEval.Call(Address.Method(ref, name), args))
+      okay.perform(ForeignEval.Call(Address.Method(ref, name), args))
         .map(_.flatMap(ref.shape.decode[Out](_)))
 
   final class HoldMethod(ref: Handle, name: String):
@@ -184,7 +184,7 @@ object Handle:
     def apply[A: ToPy, B: ToPy, C: ToPy](a: A, b: B, c: C): Either[Condition, Handle] ! ForeignEval =
       go(Vector(ToPy(a), ToPy(b), ToPy(c)))
     private def go(args: Vector[Value]): Either[Condition, Handle] ! ForeignEval =
-      okay.effect(ForeignEval.Call(Address.Method(ref, name), args, held = true))
+      okay.perform(ForeignEval.Call(Address.Method(ref, name), args, held = true))
         .map(_.flatMap(Wire.asRef).map(_.copy(shape = ref.shape)))
 
 /** how an argument becomes a `Value`: through its `Schema`, or as the

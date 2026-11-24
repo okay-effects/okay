@@ -1,6 +1,6 @@
 package okay.jdk
 
-import okay.{!, +, %, Answers, Async, Erased, Foreign, Run, effect}
+import okay.{!, +, %, Answers, Async, Erased, Foreign, Run}
 import okay.std.{Reader, State, Throws}
 import okay.given
 import java.util.function.{BiFunction, Function as JFunction, Supplier, UnaryOperator}
@@ -75,15 +75,16 @@ private[jdk] object Moves {
   /** a Java handler's own operations moved to `Own` beside `Top` (`test` says which); the others stay */
   def own[A](p: A ! Top, test: Any => Boolean): A ! Own + Top =
     p.translate[Top, Own + Top]([X] => (op: Top[X]) =>
-      if test(raw(op)) then effect[Own, X](Rows.own(op)).at[Own + Top] else effect[Top, X](op).at[Own + Top]
-    ).at[Own + Top]
+      if test(raw(op)) then okay.perform[Own, X](Rows.own(op)).into[Own + Top]
+      else okay.perform[Top, X](op).into[Own + Top]
+    ).into[Own + Top]
 
   /** a Scala effect's operations moved to it beside `Top` (its `Member` says which); the others stay */
   def scala[E[_], A](p: A ! Top)(using m: Foreign.Member[E]): A ! E + Top =
     p.translate[Top, E + Top]([X] => (op: Top[X]) => m.operation(Foreign.obj(raw(op))) match
-      case Some(q) => q.map(answered[X]).at[E + Top]
-      case None => effect[Top, X](op).at[E + Top]
-    ).at[E + Top]
+      case Some(q) => q.map(answered[X]).into[E + Top]
+      case None => okay.perform[Top, X](op).into[E + Top]
+    ).into[E + Top]
 }
 
 /** a program answering `A`, performing operations nothing in Java's types records */
@@ -124,7 +125,7 @@ final class Eff[A] private[jdk] (private[jdk] val program: A ! Top) {
     program.translate[Top, F]([X] => (op: Top[X]) => m.operation(Foreign.obj(raw(op))) match
       case Some(q) => q.map(answered[X])
       case None => throw IllegalArgumentException(s"okay.jdk: ${Rows.named(raw(op))} is not an operation of the row")
-    ).at[F]
+    ).into[F]
 }
 
 object Eff {
@@ -132,7 +133,7 @@ object Eff {
   def pure[A](a: A): Eff[A] = new Eff(okay.pure[A, Top](a))
 
   /** perform one operation of a Java effect */
-  def perform[R](op: Op[R]): Eff[R] = new Eff(effect[Top, R](top[R](op)))
+  def perform[R](op: Op[R]): Eff[R] = new Eff(okay.perform[Top, R](top[R](op)))
 
   /**
    * `next()` when the program reaches here, not now: the tail call that keeps
@@ -213,8 +214,8 @@ object Handler {
   private[jdk] def intoBy(test: Any => Boolean, f: Any => Eff[?]): Handler =
     new Handler([A] => (p: A ! Top) =>
       p.translate[Top, Top]([X] => (op: Top[X]) =>
-        if test(raw(op)) then f(raw(op)).program.map(answered[X]) else effect[Top, X](op)
-      ).at[Top])
+        if test(raw(op)) then f(raw(op)).program.map(answered[X]) else okay.perform[Top, X](op)
+      ).into[Top])
 
   /** the core `Reader`: every `Eff.ask()` answered with `env` */
   def reader[E](env: E): Handler =
@@ -233,7 +234,7 @@ object StateHandler {
     stateBy(cls.isInstance, init, (s, op) => step.apply(s, cls.cast(op)))
 
   private[jdk] def stateBy[S](test: Any => Boolean, init: S, step: (S, Any) => Stated[S, ?]): StateHandler[S] =
-    val h = okay.Handler.state[Own, S](init)([X] => (s: S, op: Own[X]) =>
+    val h = okay.Handler.stateful[Own, S](init)([X] => (s: S, op: Own[X]) =>
       val next = step(s, rawOwn(op))
       (next.state, answered[X](next.value)))
     new StateHandler([A] => (p: A ! Top) => Moves.own(p, test).handle(h))
@@ -262,7 +263,7 @@ final class Control[A, B] private[jdk] (test: Any => Boolean, ret: JFunction[? >
     new Eff(Run.install[Own, A, B, Own + Top, Top](p)(new okay.one.handler.Deep[Own, okay.one.row.Pure, A, B]:
       def ret(a: A) = Run.kernel(Control.this.ret.apply(a).program)
       def apply[X](op: Own[X], k: X => okay.one.![B, okay.one.row.Pure]) =
-        Run.kernel(clause(rawOwn(op), x => new Eff(okay.Program.lift(k(answered[X](x))).at[Top])).program)))
+        Run.kernel(clause(rawOwn(op), x => new Eff(okay.Program.lift(k(answered[X](x))).into[Top])).program)))
 }
 
 object Control {

@@ -48,5 +48,5 @@ object Transports:
         () => ()      // fetch is not cancellable here; nothing to undo
       }
       request.flatMap[Unit, F] { text =>
-        !.each(text.split("\n").toIndexedSeq)(line => Writer.tell(line).at[F])
+        !.each(text.split("\n").toIndexedSeq)(line => Writer.tell(line).into[F])
       }

@@ -90,7 +90,7 @@ object Handlers {
       case None => s"error: no such tool '${c.name}'"
 
     // answered in place: nothing captured (the kernel's Answering)
-    prog.handle(Handler.answering[Tool]([X] => (e: Tool[X]) => e match
+    prog.handle(Handler.tail[Tool]([X] => (e: Tool[X]) => e match
       case Tool.Call(c) => answer(c)))
 
   /** `relayTools` for a table of PROGRAMS (`Toolbox.In[F]`): each call

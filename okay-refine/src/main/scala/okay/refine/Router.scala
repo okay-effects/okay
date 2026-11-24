@@ -2,7 +2,7 @@ package okay.refine
 
 import scala.reflect.TypeTest
 import okay.{Async, Channel, Scheduler, Source, runForeach}
-import okay.{!, effect, pure}
+import okay.{!, perform, pure}
 /**
  * ROUTING: one stream of documents in, one stream per kind of document
  * out (specs/refine.md, refine-route). A `Router` is a VALUE — a
@@ -106,7 +106,7 @@ final class Router[A, B] private (
         pure(Routed(rules.map(_.name).zip(counts.toVector), rejected))
       case Left(e) =>
         channels.foreach(_.fail(e))
-        effect(Async.Await[Routed](k => { k(Left(e)); () => () }))
+        perform(Async.Await[Routed](k => { k(Left(e)); () => () }))
     }
 
   /** every channel this router writes, once each (a channel may take several routes) */

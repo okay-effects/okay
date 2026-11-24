@@ -67,7 +67,7 @@ object Ws {
   def over[A](s: Socket)(session: Stage[Frame, Frame, A]): A ! Async =
     val answered: A ! Writer % Frame + Async =
       through[Frame, Frame, Async, Unit, A](s.frames)(
-        session.at[Take % Frame + (Writer % Frame + Async)])
+        session.into[Take % Frame + (Writer % Frame + Async)])
 
     def drain(p: A ! Writer % Frame + Async): A ! Async =
       Writer.uncons[Frame, A, Async](p).flatMap {

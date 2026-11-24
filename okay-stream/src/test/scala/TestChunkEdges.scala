@@ -61,7 +61,7 @@ class TestChunkEdges extends munit.FunSuite {
     val bad: Source[Int] =
       Source.of(List(1, 2)).flatMap(_ =>
         (
-          effect[Async, Unit](Async.Run(() => throw boom))).at[Writer % Int + Async])
+          perform[Async, Unit](Async.Run(() => throw boom))).into[Writer % Int + Async])
     val out = scala.util.Try(drain(bad.merge(ints(100 to 130), chunked = true)))
     // either it surfaces the failure or it delivers the good side —
     // what it must NOT do is hang or lose the good side silently
@@ -75,7 +75,7 @@ class TestChunkEdges extends munit.FunSuite {
   // ── Flush at the edges ──────────────────────────────────────────
 
   private type R = Flush + (Writer % Int + Async)
-  private def tell(i: Int): Unit ! R = Writer.tell(i).at[R]
+  private def tell(i: Int): Unit ! R = Writer.tell(i).into[R]
   private def empty: Flushing[Int] = pure[Unit, R](())
 
   test("Flush.now with nothing buffered emits nothing and is not an error") {
@@ -122,7 +122,7 @@ class TestChunkEdges extends munit.FunSuite {
   test("runForeach: runs f for every element, in order, as one program") {
     val seen = collection.mutable.ArrayBuffer.empty[Int]
     val p: Unit ! Async = Source.of(List(1, 2, 3)).runForeach(i =>
-      effect[Async, Unit](Async.Run(() => seen += i)))
+      perform[Async, Unit](Async.Run(() => seen += i)))
     p.runWith
     assertEquals(seen.toList, List(1, 2, 3))
   }
@@ -130,7 +130,7 @@ class TestChunkEdges extends munit.FunSuite {
   test("runForeach on an empty source runs f zero times") {
     var calls = 0
     Source.of(List.empty[Int]).runForeach(_ =>
-      effect[Async, Unit](Async.Run(() => calls += 1))).runWith
+      perform[Async, Unit](Async.Run(() => calls += 1))).runWith
     assertEquals(calls, 0)
   }
 
@@ -205,9 +205,9 @@ class TestChunkEdges extends munit.FunSuite {
     // which chunk-size-representation tried and declined
     val st = Stage.chunked[Int](8)
     val a = through(ints(1 to 20))(
-      (st).at[Take % Int + (Writer % Chunk[Int] + Async)]).toLazyList.toList
+      (st).into[Take % Int + (Writer % Chunk[Int] + Async)]).toLazyList.toList
     val b = through(ints(101 to 120))(
-      (st).at[Take % Int + (Writer % Chunk[Int] + Async)]).toLazyList.toList
+      (st).into[Take % Int + (Writer % Chunk[Int] + Async)]).toLazyList.toList
     assertEquals(a.flatten, (1 to 20).toList)
     assertEquals(b.flatten, (101 to 120).toList)
     assertEquals(a.map(_.length), List(8, 8, 4))

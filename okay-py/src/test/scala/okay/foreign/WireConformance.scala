@@ -9,7 +9,7 @@ import okay.{Take}
 
 
 import okay.{%, +}
-import okay.{!, effect, pure}
+import okay.{!, perform, pure}
 import okay.std.{Choose, Reader, Writer, runChoice}
 
 /**
@@ -53,7 +53,7 @@ abstract class WireConformance extends munit.FunSuite:
   def engine: ForeignWorker
   private given okay.Answers[ForeignEval] = engine.handler
 
-  private val choose = Foreign.callback[Vector[Long], Long]("choose")(xs => effect[Choose, Long](Choose(xs)))
+  private val choose = Foreign.callback[Vector[Long], Long]("choose")(xs => perform[Choose, Long](Choose(xs)))
   private val priceOf = Foreign.callback[String, Double]("price_of")(sku => Reader.ask[Map[String, Double]].map(_(sku)))
   private val discount = Foreign.callback[Double, Double]("discount")(a => Reader.ask[Map[String, Double]].map(m => a * m("rate")))
 
@@ -176,11 +176,11 @@ abstract class WireConformance extends munit.FunSuite:
     type S = Take % Long + Writer % Long
     def take(left: Int): Unit ! S =
       if left == 0 then pure(())
-      else effect[Take % Long, Option[Long]](Take.Await()).at[S].flatMap {
-        case Some(x) => Writer.tell(x).at[S].flatMap(_ => take(left - 1))
+      else perform[Take % Long, Option[Long]](Take.Await()).into[S].flatMap {
+        case Some(x) => Writer.tell(x).into[S].flatMap(_ => take(left - 1))
         case None => pure(())
       }
-    val consumer = okay.through(Foreign.stream[Long](address("numbers"), credit = 2)(100000L, 1L, tag))(take(4).at[Take % Long + (Writer % Long + (ForeignEval + Holding))])
+    val consumer = okay.through(Foreign.stream[Long](address("numbers"), credit = 2)(100000L, 1L, tag))(take(4).into[Take % Long + (Writer % Long + (ForeignEval + Holding))])
     assertEquals(within(Writer.run(Foreign.releasing(consumer)).runWith(using engine.handler)._1.toList), List(0L, 1L, 2L, 3L))
     val sent = settled(tag)
     assert(sent <= 4 + 2, s"the far side sent $sent chunks for a consumer that took four at a credit of two")

@@ -10,7 +10,7 @@ class TestCutCtx extends munit.FunSuite {
 
   def tokens(ts: String*): Unit ! Writer % String + Async =
     ts.foldLeft(pure[Unit, Writer % String + Async](())):
-      (m, t) => m.flatMap(_ => Writer.tell(t).at[Writer % String + Async])
+      (m, t) => m.flatMap(_ => Writer.tell(t).into[Writer % String + Async])
 
   def collect[A](p: Either[Cut.Violation, A] ! Writer % String + Async)
   : (Seq[String], Either[Cut.Violation, A]) =

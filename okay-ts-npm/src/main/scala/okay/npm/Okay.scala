@@ -3,7 +3,7 @@ package okay.npm
 import scala.scalajs.js
 import scala.scalajs.js.JSConverters.*
 import scala.scalajs.js.annotation.{JSExport, JSExportTopLevel}
-import okay.{!, Async, Channel, effect, pure}
+import okay.{!, Async, Channel, perform, pure}
 import okay.codec.{Json, Schema, Stubs}
 import okay.crdt.{GCounter, NodeId, OrSet, PNCounter}
 import okay.crdt.Wire.given
@@ -67,7 +67,7 @@ object Okay:
    * step. `Promise.resolve` takes either, so there is one road and no
    * type test on what the callback chose to return */
   private def settle(v: js.Any): Either[Ts.Failure, Json] ! Async =
-    effect[Async, Either[Ts.Failure, Json]](Async.Await[Either[Ts.Failure, Json]] { k =>
+    perform[Async, Either[Ts.Failure, Json]](Async.Await[Either[Ts.Failure, Json]] { k =>
       js.Promise.resolve[js.Any](v).toFuture.onComplete {
         case scala.util.Success(x) => k(Right(Right(asJson(x))))
         case scala.util.Failure(js.JavaScriptException(e)) => k(Right(Left(failure(e))))
@@ -104,7 +104,7 @@ object Okay:
 
   /** a Promise the caller handed over, as an okay step */
   private def awaiting(p: js.Any): js.Any ! Async =
-    effect[Async, js.Any](Async.Await[js.Any] { k =>
+    perform[Async, js.Any](Async.Await[js.Any] { k =>
       js.Promise.resolve[js.Any](p).toFuture.onComplete(t => k(t.toEither))
       () => ()
     })

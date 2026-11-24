@@ -116,14 +116,14 @@ object Reactive {
     def serve(got: Chunk[A], i: Int, taken: Int): Source[A] =
       if i >= got.length then go(taken)
       else
-        okay.effect(Writer(got(i))).flatMap: _ =>
+        okay.perform(Writer(got(i))).flatMap: _ =>
           if taken + 1 >= refill then
             val s = sub.get
             if s != null then s.nn.request(refill.toLong)
             serve(got, i + 1, 0)
           else serve(got, i + 1, taken + 1)
     def go(taken: Int): Source[A] =
-      okay.effect(
+      okay.perform(
         Async.Await[Chunk[A]](k => { c.receiveManyAsync(batch)(k); () => () })).flatMap: got =>
         if got.isEmpty then okay.pure(()) else serve(got, 0, taken)
     okay.pure[Unit, Writer % A + Async](()).flatMap(_ => go(0))

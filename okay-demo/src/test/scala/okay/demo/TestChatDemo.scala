@@ -182,7 +182,7 @@ class TestChatDemo extends munit.FunSuite {
         """data: {"type":"content_block_delta","delta":{"text":" wire"}}""", "",
         "data: [DONE]", "")
         .foldLeft(pure(()): Unit ! F)((acc, l) =>
-          acc.flatMap(_ => Writer.tell(l).at[F]))
+          acc.flatMap(_ => Writer.tell(l).into[F]))
     def run(wire: okay.llm.Transport, secrets: okay.conf.Secrets): String =
       val (board, store) = freshBoard
       provide(wire, secrets, board, store)(

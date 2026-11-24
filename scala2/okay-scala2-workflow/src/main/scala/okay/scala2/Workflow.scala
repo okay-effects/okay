@@ -1,6 +1,6 @@
 package okay.scala2
 
-import okay.{!, Foreign, Pure, Wf, effect, pure}
+import okay.{!, Foreign, Pure, Wf, perform, pure}
 import Rows.{erase, typed}
 
 /*
@@ -58,7 +58,7 @@ final class Workflow[Q, A] private () {
   def cancelled: Eff[Workflow[Q, A], Option[String]] = op(WfOp.Cancelled[Q, A]())
 
   private def op[X](o: WfOp[Q, A, X]): Eff[Workflow[Q, A], X] =
-    Eff.of(erase(effect[[Y] =>> WfOp[Q, A, Y], X](o)))
+    Eff.of(erase(perform[[Y] =>> WfOp[Q, A, Y], X](o)))
 }
 
 object Workflow {
@@ -114,6 +114,6 @@ object Workflows {
         case WfOp.Signal(n) => w.awaitSignal(n)
         case WfOp.Child(id) => w.awaitChild(id)
         case WfOp.Cancelled() => w.cancelled
-      }): X ! Wf.Durable[Q, A, Pure]).at[Wf.Durable[Q, A, Pure]]
+      }): X ! Wf.Durable[Q, A, Pure]).into[Wf.Durable[Q, A, Pure]]
   }
 }

@@ -32,7 +32,7 @@ class TestAnthropic extends munit.FunSuite {
         val reply = rest match
           case r :: t => rest = t; r
           case Nil => """{"content":[]}"""
-        okay.effect(Writer(reply)).at[F].map(_ => ())
+        okay.perform(Writer(reply)).into[F].map(_ => ())
 
   case class SearchArgs(query: String)
   given Schema[SearchArgs] = Schema.derived

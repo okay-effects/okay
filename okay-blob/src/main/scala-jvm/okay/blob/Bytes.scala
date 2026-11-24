@@ -2,7 +2,7 @@ package okay.blob
 
 import okay.{Async, Source}
 
-import okay.{!, effect, pure}
+import okay.{!, perform, pure}
 import okay.std.{Chunk, Writer}
 import okay.Row.plus
 import java.nio.file.{Files, Path}
@@ -35,9 +35,9 @@ object Bytes:
   /** any InputStream, opened when the program runs and closed at its
    * end; `open` is by name for exactly that reason */
   def stream(open: => java.io.InputStream, chunk: Int = DefaultChunk): Source[Chunk[Byte]] =
-    effect(Async.Run(() => open)).flatMap { in =>
+    perform(Async.Run(() => open)).flatMap { in =>
       def go: Source[Chunk[Byte]] =
-        effect(Async.Run[Chunk[Byte] | Null] { () =>
+        perform(Async.Run[Chunk[Byte] | Null] { () =>
           val buf = new Array[Byte](chunk)
           val n = in.read(buf)
           if n < 0 then { in.close(); null }

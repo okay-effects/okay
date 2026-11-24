@@ -41,9 +41,9 @@ class TestGroundedTranslating extends munit.FunSuite {
 
   /** ask, then recall — written in the row it needs and no more */
   val ask: Seq[Turn] ! Context + Async =
-    okay.effect(
-      Context.Remember(Turn.User("how do I greet someone by name?"))).at[Context + Async]
-      .flatMap(_ => okay.effect(Context.Recall()).at[Context + Async])
+    okay.perform(
+      Context.Remember(Turn.User("how do I greet someone by name?"))).into[Context + Async]
+      .flatMap(_ => okay.perform(Context.Recall()).into[Context + Async])
 
   /**
    * A retriever that answers from ANOTHER THREAD, through the Async
@@ -52,7 +52,7 @@ class TestGroundedTranslating extends munit.FunSuite {
    */
   def remote(calls: AtomicInteger): Retriever[Async] = new Retriever[Async]:
     def retrieve(query: String, k: Int): Seq[Scored] ! Async =
-      okay.effect(Async.Await[Seq[Scored]] { cb =>
+      okay.perform(Async.Await[Seq[Scored]] { cb =>
         val t = Thread.ofVirtual().start(() =>
           Thread.sleep(20)
           calls.incrementAndGet()
@@ -112,7 +112,7 @@ class TestGroundedTranslating extends munit.FunSuite {
     // the program was RUN rather than inside context assembly.
     val boom = new Retriever[Async]:
       def retrieve(query: String, k: Int): Seq[Scored] ! Async =
-        okay.effect(Async.Await[Seq[Scored]] { cb =>
+        okay.perform(Async.Await[Seq[Scored]] { cb =>
           cb(Left(RuntimeException("the index is offline")))
           () => ()
         })

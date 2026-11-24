@@ -46,10 +46,10 @@ object LiveHttp:
 
   /** the channel's values, as events, until it closes */
   private def pushes(c: Channel[Json]): Source[Chunk[Byte]] =
-    effect[Async, Option[Json]](Async.Await[Option[Json]] { k =>
+    perform[Async, Option[Json]](Async.Await[Option[Json]] { k =>
       c.receiveAsync(end => k(end))
       () => ()
-    }).at[Writer % Chunk[Byte] + Async].flatMap {
+    }).into[Writer % Chunk[Byte] + Async].flatMap {
       case Some(j) => data(j).flatMap(_ => pushes(c))
       case None => pure(())
     }

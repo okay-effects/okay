@@ -36,7 +36,7 @@ final class Prog[A] private[scala2] (private val body: ProgBody[A]) {
 
   /** the failure as a value; the result never fails */
   def attempt: Prog[Either[Throwable, A]] =
-    Prog.of(okay.std.runEither[A, Prog.Row, Throwable](program).at[Prog.Row])
+    Prog.of(okay.std.runEither[A, Prog.Row, Throwable](program).into[Prog.Row])
 
   /** on failure, continue with `h` */
   def recover(h: Throwable => Prog[A]): Prog[A] =
@@ -85,10 +85,10 @@ object Prog {
   /** suspend `a`: nothing runs until the program does, and a throw
    * inside it is this program's failure */
   def delay[A](a: => A): Prog[A] =
-    Prog.of(async(try Right(a) catch { case NonFatal(e) => Left(e) }).at[Row]
+    Prog.of(async(try Right(a) catch { case NonFatal(e) => Left(e) }).into[Row]
       .flatMap(e => fromEither(e).program))
 
-  def fail[A](e: Throwable): Prog[A] = Prog.of(raise[Throwable, A](e).at[Row])
+  def fail[A](e: Throwable): Prog[A] = Prog.of(raise[Throwable, A](e).into[Row])
 
   def fromEither[A](e: Either[Throwable, A]): Prog[A] = e.fold(fail, pure)
 
@@ -106,7 +106,7 @@ object Prog {
 object Bridge {
 
   /** an Async program as a `Prog` */
-  def lift[A](p: A ! Async): Prog[A] = Prog.of(p.at[Prog.Row])
+  def lift[A](p: A ! Async): Prog[A] = Prog.of(p.into[Prog.Row])
 
   /** and back: the program a `Prog` stands for */
   def program[A](p: Prog[A]): A ! (Async + Throws % Throwable) = p.program

@@ -16,7 +16,7 @@ final class ScriptedWire(answers: PartialFunction[(String, String), String]) ext
     val text = answers.lift((verb, path)).getOrElse("""{"error":{"message":"no such route","type":"not_found"}}""")
     def go(ls: List[String]): Unit ! F = ls match
       case Nil => pure(())
-      case l :: t => Writer.tell(l).at[F].flatMap(_ => go(t))
+      case l :: t => Writer.tell(l).into[F].flatMap(_ => go(t))
     go(text.split('\n').toList)
   def post(url: String, headers: Map[String, String], body: String) = answer("POST", url, body)
   def get(url: String, headers: Map[String, String]) = answer("GET", url, "")

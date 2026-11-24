@@ -1,6 +1,6 @@
 package okay.llm
 
-import okay.{!, %, +, Async, effect, pure}
+import okay.{!, %, +, Async, perform, pure}
 import okay.std.{Writer}
 import okay.given
 import okay.codec.Schema
@@ -23,8 +23,8 @@ class TestStructured extends munit.FunSuite {
       case Nil => pure(())
       case t :: rest =>
         // the async op stands for the wire: it runs only if pulled
-        effect[Async, Unit](Async.Run(() => { pulled.incrementAndGet(); () }))
-          .flatMap(_ => Writer.tell(t).at[F])
+        perform[Async, Unit](Async.Run(() => { pulled.incrementAndGet(); () }))
+          .flatMap(_ => Writer.tell(t).into[F])
           .flatMap(_ => go(rest))
     go(tokens.toList)
 

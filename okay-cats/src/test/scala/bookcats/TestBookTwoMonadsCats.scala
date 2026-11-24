@@ -169,15 +169,15 @@ object EffectsBasket:
   def price(shop: String, item: String): Int ! Basket =
     prices(shop).get(item) match
       case Some(p) => pure[Int, Basket](p)
-      case None    => raise[String, Int](s"$shop has no $item").at[Basket]
+      case None    => raise[String, Int](s"$shop has no $item").into[Basket]
 
   def basket(items: List[String]): Int ! Basket =
     for
-      shop  <- choose("north", "south").at[Basket]
-      _     <- Writer.tell(s"shop $shop").at[Basket]
+      shop  <- choose("north", "south").into[Basket]
+      _     <- Writer.tell(s"shop $shop").into[Basket]
       ps    <- items.foldLeft(pure[List[Int], Basket](Nil))((acc, item) => acc.flatMap(xs => price(shop, item).map(xs :+ _)))
       total  = ps.sum
-      _     <- Writer.tell(s"total $total").at[Basket]
+      _     <- Writer.tell(s"total $total").into[Basket]
     yield total
 
   /** errors handled first, then the log, then the choice: each branch keeps its own log and outcome */
@@ -199,11 +199,11 @@ object EffectsBasket:
   /** the union is just the row of the program that uses both; each helper widens into it */
   def teams(items: List[String]): Int ! Basket =
     for
-      shop  <- choose("north", "south").at[Basket]
-      _     <- note(s"shop $shop").at[Basket]
-      ps    <- items.foldLeft(pure[List[Int], Basket](Nil))((acc, item) => acc.flatMap(xs => priceOf(shop, item).at[Basket].map(xs :+ _)))
+      shop  <- choose("north", "south").into[Basket]
+      _     <- note(s"shop $shop").into[Basket]
+      ps    <- items.foldLeft(pure[List[Int], Basket](Nil))((acc, item) => acc.flatMap(xs => priceOf(shop, item).into[Basket].map(xs :+ _)))
       total  = ps.sum
-      _     <- note(s"total $total").at[Basket]
+      _     <- note(s"total $total").into[Basket]
     yield total
 
   /** written ONCE against its own effect, used in any row that has it, in any order */
@@ -215,9 +215,9 @@ object EffectsBasket:
 
   def taxed(items: List[String]): Int ! Taxed =
     for
-      vat   <- okay.std.Reader.ask[Int].at[Taxed]
-      total <- basket(items).at[Taxed]
-      _     <- audit(s"vat $vat%").at[Taxed]
+      vat   <- okay.std.Reader.ask[Int].into[Taxed]
+      total <- basket(items).into[Taxed]
+      _     <- audit(s"vat $vat%").into[Taxed]
     yield total * (100 + vat) / 100
 
   /** the SAME program, errors handled last: one missing price fails the whole basket */
@@ -336,22 +336,22 @@ object EffectsTrips:
   /** team A's helper: only the effects IT uses */
   def flights(from: String): (String, Int) ! Choose + Throws % String =
     routes.get(from) match
-      case Some(out) => choose(out*).at[Choose + Throws % String]
-      case None      => raise[String, (String, Int)](s"airport $from is closed").at[Choose + Throws % String]
+      case Some(out) => choose(out*).into[Choose + Throws % String]
+      case None      => raise[String, (String, Int)](s"airport $from is closed").into[Choose + Throws % String]
 
   /** team B's helper: only the effects IT uses */
   def book(from: String, to: String): Unit ! Writer % String + Throws % String =
-    if soldOut((from, to)) then raise[String, Unit](s"$from → $to: sold out").at[Writer % String + Throws % String]
-    else Writer.tell(s"booked $from → $to").at[Writer % String + Throws % String]
+    if soldOut((from, to)) then raise[String, Unit](s"$from → $to: sold out").into[Writer % String + Throws % String]
+    else Writer.tell(s"booked $from → $to").into[Writer % String + Throws % String]
 
   type Trip = Choose + Writer % String + Throws % String
 
   def trip(from: String): Int ! Trip =
     for {
-      (hub, p1) <- flights(from).at[Trip]
-      _         <- book(from, hub).at[Trip]
-      (to, p2)  <- flights(hub).at[Trip]
-      _         <- book(hub, to).at[Trip]
+      (hub, p1) <- flights(from).into[Trip]
+      _         <- book(from, hub).into[Trip]
+      (to, p2)  <- flights(hub).into[Trip]
+      _         <- book(hub, to).into[Trip]
     } yield p1 + p2
 
   /** errors handled first, then the log, then the choice: each itinerary keeps its own */

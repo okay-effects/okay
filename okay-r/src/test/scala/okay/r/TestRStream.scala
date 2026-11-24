@@ -31,7 +31,7 @@ class TestRStream extends munit.FunSuite {
   override def afterAll(): Unit = if TestR.rscript.nonEmpty then r.close()
 
   private def numbers(n: Int): Unit ! Writer % Double + REval =
-    (1 to n).foldLeft(okay.pure[Unit, Writer % Double](()))((p, x) => p.flatMap(_ => Writer.tell(x.toDouble))).at[Writer % Double + REval]
+    (1 to n).foldLeft(okay.pure[Unit, Writer % Double](()))((p, x) => p.flatMap(_ => Writer.tell(x.toDouble))).into[Writer % Double + REval]
 
   private def run[O](p: Unit ! Writer % O + REval): List[O] = Writer.run(p).runWith._1.toList
 

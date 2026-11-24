@@ -14,7 +14,7 @@ import okay.std.*
  */
 class TestFlushDepth extends munit.FunSuite:
   private type R = Flush + (Writer % Int + Async)
-  private def tell(i: Int): Unit ! R = Writer.tell(i).at[R]
+  private def tell(i: Int): Unit ! R = Writer.tell(i).into[R]
   private def empty: Flushing[Int] = pure[Unit, R](())
 
   test("200 000 empty flushes in a row, then one element") {

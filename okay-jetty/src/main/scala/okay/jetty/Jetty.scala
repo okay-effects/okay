@@ -48,7 +48,7 @@ object Jetty {
   /** an already-configured client, for a caller who needs its builder */
   def of(c: JettyClient): Http = new Http:
     def send(r: Request): Response ! Async =
-      effect[Async, (Int, Seq[(String, String)], java.io.InputStream)](Async.Run { () =>
+      perform[Async, (Int, Seq[(String, String)], java.io.InputStream)](Async.Run { () =>
         val req: JRequest = c.newRequest(r.url).method(r.method.name)
         r.headers.foreach((k, v) => req.headers(h => { h.add(k, v); () }))
         r.body match

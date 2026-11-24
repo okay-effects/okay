@@ -105,7 +105,7 @@ class BenchCross extends munit.FunSuite:
   test("bench: rangeFold -- Source.range through runForeach, N elements") {
     lane("rangeFold") { () =>
       var sum = 0L
-      Source.range(0L, N.toLong).runForeach(x => effect[Async, Unit](Async.Run(() => sum += x)))
+      Source.range(0L, N.toLong).runForeach(x => perform[Async, Unit](Async.Run(() => sum += x)))
         .map(_ => sum)
     }
   }
@@ -113,7 +113,7 @@ class BenchCross extends munit.FunSuite:
   test("bench: channelElem -- Channel.buffer(1024).drained read one element at a time") {
     lane("channelElem") { () =>
       var sum = 0L
-      Channel.buffer(1024)(list).drained.runForeach(x => effect[Async, Unit](Async.Run(() => sum += x)))
+      Channel.buffer(1024)(list).drained.runForeach(x => perform[Async, Unit](Async.Run(() => sum += x)))
         .map(_ => sum)
     }
   }
@@ -121,7 +121,7 @@ class BenchCross extends munit.FunSuite:
   test("bench: channelChunks -- the same channel through drainedChunks") {
     lane("channelChunks") { () =>
       var sum = 0L
-      Channel.buffer(1024)(list).drainedChunks.runForeach(ch => effect[Async, Unit](Async.Run(() =>
+      Channel.buffer(1024)(list).drainedChunks.runForeach(ch => perform[Async, Unit](Async.Run(() =>
         var i = 0
         while i < ch.length do { sum += ch(i); i += 1 })))
         .map(_ => sum)

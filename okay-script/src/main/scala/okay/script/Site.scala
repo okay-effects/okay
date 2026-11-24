@@ -150,7 +150,7 @@ final class Site(
   private def pushOf(app: api.Live[?]): Source[Frame] =
     val eventsToFrames: Stage[Event, Frame, Unit] =
       Stage.transduce(())((_, e) => Stage.tell[Event, Frame](Frame.Text(Protocol.eventLine(e))), _ => pure(()))
-    through[Event, Frame, Async, Unit, Unit](app.push)(eventsToFrames.at[Take % Event + (Writer % Frame + Async)])
+    through[Event, Frame, Async, Unit, Unit](app.push)(eventsToFrames.into[Take % Event + (Writer % Frame + Async)])
 
   /** `key` is the session cookie, when the socket carries one: the
    * app resumes the state that key last reached (script-live-resume);

@@ -59,7 +59,7 @@ class TestLexical extends munit.FunSuite:
     case Coin() extends Flip[Boolean]
 
   /** every answer: the rest resumed once per side */
-  val all: Handler[Flip, List] = Handler.deep[Flip, List]([a] => (x: a) => List(x)) {
+  val all: Handler[Flip, List] = Handler.general[Flip, List]([a] => (x: a) => List(x)) {
     [a, X] => (e: Flip[X], k: X => List[a] ! Pure) => e match
       case Flip.Coin() => k(true).flatMap(xs => k(false).map(xs ++ _))
   }
@@ -97,9 +97,9 @@ class TestLexicalTail extends munit.FunSuite:
   /** the body both multi-shot tests run: pick one of three, read and bump the state */
   def pick(s: Lexical.Inst[State % Int]): Int ! Choose =
     for
-      x <- effect(Choose(Seq(1, 2, 3)))
-      v <- s.get.at[Choose]
-      _ <- s.set(v + x).at[Choose]
+      x <- perform(Choose(Seq(1, 2, 3)))
+      v <- s.get.into[Choose]
+      _ <- s.set(v + x).into[Choose]
     yield v
 
   test("multi-shot INSIDE the installation: tail threads the state through the branches exactly as deep does") {
@@ -119,7 +119,7 @@ class TestLexicalTail extends munit.FunSuite:
   /** resumes the rest twice, the answers of both */
   enum Twice[X]:
     case Go() extends Twice[Unit]
-  val twice: Handler[Twice, List] = Handler.deep[Twice, List]([a] => (x: a) => List(x))(
+  val twice: Handler[Twice, List] = Handler.general[Twice, List]([a] => (x: a) => List(x))(
     [a, X] => (e: Twice[X], k: X => List[a] ! Pure) => e match
       case Twice.Go() => k(()).flatMap(xs => k(()).map(xs ++ _)))
 
@@ -163,10 +163,10 @@ class TestLexicalDefault extends munit.FunSuite:
   }
 
   test("Lexical.handle installs any handler form: a state (Stateful) and an answering one, nested, each its own") {
-    val counter = Handler.state[State % Int, Int](7)([X] => (s: Int, e: State[Int, X]) => e match
+    val counter = Handler.stateful[State % Int, Int](7)([X] => (s: Int, e: State[Int, X]) => e match
       case State.Get() => (s, s)
       case State.Update(g) => { val (b, s1) = g(s); (s1, b) })
-    val ask = Handler.answering[Reader % Int]([X] => (e: Reader[Int, X]) => e match
+    val ask = Handler.tail[Reader % Int]([X] => (e: Reader[Int, X]) => e match
       case Reader.Ask() => 100
       case Reader.Asks(f) => f(100))
     val r = Lexical.handle(counter) { s =>

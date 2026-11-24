@@ -160,7 +160,7 @@ class TestChunks extends munit.FunSuite {
     // literal Nothing outside the library that defines them; this
     // test sidesteps it the same way production code will: G=Async)
     def run[A](p: A ! Async): A = (Async.run(p)).run
-    def feedOf(c: Chunks[Long]): Source[Chunk[Long]] = Writer.of(c.toLazyList).at[Writer % Chunk[Long] + Async]
+    def feedOf(c: Chunks[Long]): Source[Chunk[Long]] = Writer.of(c.toLazyList).into[Writer % Chunk[Long] + Async]
 
     val chunks = Chunks.range(0, 10000, 64)
     val feed = feedOf(chunks)
@@ -203,12 +203,12 @@ class TestChunks extends munit.FunSuite {
 
     def prog: Unit ! Writer % Int + Async =
       for
-        _ <- Writer.tell(1).at[Writer % Int + Async]
-        x <- async(2 + 3).at[Writer % Int + Async]
-        _ <- Writer.tell(x).at[Writer % Int + Async]
-        y <- async(x * 10).at[Writer % Int + Async]
-        _ <- Writer.tell(y).at[Writer % Int + Async]
-        _ <- Writer.tell(999).at[Writer % Int + Async]
+        _ <- Writer.tell(1).into[Writer % Int + Async]
+        x <- async(2 + 3).into[Writer % Int + Async]
+        _ <- Writer.tell(x).into[Writer % Int + Async]
+        y <- async(x * 10).into[Writer % Int + Async]
+        _ <- Writer.tell(y).into[Writer % Int + Async]
+        _ <- Writer.tell(999).into[Writer % Int + Async]
       yield ()
 
     val (expected, _) = run(Writer.run[Int, Unit, Writer % Int + Async](prog))
@@ -217,7 +217,7 @@ class TestChunks extends munit.FunSuite {
 
     // and the empty/no-G-op cases still agree too
     def onlyTells: Unit ! Writer % Int + Async =
-      Writer.tell(1).at[Writer % Int + Async].flatMap(_ => Writer.tell(2).at[Writer % Int + Async])
+      Writer.tell(1).into[Writer % Int + Async].flatMap(_ => Writer.tell(2).into[Writer % Int + Async])
     val (expectedTells, _) = run(Writer.run[Int, Unit, Writer % Int + Async](onlyTells))
     assertEquals(run(async(writerStreamIn[Unit, Async].iterator(onlyTells).toVector)), expectedTells.toVector)
 

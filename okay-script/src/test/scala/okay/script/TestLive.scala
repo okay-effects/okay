@@ -94,7 +94,7 @@ class TestLive extends munit.FunSuite:
     withSite { (site, _) =>
       val stage = site.ws(Request.get("/counter?__live=counter"))
       def press(k: String) = Frame.Text(Protocol.eventLine(Event.Pressed(k)))
-      val (out, _) = !.run(Writer.run(through(Writer.of(List(press("inc"), press("forged"), Frame.Close(1000, ""), press("inc"))).at[Writer % Frame])(stage)))
+      val (out, _) = !.run(Writer.run(through(Writer.of(List(press("inc"), press("forged"), Frame.Close(1000, ""), press("inc"))).into[Writer % Frame])(stage)))
       val lines = out.collect { case Frame.Text(s) => s }
       assertEquals(lines.length, 2, lines.toString)
       assertEquals(Protocol.treeOf(lines(0)), Some(Ui.Column(Vector(Ui.Text("count: 0"), Ui.Button("+1", "inc")))))

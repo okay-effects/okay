@@ -54,7 +54,7 @@ private[okay] object ReadyMerge:
     // consumer's continuation and it never parks itself
     defer:
       val r = new Run[A](sources, onPark, quantum, onRegister, waiting, pause, release)
-      effect[Async, Unit](Async.Run(Async.Enter(r.scope))).at[Writer % A + Async].flatMap(_ => r.again())
+      perform[Async, Unit](Async.Run(Async.Enter(r.scope))).into[Writer % A + Async].flatMap(_ => r.again())
 
   /** a registration's answer, when it came before the drive moved on */
   /** a tell: its value, and the rest past it */
@@ -216,8 +216,8 @@ private[okay] object ReadyMerge:
           val f = failure
           val done =
             if f == null then pure[Unit, R](())
-            else effect[Async, Unit](Async.Run[Unit](() => throw f)).at[R]
-          effect[Async, Unit](Async.Run(Async.Exit(scope))).at[R].flatMap(_ => done)
+            else perform[Async, Unit](Async.Run[Unit](() => throw f)).into[R]
+          perform[Async, Unit](Async.Run(Async.Exit(scope))).into[R].flatMap(_ => done)
       else
         val i = pop()
         // `resume` runs the source's own code (a `Bind(Return(x), f)`
@@ -239,7 +239,7 @@ private[okay] object ReadyMerge:
                 streak = 0
                 pushBack(i)
                 if idleN > 0 then pollIdle()
-              Writer.tell(w).at[R].flatMap(resumeMerge)
+              Writer.tell(w).into[R].flatMap(resumeMerge)
           case o: Walk.Op[Async, x, Walk.Step[Writer % A, Unit, R], Async] =>
             turn[x](i, o.op, o.resume, o.fail)
             step()
@@ -292,7 +292,7 @@ private[okay] object ReadyMerge:
      * reads the queue — Dekker's handshake, so a wake-up between the two
      * is seen by one side or the other */
     private def park(): Unit ! R =
-      effect[Async, Unit](Async.Await[Unit](parking)).at[R].flatMap(_ => again())
+      perform[Async, Unit](Async.Await[Unit](parking)).into[R].flatMap(_ => again())
 
     private val cancelling: () => Unit = () => cancelAll()
 

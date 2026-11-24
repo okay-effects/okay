@@ -69,7 +69,7 @@ class TestRpc extends munit.FunSuite {
       "   ",
       "garbage",
       s"{${q}jsonrpc$q:${q}2.0$q,${q}id$q:2,${q}result$q:{}}")
-    val (out, _) = !.run(Writer.run(through(Writer.of(lines).at[Writer % String])(Rpc.messages)))
+    val (out, _) = !.run(Writer.run(through(Writer.of(lines).into[Writer % String])(Rpc.messages)))
     assertEquals(out.length, 3)   // two good, one damaged; the blanks are framing
     assertEquals(out(0), Rpc.Request(Json.JNum(1), "ping", Json.JObj(Vector.empty)))
     assert(out(1).isInstanceOf[Rpc.Failed], out(1).toString)

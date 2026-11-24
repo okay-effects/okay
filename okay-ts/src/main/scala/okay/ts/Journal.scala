@@ -2,7 +2,7 @@ package okay.ts
 
 import scala.scalajs.js
 import okay.Async
-import okay.{!, effect, pure}
+import okay.{!, perform, pure}
 import okay.codec.Json
 
 /**
@@ -45,7 +45,7 @@ object Journal:
     private var opened: Option[js.Dynamic] = None
 
     private def request[A](make: => js.Dynamic)(done: js.Dynamic => A): A ! Async =
-      effect[Async, A](Async.Await[A] { k =>
+      perform[Async, A](Async.Await[A] { k =>
         val r = make
         r.onsuccess = (_: js.Any) => k(Right(done(r)))
         r.onerror = (_: js.Any) => k(Left(js.JavaScriptException(r.error)))
@@ -55,7 +55,7 @@ object Journal:
     private def db: js.Dynamic ! Async = opened match
       case Some(d) => pure(d)
       case None =>
-        effect[Async, js.Dynamic](Async.Await[js.Dynamic] { k =>
+        perform[Async, js.Dynamic](Async.Await[js.Dynamic] { k =>
           val r = js.Dynamic.global.indexedDB.open(name, 1)
           r.onupgradeneeded = (_: js.Any) => { val _ = r.result.createObjectStore("steps") }
           r.onsuccess = (_: js.Any) => { opened = Some(r.result); k(Right(r.result)) }
@@ -67,7 +67,7 @@ object Journal:
       js.Dynamic.global.IDBKeyRange.bound(js.Array[js.Any](flow, 0), js.Array[js.Any](flow, Double.PositiveInfinity))
 
     private def completed(tx: js.Dynamic): Unit ! Async =
-      effect[Async, Unit](Async.Await[Unit] { k =>
+      perform[Async, Unit](Async.Await[Unit] { k =>
         tx.oncomplete = (_: js.Any) => k(Right(()))
         tx.onerror = (_: js.Any) => k(Left(js.JavaScriptException(tx.error)))
         tx.onabort = (_: js.Any) => k(Left(js.JavaScriptException(tx.error)))

@@ -19,7 +19,7 @@ class TestReaderBridge extends munit.FunSuite:
     assertEquals(applied, 1)
     // one Ask per lift: count the operations by stepping
     var asks = 0
-    val counted = p.handle(Handler.answering[Reader % Int]([X] => (e: Reader[Int, X]) => e match
+    val counted = p.handle(Handler.tail[Reader % Int]([X] => (e: Reader[Int, X]) => e match
       case Reader.Ask() => asks += 1; 5
       case Reader.Asks(f) => asks += 1; f(5)))
     assertEquals(counted.run, 10)
@@ -37,15 +37,15 @@ class TestReaderBridge extends munit.FunSuite:
   test("a forwarded Asks is answered by the outer Reader") {
     type Fx = Reader % Int + Writer % String
     val p: Int ! Fx =
-      Reader.lift[Int, Int]((e: Int) ?=> e + 2).at[Fx].flatMap(n => Writer.tell(s"n=$n").at[Fx].map(_ => n))
+      Reader.lift[Int, Int]((e: Int) ?=> e + 2).into[Fx].flatMap(n => Writer.tell(s"n=$n").into[Fx].map(_ => n))
     assertEquals((Reader.run(5)(Writer.run(p))).run, (Seq("n=7"), 7))
   }
 
   test("unlift: a Reader program is a context function run under the ambient E, the rest forwarded") {
     type R = Reader % Int + Writer % String
     val p: Int ! R =
-      Reader.ask[Int].at[R].flatMap(e =>
-        Writer.tell(s"env=$e").at[R].map(_ => e + 1))
+      Reader.ask[Int].into[R].flatMap(e =>
+        Writer.tell(s"env=$e").into[R].map(_ => e + 1))
     val cf: Int ?=> Int ! Writer % String = Reader.unlift[Int, Int, R](p)
     val (log, a) = Writer.run(provide(41)(cf)).run
     assertEquals((log, a), (Seq("env=41"), 42))

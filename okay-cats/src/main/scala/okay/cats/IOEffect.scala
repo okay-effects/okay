@@ -13,7 +13,7 @@ import _root_.cats.effect.IO
 extension [A, R[_]](p: A ! R)
   /** a program over `IO` and `Async` as one IO: an IO operation is itself, an `Async` one is IO's own
    * (`IO.delay` / `IO.async`), a bind is one `flatMap` */
-  def toIO(using Within[R, IO + Async]): IO[A] = IOEffect.run(p.at[IO + Async])
+  def toIO(using Within[R, IO + Async]): IO[A] = IOEffect.run(p.into[IO + Async])
 
 object IOEffect:
   /** the program walked, for the reason [[CatsEffect.toIO]] gives */

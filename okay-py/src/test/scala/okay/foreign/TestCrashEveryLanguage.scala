@@ -1,7 +1,7 @@
 package okay.foreign
 
 
-import okay.{effect}
+import okay.{perform}
 
 
 import okay.std.{Choose, Reader, runChoice}
@@ -52,7 +52,7 @@ abstract class CrashConformance extends munit.FunSuite:
       p.destroyForcibly().waitFor(): Unit
     }
 
-  private val choose = Foreign.callback[Vector[Long], Long]("choose")(xs => effect[Choose, Long](Choose(xs)))
+  private val choose = Foreign.callback[Vector[Long], Long]("choose")(xs => perform[Choose, Long](Choose(xs)))
 
   test("killed between two choices: every branch of a multi-shot program comes back") {
     val w = ForeignWorker.supervised(open())
@@ -60,7 +60,7 @@ abstract class CrashConformance extends munit.FunSuite:
     var killed = false
     val choose = Foreign.callback[Vector[Long], Long]("choose") { xs =>
       if !killed && xs == Vector(10L, 20L) then { killed = true; kill() }
-      effect[Choose, Long](Choose(xs))
+      perform[Choose, Long](Choose(xs))
     }
     try
       val pairs = Foreign.program[Long](address("pairs")).calling(Foreign.callbacks(choose))()
@@ -83,7 +83,7 @@ abstract class CrashConformance extends munit.FunSuite:
       parked.countDown()
       parked.await(30, java.util.concurrent.TimeUnit.SECONDS): Unit
       if killedOnce.compareAndSet(false, true) then kill()
-      effect[Choose, Long](Choose(xs))
+      perform[Choose, Long](Choose(xs))
     }
     import scala.concurrent.{Await, ExecutionContext, Future}
     import scala.concurrent.duration.DurationInt

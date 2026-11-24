@@ -261,13 +261,13 @@ object McpAuth {
   private def discovering(http: Http, mcpUrl: String): Discovered ! Failing =
     for
       probe <- http.send(Request.post(mcpUrl, okay.http.Body.Text("{}"),
-        Seq(("content-type", "application/json")))).at[Failing]
+        Seq(("content-type", "application/json")))).into[Failing]
       _ <- when(probe.status != 401, s"the server did not challenge (HTTP ${probe.status}) — it may be open")
       metaUrl <- present(probe.header("www-authenticate").flatMap(resourceMetadataUrl),
         "the 401 carried no resource_metadata")
-      doc <- fetchJson(http, metaUrl).at[Failing].flatMap(right(_, "resource metadata"))
+      doc <- fetchJson(http, metaUrl).into[Failing].flatMap(right(_, "resource metadata"))
       as <- present(firstAuthServer(doc), "the resource metadata names no authorization server")
-      asDoc <- fetchJson(http, asMetadataUrl(as)).at[Failing].flatMap(right(_, "authorization server metadata"))
+      asDoc <- fetchJson(http, asMetadataUrl(as)).into[Failing].flatMap(right(_, "authorization server metadata"))
       ends <- present(str(asDoc, "authorization_endpoint").zip(str(asDoc, "token_endpoint")),
         "the AS metadata lacks endpoints")
     yield Discovered(str(doc, "resource").getOrElse(mcpUrl), as, ends._1, ends._2)
@@ -285,7 +285,7 @@ object McpAuth {
       d <- discovering(http, mcpUrl)
       client = OAuth2.Client(clientId, secret, d.authEndpoint,
         d.tokenEndpoint, "urn:ietf:wg:oauth:2.0:oob", scopes)
-      tokens <- OAuth2.clientCredentials(http, client).at[Failing].flatMap(right(_, "token endpoint"))
+      tokens <- OAuth2.clientCredentials(http, client).into[Failing].flatMap(right(_, "token endpoint"))
     yield
       // the supplier holds the token; refresh rotation can swap it
       // without rebuilding the link
@@ -296,13 +296,13 @@ object McpAuth {
   private type Failing = Throws % String + Async
 
   private def when(bad: Boolean, why: => String): Unit ! Failing =
-    if bad then raise[String, Unit](why).at[Failing] else pure(())
+    if bad then raise[String, Unit](why).into[Failing] else pure(())
 
   private def present[A](o: Option[A], why: => String): A ! Failing =
-    o.fold(raise[String, A](why).at[Failing])(pure)
+    o.fold(raise[String, A](why).into[Failing])(pure)
 
   private def right[A](e: Either[String, A], label: String): A ! Failing =
-    e.fold(m => raise[String, A](s"$label: $m").at[Failing], pure)
+    e.fold(m => raise[String, A](s"$label: $m").into[Failing], pure)
 
   // ---------------------------------------------------------------- small parts
 

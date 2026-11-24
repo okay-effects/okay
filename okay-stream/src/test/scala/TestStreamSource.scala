@@ -83,7 +83,7 @@ class TestStreamSource extends munit.FunSuite {
     // ends, so nothing can trigger an emission
     def trickle: Source[Int] =
       Source.of(List(1, 2, 3)).flatMap(_ =>
-        (Async.sleep(60000)).at[Writer % Int + Async])
+        (Async.sleep(60000)).into[Writer % Int + Async])
     val merged = trickle.merge(trickle, chunked = true)
     val f = java.util.concurrent.CompletableFuture.supplyAsync(() =>
       merged.toLazyList.take(3).toList)
@@ -96,7 +96,7 @@ class TestStreamSource extends munit.FunSuite {
   test("merge(chunked, flushAfter) delivers a partial chunk from a source that never ends") {
     def trickle: Source[Int] =
       Source.of(List(1, 2, 3)).flatMap(_ =>
-        (Async.sleep(60000)).at[Writer % Int + Async])
+        (Async.sleep(60000)).into[Writer % Int + Async])
     val merged = trickle.merge(trickle, chunked = true, flushAfter = Some(50))
     val f = java.util.concurrent.CompletableFuture.supplyAsync(() =>
       merged.toLazyList.take(6).toList)
@@ -119,11 +119,11 @@ class TestStreamSource extends munit.FunSuite {
     // three elements (fewer than a chunk), an explicit boundary, then
     // a source that never ends: only the Flush can get them out
     def marked: Flushing[Int] =
-      Writer.tell(1).at[R]
-        .flatMap(_ => Writer.tell(2).at[R])
-        .flatMap(_ => Writer.tell(3).at[R])
+      Writer.tell(1).into[R]
+        .flatMap(_ => Writer.tell(2).into[R])
+        .flatMap(_ => Writer.tell(3).into[R])
         .flatMap(_ => Flush.now[Writer % Int + Async])
-        .flatMap(_ => effect[Async, Unit](Async.Run(() => Thread.sleep(60000))).at[R])
+        .flatMap(_ => perform[Async, Unit](Async.Run(() => Thread.sleep(60000))).into[R])
 
     // no flushAfter: the boundary is the ONLY thing that can emit
     val f = java.util.concurrent.CompletableFuture.supplyAsync(() =>
@@ -138,7 +138,7 @@ class TestStreamSource extends munit.FunSuite {
     // full chunk, the boundary sends 2, the rest flush at the end
     def many: Flushing[Int] =
       (1 to 20).foldLeft(pure[Unit, R](())): (m, i) =>
-        m.flatMap(_ => Writer.tell(i).at[R])
+        m.flatMap(_ => Writer.tell(i).into[R])
           .flatMap(_ => if i == 18 then Flush.now[Writer % Int + Async] else pure(()))
     val out = many.mergeFlushing(pure[Unit, Flush + (Writer % Int + Async)](()))
       .toLazyList.toList
@@ -178,11 +178,11 @@ class TestStreamSource extends munit.FunSuite {
   test("eitherFlushing: mergeFlushing's boundaries, elements tagged by side") {
     type R = Flush + (Writer % Int + Async)
     def marked(base: Int): Flushing[Int] =
-      Writer.tell(base + 1).at[R]
-        .flatMap(_ => Writer.tell(base + 2).at[R])
-        .flatMap(_ => Writer.tell(base + 3).at[R])
+      Writer.tell(base + 1).into[R]
+        .flatMap(_ => Writer.tell(base + 2).into[R])
+        .flatMap(_ => Writer.tell(base + 3).into[R])
         .flatMap(_ => Flush.now[Writer % Int + Async])
-        .flatMap(_ => effect[Async, Unit](Async.Run(() => Thread.sleep(60000))).at[R])
+        .flatMap(_ => perform[Async, Unit](Async.Run(() => Thread.sleep(60000))).into[R])
 
     val f = java.util.concurrent.CompletableFuture.supplyAsync(() =>
       marked(0).eitherFlushing(marked(100)).toLazyList.take(6).toList)

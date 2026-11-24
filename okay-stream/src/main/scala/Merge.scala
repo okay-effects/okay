@@ -90,8 +90,8 @@ object Merge:
       defer:
         val ch = Channel.merge[A, S, Async, S, Async](l, r, capacity)
         val scope = Async.CancelScope(closing(ch))
-        effect[Async, Unit](Async.Run(Async.Enter(scope))).at[Writer % A + Async]
-          .flatMap(_ => ch.drainedThen(effect[Async, Unit](Async.Run(Async.Exit(scope))).at[Writer % A + Async]))
+        perform[Async, Unit](Async.Run(Async.Enter(scope))).into[Writer % A + Async]
+          .flatMap(_ => ch.drainedThen(perform[Async, Unit](Async.Run(Async.Exit(scope))).into[Writer % A + Async]))
     def chunks[A](l: Source[A], r: Source[A], slots: Int, size: Int, within: Option[Long])
                  (using Scheduler, CanBlock, Timer, Wait, Pause): Source[Chunk[A]] =
       val ch = Channel.mergeChunked[A, S, Async, S, Async](l, r, slots, size, within)

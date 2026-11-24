@@ -5,7 +5,7 @@ import scala.language.implicitConversions
 import okay.{Async, Source}
 
 import okay.{+, %}
-import okay.{!, effect}
+import okay.{!, perform}
 import okay.std.{Chunk, Resource, Stream, Throws, Writer}
 import okay.given
 import okay.std.given
@@ -139,7 +139,7 @@ class TestPg extends munit.FunSuite {
       val prog = Typed.transact[Long, G](db, Isolation.ReadCommitted) { _ =>
         !.widen[Long, Async, Resource + G](
           db.update("insert into customer(id, user_name, balance, active) values (30, 'tx', 1, true)"))
-          .flatMap(_ => effect(Throws("no")))
+          .flatMap(_ => perform(Throws("no")))
       }
       val out = !.run(Async.run(
         Resource.run(

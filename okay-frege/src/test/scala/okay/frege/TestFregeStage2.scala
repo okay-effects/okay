@@ -23,7 +23,7 @@ class TestFregeStage2 extends munit.FunSuite {
   /** a producer already in the stage's extra row, as okay-stream's
    * effectful `through` takes it */
   def emitIn[I, G[_]](xs: Seq[I]): Unit ! Writer % I + G =
-    xs.foldRight(pure[Unit, Writer % I + G](()))((x, p) => Writer.tell(x).at[Writer % I + G].flatMap(_ => p))
+    xs.foldRight(pure[Unit, Writer % I + G](()))((x, p) => Writer.tell(x).into[Writer % I + G].flatMap(_ => p))
 
   // --------------------------------------------------- effectful stage
 

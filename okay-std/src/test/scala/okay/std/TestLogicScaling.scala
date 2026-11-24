@@ -1,6 +1,6 @@
 package okay.std
 
-import okay.{!, +, %, effect, pure}
+import okay.{!, +, %, perform, pure}
 
 /** msplit and what derives from it are LINEAR in the work of the search (LogicT's msplit): the rest of a split is
  * the remaining search, resumed — never re-run from an earlier point, no layer of reflection per answer */
@@ -10,7 +10,7 @@ class TestLogicScaling extends munit.FunSuite {
 
   /** the benchmark's tree (LogicBenchmark.observe_tree): 2^d leaves */
   def tree(d: Int): Int ! R =
-    if d == 0 then pure(1) else effect[Choose, Int](Choose(Seq(0, 1))).flatMap(x => tree(d - 1).map(_ + x))
+    if d == 0 then pure(1) else perform[Choose, Int](Choose(Seq(0, 1))).flatMap(x => tree(d - 1).map(_ + x))
 
   def observeAll(d: Int): Seq[Int] = Logic.observe[Int, R](1 << d)(tree(d)).run
 
@@ -39,9 +39,9 @@ class TestLogicScaling extends munit.FunSuite {
   }
 
   test("the derived words keep their meaning") {
-    def amb[A](as: A*): A ! R = effect[Choose, A](Choose(as))
-    def fail[A]: A ! R = effect[Choose, A](Choose(Seq.empty))
-    def nats: Long ! R = effect[Choose, Long](Choose(LazyList.from(0).map(_.toLong)))
+    def amb[A](as: A*): A ! R = perform[Choose, A](Choose(as))
+    def fail[A]: A ! R = perform[Choose, A](Choose(Seq.empty))
+    def nats: Long ! R = perform[Choose, Long](Choose(LazyList.from(0).map(_.toLong)))
 
     val Some((a, rest)) = Logic.msplit[Int, R](amb(1, 2, 3)).run: @unchecked
     assertEquals(a, 1)
@@ -73,8 +73,8 @@ class TestLogicScaling extends munit.FunSuite {
   test("effects forward through the search: a Writer on the crossed path, once") {
     type F = Writer % String
     val prog: Int ! Choose + F =
-      effect[Choose, Int](Choose(Seq(1, 2, 3))).at[Choose + F].flatMap(x =>
-        effect[F, Unit](Writer.Say(s"seen $x")).at[Choose + F].map(_ => x * 10))
+      perform[Choose, Int](Choose(Seq(1, 2, 3))).into[Choose + F].flatMap(x =>
+        perform[F, Unit](Writer.Say(s"seen $x")).into[Choose + F].map(_ => x * 10))
     val (told, found) = Writer.run[String, Seq[Int], F](Logic.observe[Int, Choose + F](2)(prog)).run
     assertEquals(found, Seq(10, 20))
     assertEquals(told, Seq("seen 1", "seen 2"))

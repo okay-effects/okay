@@ -51,7 +51,7 @@ class TestSourceJoin extends munit.FunSuite with okay.testkit.Munit.Diagnosed {
     val produced = AtomicInteger(0)
     @volatile var feeder: Thread | Null = null
     val endless: Source[(Int, Int)] =
-      effect[Async, Unit](Async.Run(() => feeder = Thread.currentThread())).at[Writer % (Int, Int) + Async]
+      perform[Async, Unit](Async.Run(() => feeder = Thread.currentThread())).into[Writer % (Int, Int) + Async]
         .flatMap(_ => Source.of(LazyList.from(0).map(i => { produced.incrementAndGet(); (i, i) })))
     val out = rows(Source.joinSorted(Source.of(List((1, "a"))), endless, capacity = 4))
     assertEquals(out, Vector((1, ("a", 1))))
@@ -91,7 +91,7 @@ class TestSourceJoin extends munit.FunSuite with okay.testkit.Munit.Diagnosed {
   test("a side that fails fails the join, after every pair told before the failure") {
     object Boom extends RuntimeException("boom")
     val failing: Source[(Int, String)] =
-      Source.of(List((0, "x"), (1, "y"))).flatMap(_ => effect[Async, Unit](Async.Run[Unit](() => throw Boom)).at[R])
+      Source.of(List((0, "x"), (1, "y"))).flatMap(_ => perform[Async, Unit](Async.Run[Unit](() => throw Boom)).into[R])
     val seen = scala.collection.mutable.ArrayBuffer.empty[(Int, (Int, String))]
     val j = Source.joinSorted(Source.of(LazyList.from(0).map(i => (i, i))), failing, capacity = 64)
     val thrown = intercept[RuntimeException](j.runForeach(p => pure[Unit, Async] { seen += p; () }).runWith)

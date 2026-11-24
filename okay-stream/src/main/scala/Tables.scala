@@ -195,49 +195,49 @@ object Tables:
     def empty[D[_]]: Heap[D] = Heap(0, Map.empty, Map.empty)
 
   // --------------------------------------------------------- sources
-  inline def of[A](xs: Iterable[A]): Table[A] ! Tables = effect(Of(xs))
-  inline def read(path: String): Table[okay.Csv.Row] ! Tables = effect(Read(path))
+  inline def of[A](xs: Iterable[A]): Table[A] ! Tables = perform(Of(xs))
+  inline def read(path: String): Table[okay.Csv.Row] ! Tables = perform(Read(path))
 
   extension (t: Table[okay.Csv.Row])
     /** keep these columns — structural, so the rewrite can push it into the read */
-    inline def columns(names: String*): Table[okay.Csv.Row] ! Tables = effect(Columns(t, names.toSet))
+    inline def columns(names: String*): Table[okay.Csv.Row] ! Tables = perform(Columns(t, names.toSet))
   extension [F[_]](p: Table[okay.Csv.Row] ! F)(using Within[Tables, F])
-    def columns(names: String*): Table[okay.Csv.Row] ! F = p.flatMap(t => t.columns(names*).at[F])
+    def columns(names: String*): Table[okay.Csv.Row] ! F = p.flatMap(t => t.columns(names*).into[F])
 
   // ------------------------------------------- on a handle: ! Tables
   extension [A](t: Table[A])
-    inline def select[B](f: A => B): Table[B] ! Tables = effect(Select(t, f))
-    inline def expand[B](f: A => IterableOnce[B]): Table[B] ! Tables = effect(Expand(t, f))
-    inline def where(p: A => Boolean): Table[A] ! Tables = effect(Where(t, p))
-    inline def cache: Table[A] ! Tables = effect(Cache(t))
-    inline def aggregate[Acc, Out](agg: Aggregator[A, Acc, Out]): Out ! Tables = effect(Aggregate(t, agg))
-    inline def collect: Chunks[A] ! Tables = effect(Collect(t))
+    inline def select[B](f: A => B): Table[B] ! Tables = perform(Select(t, f))
+    inline def expand[B](f: A => IterableOnce[B]): Table[B] ! Tables = perform(Expand(t, f))
+    inline def where(p: A => Boolean): Table[A] ! Tables = perform(Where(t, p))
+    inline def cache: Table[A] ! Tables = perform(Cache(t))
+    inline def aggregate[Acc, Out](agg: Aggregator[A, Acc, Out]): Out ! Tables = perform(Aggregate(t, agg))
+    inline def collect: Chunks[A] ! Tables = perform(Collect(t))
   extension [K, A](l: Table[(K, A)])
     /** the equi-join; the plan picks how (`JoinStrategy.Auto`) */
-    inline def join[B](r: Table[(K, B)]): Table[(K, (A, B))] ! Tables = effect(Join(l, r, JoinStrategy.Auto()))
+    inline def join[B](r: Table[(K, B)]): Table[(K, (A, B))] ! Tables = perform(Join(l, r, JoinStrategy.Auto()))
     /** the equi-join, the way the program says */
-    inline def join[B](r: Table[(K, B)], how: JoinStrategy[K]): Table[(K, (A, B))] ! Tables = effect(Join(l, r, how))
-    inline def sortByKey(using ord: Ordering[K]): Table[(K, A)] ! Tables = effect(SortByKey(l, ord))
-    inline def assumeSortedByKey(using ord: Ordering[K]): Table[(K, A)] ! Tables = effect(OrderedByKey(l, ord))
+    inline def join[B](r: Table[(K, B)], how: JoinStrategy[K]): Table[(K, (A, B))] ! Tables = perform(Join(l, r, how))
+    inline def sortByKey(using ord: Ordering[K]): Table[(K, A)] ! Tables = perform(SortByKey(l, ord))
+    inline def assumeSortedByKey(using ord: Ordering[K]): Table[(K, A)] ! Tables = perform(OrderedByKey(l, ord))
 
   // ------------------------- on a program: any row that has Tables
   extension [A, F[_]](p: Table[A] ! F)(using Within[Tables, F])
-    def select[B](f: A => B): Table[B] ! F = p.flatMap(t => t.select(f).at[F])
-    def expand[B](f: A => IterableOnce[B]): Table[B] ! F = p.flatMap(t => t.expand(f).at[F])
-    def where(q: A => Boolean): Table[A] ! F = p.flatMap(t => t.where(q).at[F])
-    def cache: Table[A] ! F = p.flatMap(t => t.cache.at[F])
-    def aggregate[Acc, Out](agg: Aggregator[A, Acc, Out]): Out ! F = p.flatMap(t => t.aggregate(agg).at[F])
-    def collect: Chunks[A] ! F = p.flatMap(t => t.collect.at[F])
+    def select[B](f: A => B): Table[B] ! F = p.flatMap(t => t.select(f).into[F])
+    def expand[B](f: A => IterableOnce[B]): Table[B] ! F = p.flatMap(t => t.expand(f).into[F])
+    def where(q: A => Boolean): Table[A] ! F = p.flatMap(t => t.where(q).into[F])
+    def cache: Table[A] ! F = p.flatMap(t => t.cache.into[F])
+    def aggregate[Acc, Out](agg: Aggregator[A, Acc, Out]): Out ! F = p.flatMap(t => t.aggregate(agg).into[F])
+    def collect: Chunks[A] ! F = p.flatMap(t => t.collect.into[F])
   extension [K, A, F[_]](l: Table[(K, A)] ! F)(using Within[Tables, F])
     def join[B](r: Table[(K, B)] ! F): Table[(K, (A, B))] ! F =
-      l.flatMap(lt => r.flatMap(rt => lt.join(rt).at[F]))
+      l.flatMap(lt => r.flatMap(rt => lt.join(rt).into[F]))
     def join[B](r: Table[(K, B)] ! F, how: JoinStrategy[K]): Table[(K, (A, B))] ! F =
-      l.flatMap(lt => r.flatMap(rt => lt.join(rt, how).at[F]))
-    def sortByKey(using Ordering[K]): Table[(K, A)] ! F = l.flatMap(t => t.sortByKey.at[F])
-    def assumeSortedByKey(using Ordering[K]): Table[(K, A)] ! F = l.flatMap(t => t.assumeSortedByKey.at[F])
+      l.flatMap(lt => r.flatMap(rt => lt.join(rt, how).into[F]))
+    def sortByKey(using Ordering[K]): Table[(K, A)] ! F = l.flatMap(t => t.sortByKey.into[F])
+    def assumeSortedByKey(using Ordering[K]): Table[(K, A)] ! F = l.flatMap(t => t.assumeSortedByKey.into[F])
     /** the right side already a handle — a table bound earlier in direct style */
     def join[B](r: Table[(K, B)]): Table[(K, (A, B))] ! F =
-      l.flatMap(lt => lt.join(r).at[F])
+      l.flatMap(lt => lt.join(r).into[F])
 
   /**
    * The platform, as a translation: a building operation becomes a
@@ -299,9 +299,9 @@ object Sort:
   import Tables.Table
 
   extension [A](t: Table[A])
-    inline def sortBy[K](key: A => K)(using ord: Ordering[K]): Table[A] ! Sort = effect(By(t, key, ord))
+    inline def sortBy[K](key: A => K)(using ord: Ordering[K]): Table[A] ! Sort = perform(By(t, key, ord))
   extension [A, F[_]](p: Table[A] ! F)(using Within[Sort, F])
-    def sortBy[K](key: A => K)(using ord: Ordering[K]): Table[A] ! F = p.flatMap(t => t.sortBy(key).at[F])
+    def sortBy[K](key: A => K)(using ord: Ordering[K]): Table[A] ! F = p.flatMap(t => t.sortBy(key).into[F])
 
   /** the default: through the primitives, so it runs on any platform — into the `Tables` the program has
    * already (one place, not two) */

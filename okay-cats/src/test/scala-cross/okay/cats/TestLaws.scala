@@ -3,7 +3,7 @@ package okay.cats
 import _root_.cats.Eq
 import _root_.cats.laws.discipline.{MonadErrorTests, MonadTests}
 import okay.{%, +, Pure}
-import okay.{!, effect, pure}
+import okay.{!, perform, pure}
 import okay.std.{Throws, runEither}
 import okay.given
 import org.scalacheck.{Arbitrary, Gen}
@@ -44,7 +44,7 @@ class TestLaws extends munit.ScalaCheckSuite {
 
   given [A](using a: Arbitrary[A]): Arbitrary[PE[A]] = Arbitrary(Gen.oneOf(
     a.arbitrary.map(x => (pure(x): PE[A])),
-    Gen.alphaStr.map(e => effect[Throws % String, A](Throws(e)).at[Throws % String + Pure]),
+    Gen.alphaStr.map(e => perform[Throws % String, A](Throws(e)).into[Throws % String + Pure]),
     for x <- a.arbitrary; y <- a.arbitrary
     yield (pure(y): PE[A]).flatMap(_ => pure(x)),
   ))

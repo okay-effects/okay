@@ -20,8 +20,8 @@ class TestSharedResource extends munit.FunSuite:
 
   /** a scope acquiring "a", then a choice among `xs`, each branch logging its use */
   def shared(log: Log)(xs: Seq[Int]): Int ! R =
-    Resource.run(Resource.acquire("a")(x => log += s"release $x").at[Resource + R].flatMap(_ =>
-      effect[Choose, Int](Choose(xs)).at[Resource + R].map { x => log += s"use $x"; x }))
+    Resource.run(Resource.acquire("a")(x => log += s"release $x").into[Resource + R].flatMap(_ =>
+      perform[Choose, Int](Choose(xs)).into[Resource + R].map { x => log += s"use $x"; x }))
 
   test("every branch: the shared resource released once, after the last branch") {
     val log: Log = scala.collection.mutable.ArrayBuffer.empty
@@ -56,10 +56,10 @@ class TestSharedResource extends munit.FunSuite:
   test("a scope inside each branch: its own resource once per branch, the shared one once") {
     val log: Log = scala.collection.mutable.ArrayBuffer.empty
     val p: Int ! R =
-      Resource.run(Resource.acquire("a")(x => log += s"release $x").at[Resource + R].flatMap(_ =>
-        effect[Choose, Int](Choose(Seq(1, 2))).at[Resource + R].flatMap(x =>
-          Resource.run(Resource.acquire(s"b$x")(y => log += s"release $y").at[Resource + R].flatMap(_ =>
-            effect[Choose, Int](Choose(Seq(10, 20))).at[Resource + R].map(y => x + y))).at[Resource + R])))
+      Resource.run(Resource.acquire("a")(x => log += s"release $x").into[Resource + R].flatMap(_ =>
+        perform[Choose, Int](Choose(Seq(1, 2))).into[Resource + R].flatMap(x =>
+          Resource.run(Resource.acquire(s"b$x")(y => log += s"release $y").into[Resource + R].flatMap(_ =>
+            perform[Choose, Int](Choose(Seq(10, 20))).into[Resource + R].map(y => x + y))).into[Resource + R])))
     assertEquals(runChoice(p).run, Seq(11, 21, 12, 22))
     assertEquals(log.toList, List("release b1", "release b2", "release a"))
   }

@@ -152,12 +152,12 @@ object Foreign {
       new Member[F + G]:
         def test(x: Any): Boolean = f.test(x) || g.test(x)
         def perform(x: AnyRef): AnyRef ! F + G =
-          if f.test(x) then f.perform(x).at[F + G] else g.perform(x).at[F + G]
+          if f.test(x) then f.perform(x).into[F + G] else g.perform(x).into[F + G]
 
   object Member:
     given one[F[_]](using t: TypeableK[F], k: okay.KeyOf[F]): Member[F] = new Member[F]:
       def test(x: Any): Boolean = t.test(x)
-      def perform(x: AnyRef): AnyRef ! F = effect[F, Any](asOperation[F](x)).map(obj)
+      def perform(x: AnyRef): AnyRef ! F = okay.perform[F, Any](asOperation[F](x)).map(obj)
     /** no effects: nothing is an operation of them */
     given pure: Member[Pure] = new Member[Pure]:
       def test(x: Any): Boolean = false
@@ -192,15 +192,16 @@ object Foreign {
     type R = Take % I + (Writer % O + F)
     def go(p: P): Unit ! R = v.kind(p) match
       case Done => pure(())
-      case Await => effect[Take % I, Option[I]](Take.Await()).at[R].flatMap(in => go(v.resume(p, in.fold(null)(obj))))
-      case Tell => Writer.tell(as[O](v.payload(p), s"$name's tell", v.who)).at[R].flatMap(_ => go(v.resume(p, null)))
+      case Await => perform[Take % I, Option[I]](Take.Await()).into[R]
+        .flatMap(in => go(v.resume(p, in.fold(null)(obj))))
+      case Tell => Writer.tell(as[O](v.payload(p), s"$name's tell", v.who)).into[R].flatMap(_ => go(v.resume(p, null)))
       case Lift => v.liftAsOperation(p).flatMap(m.operation) match
-        case Some(o) => o.at[R].flatMap(x => go(v.resume(p, x)))
+        case Some(o) => o.into[R].flatMap(x => go(v.resume(p, x)))
         case None => defer(go(v.resume(p, v.lift(p))))
       case _ =>
         val raw = v.payload(p)
         m.operation(raw) match
-          case Some(o) => o.at[R].flatMap(x => go(v.resume(p, x)))
+          case Some(o) => o.into[R].flatMap(x => go(v.resume(p, x)))
           case None => throw IllegalArgumentException(
             s"${v.who}: $name performed ${described(raw)}, which is not an operation of this " +
               "stage's row (a stage's own are await and tell; stageWith[I, O, F] adds F)")

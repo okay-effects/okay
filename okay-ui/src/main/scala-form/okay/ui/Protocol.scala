@@ -214,7 +214,7 @@ ${describe(Vector(summon[Schema[Msg]], summon[Schema[Ui]], summon[Schema[Event]]
       Msg.Event(Event.Submitted("f", Vector(Event.Edited("name", "ada"), Event.Toggled("even", true)))),
       Msg.Event(Event.Pressed("dec")), Msg.Event(Event.Closed))
       .map(line)
-    val (received, _) = Writer.run[String, Int, Writer % String](through(Writer.of(sent.toList).at[Writer % String])(Wire.serve(0)(view)(update))).run
+    val (received, _) = Writer.run[String, Int, Writer % String](through(Writer.of(sent.toList).into[Writer % String])(Wire.serve(0)(view)(update))).run
     // interleave as the client sees them: hello, tree, then each event and its patches
     var tree: Ui = Ui.Text("")
     def record(l: String): String =

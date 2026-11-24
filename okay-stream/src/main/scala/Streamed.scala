@@ -46,31 +46,31 @@ object Streamed:
   // ------------------------------------------- on a handle: ! Streamed
   extension [K, A](l: Table[(K, A)])
     inline def joinSorted[B](r: Table[(K, B)])(using ord: Ordering[K]): Table[(K, (A, B))] ! Streamed =
-      effect(JoinSorted(l, r, ord))
+      perform(JoinSorted(l, r, ord))
     inline def joinWithin[B](r: Table[(K, B)], within: Long, lateness: Long)
                             (atL: A => Long, atR: B => Long): Table[(K, (A, B))] ! Streamed =
-      effect(JoinWithin(l, r, within, lateness, atL, atR))
+      perform(JoinWithin(l, r, within, lateness, atL, atR))
   extension [A](t: Table[A])
     inline def windowed[K, Acc, O](size: Long, slide: Long, lateness: Long)
                                   (key: A => K)(at: A => Long)
                                   (agg: Aggregator[A, Acc, O]): Table[Pane[K, O]] ! Streamed =
-      effect(Windowed(t, size, slide, lateness, key, at, agg))
-    inline def zip[B](r: Table[B]): Table[(A, B)] ! Streamed = effect(Zip(t, r))
+      perform(Windowed(t, size, slide, lateness, key, at, agg))
+    inline def zip[B](r: Table[B]): Table[(A, B)] ! Streamed = perform(Zip(t, r))
 
   // ------------------------- on a program: any row that has Streamed
   extension [K, A, F[_]](l: Table[(K, A)] ! F)(using Within[Streamed, F])
     def joinSorted[B](r: Table[(K, B)] ! F)(using Ordering[K]): Table[(K, (A, B))] ! F =
-      l.flatMap(lt => r.flatMap(rt => lt.joinSorted(rt).at[F]))
+      l.flatMap(lt => r.flatMap(rt => lt.joinSorted(rt).into[F]))
     def joinWithin[B](r: Table[(K, B)] ! F, within: Long, lateness: Long)
                      (atL: A => Long, atR: B => Long): Table[(K, (A, B))] ! F =
-      l.flatMap(lt => r.flatMap(rt => lt.joinWithin(rt, within, lateness)(atL, atR).at[F]))
+      l.flatMap(lt => r.flatMap(rt => lt.joinWithin(rt, within, lateness)(atL, atR).into[F]))
   extension [A, F[_]](p: Table[A] ! F)(using Within[Streamed, F])
     def windowed[K, Acc, O](size: Long, slide: Long, lateness: Long)
                            (key: A => K)(at: A => Long)
                            (agg: Aggregator[A, Acc, O]): Table[Pane[K, O]] ! F =
-      p.flatMap(t => t.windowed(size, slide, lateness)(key)(at)(agg).at[F])
+      p.flatMap(t => t.windowed(size, slide, lateness)(key)(at)(agg).into[F])
     def zip[B](r: Table[B] ! F): Table[(A, B)] ! F =
-      p.flatMap(t => r.flatMap(rt => t.zip(rt).at[F]))
+      p.flatMap(t => r.flatMap(rt => t.zip(rt).into[F]))
 
   // ------------------------------------------------ the local machines
   /** the interval join of two bounded sides, each fed in its time order */

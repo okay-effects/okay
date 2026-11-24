@@ -59,7 +59,7 @@ final class Breaker(val name: String, failures: Int, openMillis: Long,
   def protectIn[A, F[_]](prog: => A ! F + Async)
                         (failing: Either[Throwable, A] => Boolean = (r: Either[Throwable, A]) => r.isLeft)
                         : A ! F + Async =
-    okay.async(admit()).at[F + Async].flatMap {
+    okay.async(admit()).into[F + Async].flatMap {
       case Some(wait) => throw Refused.BreakerOpen(name, wait)
       case None =>
         Attempt.in[A, F + Async](prog).map { r =>

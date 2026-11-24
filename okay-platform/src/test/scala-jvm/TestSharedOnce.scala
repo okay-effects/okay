@@ -19,7 +19,7 @@ class TestSharedOnce extends munit.FunSuite:
   /** counts its runs, and takes long enough for the second demand to
    * arrive while the first is in flight */
   def slow(runs: AtomicInteger): Int ! Once + Async =
-    Once.once[Int, Async](effect(Async.Run(() => { runs.incrementAndGet(); Thread.sleep(30) })).map(_ => 42))
+    Once.once[Int, Async](perform(Async.Run(() => { runs.incrementAndGet(); Thread.sleep(30) })).map(_ => 42))
 
   test("one handle, two fibres, one store: the program runs once and the second fibre waits for its answer") {
     val runs = AtomicInteger(0)
@@ -52,8 +52,8 @@ class TestSharedOnce extends munit.FunSuite:
     val store = SharedOnce()
     val p: Int ! (Once + (Async + Writer % String)) =
       Once.once[Int, Async + Writer % String](
-        effect(Async.Run(() => { runs.incrementAndGet(); () }))
-          .flatMap(_ => effect(Writer("ran"))).map(_ => 7))
+        perform(Async.Run(() => { runs.incrementAndGet(); () }))
+          .flatMap(_ => perform(Writer("ran"))).map(_ => 7))
     val twice = p.flatMap(x => p.map(y => x + y))
     val (log, n) = Writer.run(store.runIn(twice)).runWith
     assertEquals(n, 14)

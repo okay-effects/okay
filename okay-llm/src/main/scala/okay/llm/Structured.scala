@@ -57,7 +57,7 @@ object Structured {
 
     // the Async operations answered in place by `h` as the walk pulls; the tells walked one by one
     val told: Unit ! Writer % String =
-      tokens.handle(Handler.answering[Async]([X] => (op: Async[X]) => h.handle(op)))
+      tokens.handle(Handler.tail[Async]([X] => (op: Async[X]) => h.handle(op)))
 
     @tailrec def walk(rest: Unit ! Writer % String): Cut[A] = Walk.view(rest) match
       case Walk.Done(_) => Cut(None, text, count, stopped = false)

@@ -447,7 +447,7 @@ object Fleet:
         case Left(_) => pure(())
         case Right((chunk, more)) =>
           val evs = chunk.iterator.flatMap(r => event(Json.parse(new String(r.value, "UTF-8")))).toList
-          !.each(evs)(e => effect(Writer(e))).flatMap(_ => go(more))
+          !.each(evs)(e => perform(Writer(e))).flatMap(_ => go(more))
       }
     go(Streams.tail(topic, 0, from, pollMillis = pollMillis))
 

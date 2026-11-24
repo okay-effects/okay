@@ -66,7 +66,7 @@ class TestAsync extends munit.FunSuite {
     type S = Produce + Async
     def ticks(n: Int): Int ! S =
       if n == 0 then pure(0)
-      else effect(Async.Run(() => Thread.sleep(1))).flatMap: _ =>
+      else perform(Async.Run(() => Thread.sleep(1))).flatMap: _ =>
         produce(n).flatMap(_ => ticks(n - 1))
     assertEquals(ticks(5).toLazyList.toList, List(5, 4, 3, 2, 1))
     assertEquals(ticks(1000).take(3).toList, List(1000, 999, 998))
@@ -219,9 +219,9 @@ class TestAsync extends munit.FunSuite {
   test("async composes with other effects: telling across suspensions") {
     type F = Async + Writer % String
     val prog: Int ! F =
-      effect(Writer("start")).flatMap: _ =>
-        effect(Async.Run(() => 21)).flatMap: x =>
-          effect(Writer("end")).map(_ => x * 2)
+      perform(Writer("start")).flatMap: _ =>
+        perform(Async.Run(() => 21)).flatMap: x =>
+          perform(Writer("end")).map(_ => x * 2)
     val (ws, a) = (Writer.run(
       Async.run(prog))).run
     assertEquals(ws, Seq("start", "end"))

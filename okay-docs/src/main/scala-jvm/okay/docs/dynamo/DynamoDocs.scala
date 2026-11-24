@@ -3,7 +3,7 @@ package okay.docs.dynamo
 import okay.{Async, async, ChunkBuf, Source}
 
 import okay.{+, %}
-import okay.{!, effect}
+import okay.{!, perform}
 import okay.std.{Chunk, Writer}
 import okay.given
 import okay.codec.{Codecs, Json, Schema}
@@ -171,7 +171,7 @@ final class DynamoDocs[A](http: Http, endpoint: String, region: String, creds: S
     if !indexes.contains(field) then
       throw IllegalArgumentException(
         s"field $field is not a declared index — refused (declared: ${indexes.keys.mkString(", ")})")
-    effect[Async, Chunk[(String, A)]](Async.Run { () =>
+    perform[Async, Chunk[(String, A)]](Async.Run { () =>
       val r = must("Query", obj("TableName" -> JStr(table), "IndexName" -> JStr(s"ix_$field-index"),
         "KeyConditionExpression" -> JStr("#f = :v"),
         "ExpressionAttributeNames" -> obj("#f" -> JStr(s"ix_$field")),
@@ -181,7 +181,7 @@ final class DynamoDocs[A](http: Http, endpoint: String, region: String, creds: S
         case JArr(vs) => vs
         case _ => Vector.empty
       ChunkBuf.of(items.flatMap(it => for id <- jsonText(jsonField(it, "id"), "S"); v <- decode(it) yield (id, v.value)).sortBy(_._1))
-    }).at[F].flatMap(c => Writer.tell(c).at[F])
+    }).into[F].flatMap(c => Writer.tell(c).into[F])
 
   /** two read modes exist: eventual (One) and consistent (Strong);
    * a Quorum request is granted Strong — named, not hidden */

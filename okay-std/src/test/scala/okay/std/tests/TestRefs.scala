@@ -47,9 +47,9 @@ class TestRefs extends munit.FunSuite {
     type Row = Refs + Writer % String
     val p: Int ! Row =
       for
-        c <- Refs.ref(41).at[Row]
-        _ <- Writer.tell("made it").at[Row]
-        n <- Refs.write(c, 42).at[Row]
+        c <- Refs.ref(41).into[Row]
+        _ <- Writer.tell("made it").into[Row]
+        n <- Refs.write(c, 42).into[Row]
       yield n
     assertEquals(Writer.run[String, Int, Writer % String](Refs.handle(p)).run,
       (Seq("made it"), 42))

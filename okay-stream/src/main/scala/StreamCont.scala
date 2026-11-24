@@ -274,11 +274,11 @@ object StreamCont:
     })
 
   def toSource[W](s: Src[W]): Source[W] =
-    lifted(s.pull).at[Writer % W + Async].flatMap {
+    lifted(s.pull).into[Writer % W + Async].flatMap {
       case Step.Done => okay.pure(())
       case Step.Chunk(ws, r) =>
         def tells(it: Iterator[W]): Source[W] =
-          if !it.hasNext then toSource(r) else Writer.tell(it.next()).at[Writer % W + Async].flatMap(_ => tells(it))
+          if !it.hasNext then toSource(r) else Writer.tell(it.next()).into[Writer % W + Async].flatMap(_ => tells(it))
         tells(ws.iterator)
     }
 

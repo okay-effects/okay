@@ -28,7 +28,7 @@ class TestProvider extends munit.FunSuite {
         val reply = rest match
           case r :: t => rest = t; r
           case Nil => """{"choices":[]}"""
-        okay.effect(Writer(reply)).at[F].map(_ => ())
+        okay.perform(Writer(reply)).into[F].map(_ => ())
 
   case class SearchArgs(query: String)
   given Schema[SearchArgs] = Schema.derived
@@ -120,7 +120,7 @@ class TestProvider extends munit.FunSuite {
       : Unit ! Writer % String + Async =
         type F = Writer % String + Async
         events.foldLeft(okay.pure[Unit, F](()))((acc, l) =>
-          acc.flatMap(_ => okay.effect(Writer(l)).at[F].map(_ => ())))
+          acc.flatMap(_ => okay.perform(Writer(l)).into[F].map(_ => ())))
 
     val tokens = collect(OpenAi.stream(transport, "k",
       OpenAi.request("m", Seq(OpenAi.message("user", "hi")), stream = true)))

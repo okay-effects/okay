@@ -22,10 +22,10 @@ class TestSourceProducer extends munit.FunSuite:
 
   test("a producer in Async becomes a source: told in order, Async performed, answer dropped") {
     var performed = 0
-    val p: Int ! P = produce(1).at[P]
-      .flatMap(_ => async { performed += 1; 7 }.at[P])
-      .flatMap(_ => produce(2).at[P])
-      .flatMap(_ => produce(3).at[P])
+    val p: Int ! P = produce(1).into[P]
+      .flatMap(_ => async { performed += 1; 7 }.into[P])
+      .flatMap(_ => produce(2).into[P])
+      .flatMap(_ => produce(3).into[P])
       .flatMap(_ => pure(-1))          // the phantom answer
     val (told, unit) = run(Writer.run(Source.ofProducer(p)))
     assertEquals(told, Seq(1, 2, 3))
@@ -38,7 +38,7 @@ class TestSourceProducer extends munit.FunSuite:
     val c1: Chunk[Byte] = ArraySeq[Byte](1, 2, 3)
     val c2: Chunk[Byte] = ArraySeq[Byte](4)
     val get: Either[String, Unit] ! P =
-      produce[Chunk[Byte]](c1).at[P].flatMap(_ => produce[Chunk[Byte]](c2).at[P]).flatMap(_ => pure(Right(())))
+      produce[Chunk[Byte]](c1).into[P].flatMap(_ => produce[Chunk[Byte]](c2).into[P]).flatMap(_ => pure(Right(())))
     val r = run(Writer.collect(Source.fromProducer[Chunk[Byte], Either[String, Unit], Async](get)))
     assertEquals(r._1.map(_.toVector), Seq(Vector[Byte](1, 2, 3), Vector[Byte](4)))
     assertEquals(r._2, Right(()))
@@ -51,9 +51,9 @@ class TestSourceProducer extends munit.FunSuite:
 
   test("a source becomes a producer: each told value produced, Async kept, `end` is the final Pure") {
     var performed = 0
-    val s: Source[Int] = Writer.tell(10).at[Writer % Int + Async]
-      .flatMap(_ => async { performed += 1 }.at[Writer % Int + Async])
-      .flatMap(_ => Writer.tell(20).at[Writer % Int + Async])
+    val s: Source[Int] = Writer.tell(10).into[Writer % Int + Async]
+      .flatMap(_ => async { performed += 1 }.into[Writer % Int + Async])
+      .flatMap(_ => Writer.tell(20).into[Writer % Int + Async])
     val p: Int ! P = Source.toProducer(s)(end = -1)
     var seen = Vector.empty[Int]
     val end = run(Producer.each[Int, Int, P](p)(seen :+= _))
@@ -77,7 +77,7 @@ class TestSourceProducer extends munit.FunSuite:
   }
 
   test("Producer.each keeps the answer uncons loses at its None") {
-    val p: String ! P = produce("x").at[P].flatMap(_ => pure("the answer"))
+    val p: String ! P = produce("x").into[P].flatMap(_ => pure("the answer"))
     var seen = Vector.empty[String]
     assertEquals(run(Producer.each[String, String, P](p)(seen :+= _)), "the answer")
     assertEquals(seen, Vector("x"))
@@ -104,7 +104,7 @@ class TestSourceProducer extends munit.FunSuite:
     assertEquals(run(Writer.run(pure[Unit, Writer % Int + Async](())))._1.size, 0)
     // and the named injector is the one that emits, at either row
     var told = 0
-    val _ = run(Producer.each[Int, Int, P](produce(1).at[P])(_ => told += 1))
+    val _ = run(Producer.each[Int, Int, P](produce(1).into[P])(_ => told += 1))
     assertEquals(told, 1)
   }
 

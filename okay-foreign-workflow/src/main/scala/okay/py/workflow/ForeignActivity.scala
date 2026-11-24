@@ -1,6 +1,6 @@
 package okay.foreign.workflow
 
-import okay.{!, Wf, effect, pure}
+import okay.{!, Wf, perform, pure}
 import okay.codec.Schema
 import okay.foreign.{Condition, ForeignEval, PyNode, Value, Shape, ToPy, Wire}
 
@@ -69,11 +69,11 @@ object ForeignActivity:
       case Left(cond) => pure[Either[Condition, Value], ForeignEval](Left(cond))
       case Right(PyNode.Done(v)) => pure[Either[Condition, Value], ForeignEval](Right(v))
       case Right(PyNode.Perform(cb, _, k, _)) =>
-        effect[ForeignEval, Either[Condition, PyNode]](ForeignEval.Continue(run, k, Left(Condition("NoCallback",
+        perform[ForeignEval, Either[Condition, PyNode]](ForeignEval.Continue(run, k, Left(Condition("NoCallback",
           s"the activity '${c.address}' called okay_call('$cb'), and an activity offers no callbacks")))).flatMap(settle(run))
     def attempt(left: Int): Either[Condition, Value] ! ForeignEval =
       val run = runs.incrementAndGet()
-      effect[ForeignEval, Either[Condition, PyNode]](ForeignEval.Program(run, c.address, c.args, Vector.empty, direct = true))
+      perform[ForeignEval, Either[Condition, PyNode]](ForeignEval.Program(run, c.address, c.args, Vector.empty, direct = true))
         .flatMap(settle(run)).flatMap {
           case Left(cond) if transport(cond.kind) =>
             if left > 1 then attempt(left - 1) else throw Unreachable(c.address, cond)

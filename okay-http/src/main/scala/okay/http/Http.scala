@@ -117,7 +117,7 @@ object Http {
   /** a body that is already in hand — one chunk, then done */
   def one(bs: Array[Byte]): Source[Chunk[Byte]] =
     if bs.isEmpty then pure(())
-    else Writer.tell[Chunk[Byte]](scala.collection.immutable.ArraySeq.unsafeWrapArray(bs)).at[Writer % Chunk[Byte] + Async]
+    else Writer.tell[Chunk[Byte]](scala.collection.immutable.ArraySeq.unsafeWrapArray(bs)).into[Writer % Chunk[Byte] + Async]
 
   /** the whole body, drained */
   def bytes(r: Response): Chunk[Byte] ! Async =
@@ -145,7 +145,7 @@ object Http {
    */
   def lines(r: Response): Source[String] =
     okay.through[Chunk[Byte], String, Async, Unit, Unit](r.body)(
-      framing.at[Take % Chunk[Byte] + (Writer % String + Async)])
+      framing.into[Take % Chunk[Byte] + (Writer % String + Async)])
 
   /** bytes in, lines out — `okay.Lines.stage`, which moved to the core
    * when okay-cluster needed it without this module */
@@ -184,5 +184,5 @@ object Http {
    * stage */
   def sse(r: Response): Source[String] =
     okay.through[String, String, Async, Unit, Unit](lines(r))(
-      okay.Sse.events.at[Take % String + (Writer % String + Async)])
+      okay.Sse.events.into[Take % String + (Writer % String + Async)])
 }

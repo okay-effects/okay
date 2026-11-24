@@ -52,7 +52,7 @@ class TestLivePush extends munit.FunSuite:
       val pushed = Async.run(Writer.run(site.push(r)).map(_._1)).runWith
       val events = pushed.collect { case Frame.Text(s) => Protocol.eventOf(s) }
       assertEquals(events, Seq(Some(Event.Pressed("inc")), Some(Event.Pressed("inc"))))
-      val (out, _) = !.run(Writer.run(through(Writer.of(pushed.toList :+ Frame.Close(1000, "")).at[Writer % Frame])(site.ws(r))))
+      val (out, _) = !.run(Writer.run(through(Writer.of(pushed.toList :+ Frame.Close(1000, "")).into[Writer % Frame])(site.ws(r))))
       val lines = out.collect { case Frame.Text(s) => s }
       assertEquals(lines.length, 3, lines.toString)
       assertEquals(Protocol.patchOf(lines(1)), Some(Patch.SetText(List(0), "count: 1")))

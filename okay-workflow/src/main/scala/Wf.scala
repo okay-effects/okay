@@ -142,7 +142,7 @@ object Wf:
 
   /** THE DOOR: ask `q`, written here; the one place a `Talk.Say` is made */
   def ask[Q, A](q: Q)(using at: At): A ! Talking[Q, A] =
-    effect[Talking[Q, A], A](Talk.Say(q, at.where))
+    okay.perform[Talking[Q, A], A](Talk.Say(q, at.where))
 
   /**
    * WHERE A DIALOGUE STANDS: done, or at a question with THE REST — a value, resumed with an answer any number of
@@ -191,7 +191,7 @@ object Wf:
 
     /** ask `q` in a body that is a plain dialogue */
     def pause[Q, A, R, F[_]](q: Q)(using @unused w: Asks[Q, A, R, F], at: At): A ! Talking[Q, A] + F =
-      ask[Q, A](q).at[Talking[Q, A] + F]
+      ask[Q, A](q).into[Talking[Q, A] + F]
 
     /** `body` walked to its first question, or its end */
     def start[Q, A, R, F[_]](body: Asks[Q, A, R, F] ?=> R ! Talking[Q, A] + F): Dialogue[Q, A, R, F] ! F =
@@ -336,7 +336,7 @@ object Wf:
     ask[Ask[Q], Ans[A]](Right(q)).map[A]:
       case Right(a) => a
       case other => throw Mismatched(q, other)
-    .at[Durable[Q, A, F]]
+    .into[Durable[Q, A, F]]
 
   /**
    * THE SAME THING UNDER THE NAME THE LITERATURE USES. An "activity"
@@ -406,7 +406,7 @@ object Wf:
     ask[Ask[Q], Ans[A]](Left(q)).map[X]:
       case Left(a) if f.isDefinedAt(a) => f(a)
       case other => throw Mismatched(q, other)
-    .at[Durable[Q, A, F]]
+    .into[Durable[Q, A, F]]
 
   // ── the runtime's side ───────────────────────────────────────────
 

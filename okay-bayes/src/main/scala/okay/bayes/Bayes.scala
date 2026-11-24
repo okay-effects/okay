@@ -2,7 +2,7 @@ package okay.bayes
 
 import scala.annotation.tailrec
 import scala.util.Random
-import okay.{!, Effect, Handler, Walk, effect}
+import okay.{!, Effect, Handler, Walk, perform}
 /**
  * A BAYESIAN MODEL IS A PROGRAM (specs/okay-bayes.md): it draws named
  * random quantities and weighs its run by what it observed. Inference is
@@ -54,7 +54,7 @@ final case class Particles[A](values: Vector[A], sites: Vector[Map[String, Doubl
 
 object Bayes:
   /** draw `name` from `d` */
-  inline def sample[A](name: String, d: Distribution[A]): A ! Model = effect(Model.Sample(name, d))
+  inline def sample[A](name: String, d: Distribution[A]): A ! Model = perform(Model.Sample(name, d))
 
   /** `n` draws from `d`, each its own site `name[i]` — a vector as n named scalars, so every sampler takes it */
   def sampleN[A](name: String, d: Distribution[A], n: Int): Vector[A] ! Model =
@@ -64,7 +64,7 @@ object Bayes:
     from(0, Vector.empty)
 
   /** weigh the run by e^logWeight */
-  inline def factor(logWeight: Double): Unit ! Model = effect(Model.Factor(logWeight))
+  inline def factor(logWeight: Double): Unit ! Model = perform(Model.Factor(logWeight))
 
   /** OBSERVE `x` as a draw of `d`: the run is weighed by its likelihood */
   inline def observe[A](d: Distribution[A], x: A): Unit ! Model = factor(d.logPdf(x))
@@ -119,7 +119,7 @@ object Bayes:
     var fresh = Set.empty[String]
     var logLik = 0.0
     // each operation answered in place (the kernel's Answering): nothing captured, no walk
-    val answers = Handler.answering[Model]([X] => (op: Model[X]) => op match
+    val answers = Handler.tail[Model]([X] => (op: Model[X]) => op match
       case Model.Sample(name, d) =>
         val reused = fixed.get(name).flatMap(d.coerce).filter(v => d.logPdf(v) > Distribution.NegInf)
         val v = reused.getOrElse { fresh += name; d.sample(rng) }

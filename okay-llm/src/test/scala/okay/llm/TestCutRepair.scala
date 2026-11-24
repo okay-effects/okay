@@ -18,7 +18,7 @@ class TestCutRepair extends munit.FunSuite {
         case Nil => pure(())
         case t :: rest =>
           !.widen[Unit, Async, Writer % String](async { pulled += 1 }).flatMap(_ =>
-            Writer.tell(t).at[Writer % String + Async]).flatMap(_ => go(rest))
+            Writer.tell(t).into[Writer % String + Async]).flatMap(_ => go(rest))
       go(tokens)
 
   def collect[A](p: Either[Violation, A] ! Writer % String + Async)

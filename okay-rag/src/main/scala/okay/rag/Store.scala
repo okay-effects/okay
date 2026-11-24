@@ -1,6 +1,6 @@
 package okay.rag
 
-import okay.{!, effect}
+import okay.{!, perform}
 import okay.Aggregator
 import okay.lex.Span
 import scala.collection.immutable.ArraySeq
@@ -45,7 +45,7 @@ enum Embed[+A]:
 
 /** embed a batch (one operation per batch — batching is the caller's
  * lever, and `Chunks` is how you pull it) */
-def embed(texts: Seq[String]): Seq[Embedding] ! Embed = effect(Embed.Of(texts))
+def embed(texts: Seq[String]): Seq[Embedding] ! Embed = perform(Embed.Of(texts))
 
 /** a hit: the segment and how well it matched */
 final case class Scored(segment: Segment, score: Float)

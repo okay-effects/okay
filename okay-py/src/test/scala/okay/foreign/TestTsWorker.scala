@@ -1,7 +1,7 @@
 package okay.foreign
 
 
-import okay.{effect}
+import okay.{perform}
 
 
 import okay.std.{Choose, Reader, runChoice}
@@ -96,7 +96,7 @@ class TestTsWorker extends munit.FunSuite {
   }
 
   test("programs as data from TypeScript, MULTI-SHOT under okay's Choice") {
-    val choose = Py.callback[Vector[Long], Long]("choose")(xs => effect[Choose, Long](Choose(xs)))
+    val choose = Py.callback[Vector[Long], Long]("choose")(xs => perform[Choose, Long](Choose(xs)))
     val pairs = Py.program[Long]("shop:pairs").calling(Py.callbacks(choose))()
     assertEquals(runChoice(pairs.program).runWith.toList, List(Right(11L), Right(21L), Right(12L), Right(22L)))
   }

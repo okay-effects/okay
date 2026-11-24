@@ -23,31 +23,31 @@ class TestScopedEffects extends munit.FunSuite:
   test("a State mutation before a caught raise survives: recover does not roll it back") {
     type Row = State % Int + Throws % String
     val p: Int ! Row =
-      State.set[Int](5).at[Row].flatMap(_ => raise[String, Int]("boom").at[Row])
-        .recover(_ => State.get[Int].at[Row])
+      State.set[Int](5).into[Row].flatMap(_ => raise[String, Int]("boom").into[Row])
+        .recover(_ => State.get[Int].into[Row])
     assertEquals(runBoth(0)(p), (5, Right(5)), "the set(5) before the raise is not undone")
   }
 
   test("recover's handler sees the state LEFT BY the failed attempt, not a snapshot from before") {
     type Row = State % Int + Throws % String
     val p: Int ! Row =
-      State.set[Int](1).at[Row]
-        .flatMap(_ => State.set[Int](2).at[Row])
-        .flatMap(_ => raise[String, Int]("boom").at[Row])
-        .recover(_ => State.get[Int].at[Row])
+      State.set[Int](1).into[Row]
+        .flatMap(_ => State.set[Int](2).into[Row])
+        .flatMap(_ => raise[String, Int]("boom").into[Row])
+        .recover(_ => State.get[Int].into[Row])
     assertEquals(runBoth(0)(p), (2, Right(2)), "recover saw 2, the last state before the raise, not 0 or 1")
   }
 
   test("save/restore idiom: a transactional retry over GLOBAL state, one line each side") {
     type Row = State % Int + Throws % String
     def attempt(fail: Boolean): Int ! Row =
-      State.modify[Int](_ + 1).at[Row].flatMap { s =>
-        if fail then raise[String, Int]("boom").at[Row] else pure[Int, Row](s)
+      State.modify[Int](_ + 1).into[Row].flatMap { s =>
+        if fail then raise[String, Int]("boom").into[Row] else pure[Int, Row](s)
       }
     val p: Int ! Row =
-      State.get[Int].at[Row].flatMap { s0 =>
+      State.get[Int].into[Row].flatMap { s0 =>
         attempt(fail = true).recover { _ =>
-          State.set[Int](s0).at[Row].flatMap(_ => attempt(fail = false))
+          State.set[Int](s0).into[Row].flatMap(_ => attempt(fail = false))
         }
       }
     val (finalState, result) = runBoth(0)(p)
@@ -60,8 +60,8 @@ class TestScopedEffects extends munit.FunSuite:
     val (outerFinal, (b, innerFinal)) = State.run(10)(
       State.get[Int].flatMap { b =>
         val innerP: Unit ! Inner =
-          State.set[Int](999).at[Inner].flatMap(_ => raise[String, Unit]("boom").at[Inner])
-            .recover(_ => State.get[Int].at[Inner].map(_ => ()))
+          State.set[Int](999).into[Inner].flatMap(_ => raise[String, Unit]("boom").into[Inner])
+            .recover(_ => State.get[Int].into[Inner].map(_ => ()))
         val (innerState, _) = runBoth(0)(innerP)
         pure[(Int, Int), State % Int]((b, innerState))
       })
@@ -72,8 +72,8 @@ class TestScopedEffects extends munit.FunSuite:
   test("guide: scoped effects — the two pinned examples, verbatim") {
     type Row = State % Int + Throws % String
     val p: Int ! Row =
-      State.set[Int](5).at[Row].flatMap(_ => raise[String, Int]("boom").at[Row])
-        .recover(_ => State.get[Int].at[Row])
+      State.set[Int](5).into[Row].flatMap(_ => raise[String, Int]("boom").into[Row])
+        .recover(_ => State.get[Int].into[Row])
     assertEquals(State.run(0)(runEither(p)), (5, Right(5)))
 
     val q = Reader.local[Int, Int, Reader % Int](_ * 10)(Reader.ask[Int])
@@ -118,8 +118,8 @@ class TestScopedEffects extends munit.FunSuite:
 
   test("local forwards other effects unchanged") {
     val p = Reader.local[Int, Int, Reader % Int + State % String](_ + 1)(
-      State.set[String]("touched").at[Reader % Int + State % String]
-        .flatMap(_ => Reader.ask[Int].at[Reader % Int + State % String]))
+      State.set[String]("touched").into[Reader % Int + State % String]
+        .flatMap(_ => Reader.ask[Int].into[Reader % Int + State % String]))
     // the Reader.run below is not a discard: it is where local's OWN
     // "find r" ask (ambient=10) resolves, giving f(10)=11 to p's ask
     assertEquals(State.run("")(Reader.run(10)(p)),

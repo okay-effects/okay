@@ -38,7 +38,7 @@ object Scope {
   type Row = Exit + Dialog
 
   /** an ordinary Dialog step, lifted into the scoped row */
-  def lift[A](p: A ! Dialog): A ! Row = p.at[Row]
+  def lift[A](p: A ! Dialog): A ! Row = p.into[Row]
 
   /** install a cancellable scope: the body answers `A`, and `cancel`
    * against this scope's prompt exits it with the given value */
@@ -46,7 +46,7 @@ object Scope {
 
   /** exit the named scope immediately with `value` — no Option
    * threading on the steps in between, however deep */
-  def cancel[A, R](p: Prompt[R])(value: R): A ! Row = Escape.escape[A, R](p)(value).at[Row]
+  def cancel[A, R](p: Prompt[R])(value: R): A ! Row = Escape.escape[A, R](p)(value).into[Row]
 
   /** erase the Exit row: after this it is an ordinary Dialog
    * program, running anywhere Dialog runs */
@@ -76,7 +76,7 @@ object Scope {
   def mark[A](body: Prompted[A] ?=> A ! Row): A ! Row = Escape.prompted[A, Row](body)
 
   /** exit the nearest enclosing scope — or a named one, by binding */
-  def exit[A, R](value: R)(using p: Prompted[R]): A ! Row = Escape.leave[A, R](value).at[Row]
+  def exit[A, R](value: R)(using p: Prompted[R]): A ! Row = Escape.leave[A, R](value).into[Row]
 
   /** the one-scope capability form: mark + run */
   def bounded[A](body: Prompted[A] ?=> A ! Row): A ! Dialog =

@@ -22,8 +22,8 @@ class TestFs2Effectful extends munit.FunSuite with okay.testkit.Munit.Diagnosed 
   def counted(n: Int): Source[Int] =
     def go(i: Int): Source[Int] =
       if i > n then okay.pure(())
-      else okay.async(i).at[Writer % Int + Async]
-        .flatMap(x => Writer.tell(x).at[Writer % Int + Async])
+      else okay.async(i).into[Writer % Int + Async]
+        .flatMap(x => Writer.tell(x).into[Writer % Int + Async])
         .flatMap(_ => go(i + 1))
     go(1)
 
@@ -36,8 +36,8 @@ class TestFs2Effectful extends munit.FunSuite with okay.testkit.Munit.Diagnosed 
   test("an interrupted fs2 stream cancels the Await its source was parked on") {
     val unregistered = AtomicInteger(0)
     val parked: Source[Int] =
-      Writer.tell(1).at[Writer % Int + Async]
-        .flatMap(_ => Async.await[Unit](_ => () => { unregistered.incrementAndGet(); () }).at[Writer % Int + Async])
+      Writer.tell(1).into[Writer % Int + Async]
+        .flatMap(_ => Async.await[Unit](_ => () => { unregistered.incrementAndGet(); () }).into[Writer % Int + Async])
     val out = Fs2Streams.toFs2[IO, Int](parked).interruptAfter(50.millis).compile.toList.unsafeRunSync()
     note(s"answered $out")
     assertEquals(out, List(1))

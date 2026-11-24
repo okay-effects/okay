@@ -11,7 +11,7 @@ class TestCompat extends munit.FunSuite:
   test("!.run, !.tailcall, .plus, !.widen, Row.at, Free.delay"):
     val p: Int ! Writer % Int + Reader % String = countdown(3).plus[Reader % String]
     val q: Int ! Writer % Int + Reader % String = !.widen[Int, Writer % Int, Reader % String](countdown(2))
-    val r: Int ! Writer % Int + Reader % String = Free.delay(() => Reader.ask[String].map(_.length)).at[Writer % Int + Reader % String]
+    val r: Int ! Writer % Int + Reader % String = Free.delay(() => Reader.ask[String].map(_.length)).into[Writer % Int + Reader % String]
     def go(x: Int ! Writer % Int + Reader % String) = !.run(Reader.run("abcd")(Writer.run(x)))
     assertEquals(go(p)._1, Vector(3, 2, 1))
     assertEquals(go(q)._1, Vector(2, 1))
@@ -30,7 +30,7 @@ class TestCompat extends munit.FunSuite:
   test("recover, ensure: the kernel's guards on a program"):
     var fin = 0
     val boom: Int ! Writer % Int = Writer.tell(1).map(_ => throw IllegalStateException("boom"))
-    val p = boom.recover(e => Writer.tell(e.getMessage.length).map(_ => -1)).ensure(defer { fin += 1; pure(()) })
+    val p = boom.recover(e => Writer.tell(e.getMessage.length).map(_ => -1)).ensuring(defer { fin += 1; pure(()) })
     assertEquals(!.run(Writer.run(p)), Tuple2(Vector(1, 4), -1))
     assertEquals(fin, 1)
 

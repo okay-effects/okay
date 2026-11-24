@@ -103,9 +103,9 @@ class TestStream extends munit.FunSuite {
   test("arbitrary effects on a writer stream: async at the pull") {
     type F = Writer % String + Async
     val talk: Int ! F =
-      effect(Writer("a")).flatMap: _ =>
-        effect(Async.Run(() => Thread.sleep(1))).flatMap: _ =>
-          effect(Writer("b")).map(_ => 7)
+      perform(Writer("a")).flatMap: _ =>
+        perform(Async.Run(() => Thread.sleep(1))).flatMap: _ =>
+          perform(Writer("b")).map(_ => 7)
     assertEquals(talk.toLazyList.toList, List("a", "b"))
   }
 
@@ -140,9 +140,9 @@ class TestStream extends munit.FunSuite {
     type F = Writer % String + Async
     val ran = collection.mutable.ListBuffer[String]()
     val talk: Int ! F =
-      effect(Writer("a")).flatMap: _ =>
-        effect(Async.Run(() => { ran += "effect"; () })).flatMap: _ =>
-          effect(Writer("b")).map(_ => 7)
+      perform(Writer("a")).flatMap: _ =>
+        perform(Async.Run(() => { ran += "effect"; () })).flatMap: _ =>
+          perform(Writer("b")).map(_ => 7)
     val loud = Writer.map(talk)(_.toUpperCase)
     assertEquals(loud.toLazyList.toList, List("A", "B"))
     // the forwarded operation ran once, between the two tells
@@ -153,10 +153,10 @@ class TestStream extends munit.FunSuite {
     type F = Writer % String + Async
     val ran = collection.mutable.ListBuffer[String]()
     val talk: Int ! F =
-      effect(Writer("ab")).flatMap: _ =>
-        effect(Async.Run(() => { ran += "effect"; () })).flatMap: _ =>
-          effect(Writer("")).flatMap: _ =>
-            effect(Writer("cd")).map(_ => 7)
+      perform(Writer("ab")).flatMap: _ =>
+        perform(Async.Run(() => { ran += "effect"; () })).flatMap: _ =>
+          perform(Writer("")).flatMap: _ =>
+            perform(Writer("cd")).map(_ => 7)
 
     // each told string becomes its characters: "ab" -> a, b; "" -> nothing
     val split = Writer.expand(talk)(_.toVector)

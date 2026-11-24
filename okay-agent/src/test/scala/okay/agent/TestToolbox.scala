@@ -122,8 +122,8 @@ class TestToolbox extends munit.FunSuite {
 
   test("relayToolsF: the agent's Tool calls run the programs, the row one effect shorter") {
     val prog: String ! Tool + W =
-      okay.effect(Tool.Call(call("log", "text" -> JStr("a"), "owner" -> JStr("o")))).at[Tool + W].flatMap(r1 =>
-        okay.effect(Tool.Call(call("nosuch"))).at[Tool + W].map(r2 => s"$r1|$r2"))
+      okay.perform(Tool.Call(call("log", "text" -> JStr("a"), "owner" -> JStr("o")))).into[Tool + W].flatMap(r1 =>
+        okay.perform(Tool.Call(call("nosuch"))).into[Tool + W].map(r2 => s"$r1|$r2"))
     val (log, out) = !.run(Writer.run[String, String, W](Handlers.relayToolsF[String, W](effectful.table)(prog)))
     assertEquals(log, Seq("logged a"))
     assertEquals(out, "ok|error: no such tool 'nosuch'")

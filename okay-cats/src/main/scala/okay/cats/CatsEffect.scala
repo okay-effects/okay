@@ -1,6 +1,6 @@
 package okay.cats
 
-import okay.{!, +, Async, defer, effect}
+import okay.{!, +, Async, defer, perform}
 import _root_.cats.~>
 import _root_.cats.effect.{IO, LiftIO}
 import _root_.cats.effect.kernel.{Cont, Deferred, Fiber, MonadCancel, Outcome, Poll, Ref, Sync, Unique}
@@ -84,12 +84,12 @@ object CatsEffect:
       IO.async[X](cb => IO { val cancel = register(cb); Some(IO(cancel())) })
 
   /** a plain okay `Async` program as one of these — the row only grows */
-  def lift[A](p: A ! Async): Program[A] = p.at[CatsFx + Async]
+  def lift[A](p: A ! Async): Program[A] = p.into[CatsFx + Async]
 
   /** an IO as one operation of a program */
   def liftIO[A](io: IO[A]): Program[A] = op(_ => io)
 
-  private def op[A](build: Interp => IO[A]): Program[A] = effect[CatsFx, A](CatsFx(build)).at[CatsFx + Async]
+  private def op[A](build: Interp => IO[A]): Program[A] = perform[CatsFx, A](CatsFx(build)).into[CatsFx + Async]
 
   private val liftK: IO ~> Program = new (IO ~> Program):
     def apply[A](io: IO[A]): Program[A] = liftIO(io)

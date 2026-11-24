@@ -144,8 +144,8 @@ object Server {
   def use[A](port: Int)(handler: Request => Eff[Async, Response])(body: Int => Eff[Async, A]): Eff[Async, A] =
     Async.lift(okay.std.Resource.run[A, okay.std.Resource + okay.Async](
       okay.http.Server.serve(port)(r => Async.core(handler(r)).map(_.core))
-        .at[okay.std.Resource + okay.Async]
-        .flatMap(s => Async.core(body(okay.http.Server.port(s))).at[okay.std.Resource + okay.Async])))
+        .into[okay.std.Resource + okay.Async]
+        .flatMap(s => Async.core(body(okay.http.Server.port(s))).into[okay.std.Resource + okay.Async])))
 
   /**
    * Start serving and return at once, for a service whose server lives
@@ -189,7 +189,7 @@ final class Client private (http: okay.http.Http) {
 
   /** the body as lines, STREAMED: each line arrives as it is read */
   def lines(r: Request): Source[String] =
-    Source.of(http.send(r).at[okay.std.Writer % String + okay.Async].flatMap(resp => okay.http.Http.lines(resp)))
+    Source.of(http.send(r).into[okay.std.Writer % String + okay.Async].flatMap(resp => okay.http.Http.lines(resp)))
 }
 
 object Client {

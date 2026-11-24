@@ -1,7 +1,7 @@
 package okay.foreign
 
 
-import okay.{effect}
+import okay.{perform}
 
 
 import okay.std.{Choose, Reader, runChoice}
@@ -57,7 +57,7 @@ class TestHaskellProgram extends okay.testkit.Munit.Diagnosed {
   private given okay.Answers[ForeignEval] = w.handler
   override def afterAll(): Unit = if ghc then w.close()
 
-  private val choose = Foreign.callback[Vector[Long], Long]("choose")(xs => effect[Choose, Long](Choose(xs)))
+  private val choose = Foreign.callback[Vector[Long], Long]("choose")(xs => perform[Choose, Long](Choose(xs)))
 
   test("MULTI-SHOT across a process, from Haskell: every branch of two choices") {
     assertEquals(w.pythonVersion, "haskell")

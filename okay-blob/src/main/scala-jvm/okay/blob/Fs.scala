@@ -3,7 +3,7 @@ package okay.blob
 import okay.{Async, Source, async}
 
 import okay.{+, %}
-import okay.{!, effect, pure}
+import okay.{!, perform, pure}
 import okay.std.{Chunk, Writer}
 import okay.Row.plus
 import java.nio.file.{Files, Path, StandardCopyOption}
@@ -62,11 +62,11 @@ final class Fs(root: Path, chunkSize: Int = 64 * 1024) extends Blob {
     resolve(key) match
       case Left(why) => pure(Left(why))
       case Right(path) =>
-        effect(Async.Run(() => Files.isRegularFile(path))).flatMap {
+        perform(Async.Run(() => Files.isRegularFile(path))).flatMap {
           case false => pure(Left(s"no such key '$key'"))
           case true =>
             val (from, until) = range.getOrElse((0L, Long.MaxValue))
-            effect(Async.Run { () =>
+            perform(Async.Run { () =>
               val in = Files.newInputStream(path)
               var toSkip = from
               while toSkip > 0 do
@@ -79,9 +79,9 @@ final class Fs(root: Path, chunkSize: Int = 64 * 1024) extends Blob {
   /** tell chunks until `remaining` runs out or the stream ends */
   private def stream(in: java.io.InputStream, remaining: Long)
   : Either[String, Unit] ! FB =
-    if remaining <= 0 then effect(Async.Run(() => in.close())).map(_ => Right(())).at[FB]
+    if remaining <= 0 then perform(Async.Run(() => in.close())).map(_ => Right(())).into[FB]
     else
-      effect(Async.Run[Chunk[Byte] | Null] { () =>
+      perform(Async.Run[Chunk[Byte] | Null] { () =>
         val want = math.min(chunkSize.toLong, remaining).toInt
         val buf = new Array[Byte](want)
         val n = in.read(buf)
@@ -101,7 +101,7 @@ final class Fs(root: Path, chunkSize: Int = 64 * 1024) extends Blob {
       }
 
   def list(prefix: String): Source[Chunk[Meta]] =
-    effect(Async.Run[Vector[Meta]] { () =>
+    perform(Async.Run[Vector[Meta]] { () =>
       if !Files.isDirectory(root) then Vector.empty
       else
         val all = scala.jdk.CollectionConverters.IteratorHasAsScala(

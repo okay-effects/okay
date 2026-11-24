@@ -66,7 +66,7 @@ class TestForeignWs extends okay.testkit.Munit.Diagnosed {
   import TestForeignWs.*
   import okay.codec.Json.JStr
 
-  private val choose = Foreign.callback[Vector[Long], Long]("choose")(xs => effect[Choose, Long](Choose(xs)))
+  private val choose = Foreign.callback[Vector[Long], Long]("choose")(xs => perform[Choose, Long](Choose(xs)))
   private val routes: PartialFunction[Request, Response ! Async] = PartialFunction.empty
 
   private def serving[A](session: ForeignWorker => Unit, failed: Throwable => Unit = _ => ())(body: Int => A): A =

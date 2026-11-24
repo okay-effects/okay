@@ -41,8 +41,8 @@ object Repair {
         case Typed.Decoded.Bad(off, err) =>
           val repaired: Vector[(Long, A)] ! Condition.Op =
             Condition.signal[A](Damaged(off, err, r)).map(a => done :+ (off, a))
-          Condition.within[Vector[(Long, A)], Pure]("skip")(repaired.at[Condition.Op + Pure])(_ => done)
-            .at[Condition.Op]
+          Condition.within[Vector[(Long, A)], Pure]("skip")(repaired.into[Condition.Op + Pure])(_ => done)
+            .into[Condition.Op]
     }
 
   /** the read-and-repair convenience: one partition slice through

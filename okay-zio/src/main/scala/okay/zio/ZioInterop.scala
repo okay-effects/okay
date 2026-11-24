@@ -86,10 +86,10 @@ object ZioInterop {
    * cancelling the okay side interrupts the fiber — as [[fromZIO]].
    */
   def fromZIOTyped[R, E, A](z: ZIO[R, E, A], runtime: Runtime[Any] = Runtime.default): A ! ZioRow[R, E] =
-    Reader.ask[ZEnvironment[R]].at[ZioRow[R, E]].flatMap { env =>
-      fromZIO(z.provideEnvironment(env).either, runtime).at[ZioRow[R, E]].flatMap {
+    Reader.ask[ZEnvironment[R]].into[ZioRow[R, E]].flatMap { env =>
+      fromZIO(z.provideEnvironment(env).either, runtime).into[ZioRow[R, E]].flatMap {
         case Right(a) => okay.pure[A, ZioRow[R, E]](a)
-        case Left(e) => raise[E, A](e).at[ZioRow[R, E]]
+        case Left(e) => raise[E, A](e).into[ZioRow[R, E]]
       }
     }
 

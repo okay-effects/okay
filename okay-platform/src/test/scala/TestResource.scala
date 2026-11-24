@@ -22,8 +22,8 @@ class TestResource extends munit.FunSuite {
     var released = false
     type F = Throws % String + Resource
     val prog: Int ! F =
-      effect(Resource.Acquire(() => (), _ => released = true)).flatMap: _ =>
-        effect(Throws("boom"))
+      perform(Resource.Acquire(() => (), _ => released = true)).flatMap: _ =>
+        perform(Throws("boom"))
     val either = Resource.run(runEither(prog)).run
     assertEquals(either, Left("boom"))
     assertEquals(released, true)
@@ -41,7 +41,7 @@ class TestResource extends munit.FunSuite {
     var released = false
     type F = Resource + Produce
     val prog: Int ! F =
-      effect(Resource.Acquire(() => (), _ => released = true)).flatMap: _ =>
+      perform(Resource.Acquire(() => (), _ => released = true)).flatMap: _ =>
         produce(41).map(_ + 1)
     val residual: Int ! Produce = Resource.run(prog)
     assertEquals(released, false)
@@ -57,7 +57,7 @@ class TestResource extends munit.FunSuite {
     var released = false
     type F = Resource + Produce
     val prog: Int ! F =
-      effect(Resource.Acquire(() => (), _ => released = true)).flatMap: _ =>
+      perform(Resource.Acquire(() => (), _ => released = true)).flatMap: _ =>
         produce(41).map(_ => throw RuntimeException("boom"))
     val residual: Int ! Produce = Resource.run(prog)
     assertEquals(released, false)

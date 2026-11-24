@@ -1,7 +1,7 @@
 package okay.r
 
 
-import okay.{effect}
+import okay.{perform}
 
 
 import okay.std.{Choose, Reader, runChoice}
@@ -73,7 +73,7 @@ abstract class RWireConformance extends munit.FunSuite:
   }
 
   test("MULTI-SHOT: an R closure continued on every branch") {
-    val choose = R.callback[Vector[Double], Double]("choose")(xs => effect[Choose, Double](Choose(xs)))
+    val choose = R.callback[Vector[Double], Double]("choose")(xs => perform[Choose, Double](Choose(xs)))
     val pairs = R.program[Double]("conf::pairs").calling(R.callbacks(choose))()
     assertEquals(runChoice(pairs.program).runWith.toList, List(Right(11.0), Right(21.0), Right(12.0), Right(22.0)))
     pairs.forget.runWith

@@ -1,6 +1,6 @@
 package okay.agent
 
-import okay.{!, +, Answers, Async, effect, pure}
+import okay.{!, +, Answers, Async, perform, pure}
 import okay.codec.Json
 
 /**
@@ -112,20 +112,20 @@ object Agent {
 
   /** ask the model with the current (compacted) context */
   def complete(tools: Seq[ToolSpec] = Nil): Reply ! Agent =
-    recall.flatMap(ctx => effect(Model.Complete(ctx, tools)).at[Agent])
+    recall.flatMap(ctx => perform(Model.Complete(ctx, tools)).into[Agent])
 
   /** count tokens locally (the BPE Scan, no network) */
-  def count(text: String): Int ! Agent = effect(Model.Count(text)).at[Agent]
+  def count(text: String): Int ! Agent = perform(Model.Count(text)).into[Agent]
 
-  def call(c: ToolCall): String ! Agent = effect(Tool.Call(c)).at[Agent]
+  def call(c: ToolCall): String ! Agent = perform(Tool.Call(c)).into[Agent]
 
-  def remember(t: Turn): Unit ! Agent = effect(Context.Remember(t)).at[Agent]
+  def remember(t: Turn): Unit ! Agent = perform(Context.Remember(t)).into[Agent]
 
-  def recall: Seq[Turn] ! Agent = effect(Context.Recall()).at[Agent]
+  def recall: Seq[Turn] ! Agent = perform(Context.Recall()).into[Agent]
 
-  def mark: Snapshot ! Agent = effect(Context.Mark()).at[Agent]
+  def mark: Snapshot ! Agent = perform(Context.Mark()).into[Agent]
 
-  def restore(s: Snapshot): Unit ! Agent = effect(Context.Restore(s)).at[Agent]
+  def restore(s: Snapshot): Unit ! Agent = perform(Context.Restore(s)).into[Agent]
 
   /** run every requested tool and remember each result */
   def runTools(calls: Seq[ToolCall]): Unit ! Agent =

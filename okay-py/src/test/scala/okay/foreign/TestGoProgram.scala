@@ -1,7 +1,7 @@
 package okay.foreign
 
 import java.nio.file.{Files, Path}
-import okay.{effect}
+import okay.{perform}
 import okay.std.{Choose, Reader, runChoice}
 object TestGoProgram:
   val priceOf = Foreign.callback[String, Double]("price_of")(sku => Reader.ask[Map[String, Double]].map(_(sku)))
@@ -184,7 +184,7 @@ class TestGoProgram extends munit.FunSuite {
   private given okay.Answers[ForeignEval] = w.handler
   override def afterAll(): Unit = if go then w.close()
 
-  private val choose = Foreign.callback[Vector[Long], Long]("choose")(xs => effect[Choose, Long](Choose(xs)))
+  private val choose = Foreign.callback[Vector[Long], Long]("choose")(xs => perform[Choose, Long](Choose(xs)))
 
   test("MULTI-SHOT across a process, from Go: every branch of two choices") {
     assertEquals(w.pythonVersion, "go")

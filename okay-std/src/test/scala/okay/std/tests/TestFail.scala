@@ -52,8 +52,8 @@ class TestFail extends munit.FunSuite {
     type R = Choose + Writer % String
     val p: Int ! R =
       for
-        case Some(n) <- effect[Choose, Option[Int]](Choose(Seq(Some(1), None, Some(3)))).at[R]
-        _            <- Writer.tell(s"kept $n").at[R]
+        case Some(n) <- perform[Choose, Option[Int]](Choose(Seq(Some(1), None, Some(3)))).into[R]
+        _            <- Writer.tell(s"kept $n").into[R]
       yield n * 10
     val (told, answers) =
       (Writer.run(runChoice(p))).run
@@ -64,7 +64,7 @@ class TestFail extends munit.FunSuite {
   test("where a row can do both, the search meaning wins") {
     type R = Choose + Abort
     val p: Int ! R =
-      for case Some(n) <- effect[Choose, Option[Int]](Choose(Seq(Some(1), None, Some(3)))).at[R] yield n
+      for case Some(n) <- perform[Choose, Option[Int]](Choose(Seq(Some(1), None, Some(3)))).into[R] yield n
     // aborting would answer None for the whole search; pruning keeps
     // the branches that matched
     assertEquals((runOption(runChoice(p))).run, Some(Seq(1, 3)))
@@ -75,10 +75,10 @@ class TestFail extends munit.FunSuite {
     // without the caller spelling `Users` a second time
     enum Users[+A]:
       case Find(id: Long) extends Users[Option[String]]
-    def find(id: Long): Option[String] ! Users = effect(Users.Find(id))
+    def find(id: Long): Option[String] ! Users = perform(Users.Find(id))
 
     def rename(id: Long): String ! Users + Abort =
-      for case Some(old) <- find(id).at[Users + Abort] yield old
+      for case Some(old) <- find(id).into[Users + Abort] yield old
 
     val handler: Answers[Users] = new:
       def handle[A](e: Users[A]): A = e match
@@ -94,9 +94,9 @@ class TestFail extends munit.FunSuite {
     type R = Abort + State % Int
     def withdraw(amount: Int): Int ! R =
       for
-        balance <- State.get[Int].at[R]
+        balance <- State.get[Int].into[R]
         _       <- ensure[R](balance >= amount)
-        _       <- State.set[Int](balance - amount).at[R]
+        _       <- State.set[Int](balance - amount).into[R]
       yield balance - amount
     assertEquals(State.run[Int, Option[Int]](100)(runOption(withdraw(30))),
       (70, Some(70)))
@@ -109,9 +109,9 @@ class TestFail extends munit.FunSuite {
     type R = Abort + State % Int
     def withdraw(amount: Int): Int ! R =
       for
-        balance <- State.get[Int].at[R]
+        balance <- State.get[Int].into[R]
         _       <- ensure[R](balance >= amount)
-        _       <- State.set[Int](balance - amount).at[R]
+        _       <- State.set[Int](balance - amount).into[R]
       yield balance - amount
 
     // the whole program continues after the recovery: another step
@@ -119,7 +119,7 @@ class TestFail extends munit.FunSuite {
     val p: Int ! R =
       for
         taken <- withdraw(30).orElse(pure[Int, R](0))
-        _     <- State.set[Int](999).at[R]
+        _     <- State.set[Int](999).into[R]
       yield taken
     assertEquals(State.run[Int, Option[Int]](10)(runOption(p)),
       (999, Some(0)))
@@ -127,11 +127,11 @@ class TestFail extends munit.FunSuite {
 
   test("recover sees the error; the row may be written in either order") {
     type R = State % Int + Throws % String
-    val boom: Int ! R = raise[String, Int]("no disk").at[R]
+    val boom: Int ! R = raise[String, Int]("no disk").into[R]
     val p: Int ! R = boom.recover(e => pure[Int, R](e.length))
     val (s, answer) =
       State.run[Int, Either[String, Int]](0)(
-        runEither(p.at[Throws % String + State % Int]))
+        runEither(p.into[Throws % String + State % Int]))
     assertEquals(answer, Right(7))
     assertEquals(s, 0)
   }
@@ -141,8 +141,8 @@ class TestFail extends munit.FunSuite {
     // types, each fitted to the other by `at` (each effect found by its
     // path), and both run the same
     val a: String ! Abort + State % Int = pure("x")
-    val b: String ! State % Int + Abort = a.at[State % Int + Abort]
-    val c: String ! Abort + State % Int = b.at[Abort + State % Int]
+    val b: String ! State % Int + Abort = a.into[State % Int + Abort]
+    val c: String ! Abort + State % Int = b.into[Abort + State % Int]
     assertEquals(State.run[Int, Option[String]](0)(runOption(b)), (0, Some("x")))
     assertEquals(State.run[Int, Option[String]](0)(runOption(c)), (0, Some("x")))
   }

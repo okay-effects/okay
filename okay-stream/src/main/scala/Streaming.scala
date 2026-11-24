@@ -117,12 +117,12 @@ object streams:
     def fromSource[W](s: Source[W]): Flow[W] = s
     extension [W](f: Flow[W]) def toSource: Source[W] = f
 
-    private def tell[W](w: W): Source[W] = Writer.tell(w).at[Writer % W + Async]
+    private def tell[W](w: W): Source[W] = Writer.tell(w).into[Writer % W + Async]
     private def done[W]: Source[W] = okay.pure(())
     private def unconsed[W](s: Source[W]): Either[Unit, (W, Source[W])] ! Async =
       Writer.uncons[W, Unit, Async](s)
     private def walk[W, V](s: Source[W])(step: (W, Source[W]) => Source[V]): Source[V] =
-      unconsed(s).at[Writer % V + Async].flatMap {
+      unconsed(s).into[Writer % V + Async].flatMap {
         case Left(()) => done[V]
         case Right((w, rest)) => step(w, rest)
       }
@@ -133,7 +133,7 @@ object streams:
       def emit[W](w: W): Flow[W] = tell(w)
       def fromList[W](ws: List[W]): Flow[W] = Source.of(ws)
       def range(from: Long, until: Long): Flow[Long] = Source.range(from, until)
-      def eval[W](p: P[W]): Flow[W] = p.at[Writer % W + Async].flatMap(w => tell(w))
+      def eval[W](p: P[W]): Flow[W] = p.into[Writer % W + Async].flatMap(w => tell(w))
       def async[A](a: => A): P[A] = okay.async(a)
       def runAsync[A](p: P[A]): Future[A] = Async.runAsync(p)
       def pureP[A](a: A): P[A] = okay.pure(a)
@@ -147,7 +147,7 @@ object streams:
           case Nil => next
           case w :: more => tell(w) >> tells(more, next)
         def go(z: Z): Source[W] = okay.defer {
-          f(z).at[Writer % W + Async].flatMap {
+          f(z).into[Writer % W + Async].flatMap {
             case None => done[W]
             case Some((ws, z2)) => tells(ws.toList, go(z2))
           }
@@ -163,7 +163,7 @@ object streams:
         def ++(t: => Flow[W]): Flow[W] = (s: Source[W]) >> t
         def flatMap[V](f: W => Flow[V]): Flow[V] = walk(s)((w, rest) => (f(w): Source[V]) >> instance.flatMap(rest)(f))
         def evalMap[V](f: W => P[V]): Flow[V] = walk(s)((w, rest) =>
-          Run.flatMap(f(w).at[Writer % V + Async])(v => tell(v) >> instance.evalMap(rest)(f)))
+          Run.flatMap(f(w).into[Writer % V + Async])(v => tell(v) >> instance.evalMap(rest)(f)))
         def foldLeft[B](z: B)(f: (B, W) => B): P[B] = unconsed(s).flatMap {
           case Left(()) => okay.pure(z)
           case Right((w, rest)) => instance.foldLeft(rest)(f(z, w))(f)

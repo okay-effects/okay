@@ -462,7 +462,7 @@ final class Dialogue[Q, A, R, F[_]] private (topic: Topic, val id: String,
     r.stopped match
       case Some(s) => throw Dialogue.Halted(s)
       case None =>
-        place(r.answers).at[G].flatMap(runFromIn[S, G](_, r.accepted)(oracle))
+        place(r.answers).into[G].flatMap(runFromIn[S, G](_, r.accepted)(oracle))
           .map(_._1)
 
   /**
@@ -492,7 +492,7 @@ final class Dialogue[Q, A, R, F[_]] private (topic: Topic, val id: String,
         oracle(q, Dialogue.Attempt(id, index)).flatMap:
           case Left(s) => pure((Left(s), p, index))
           case Right(a) =>
-            step(p, a, index).at[G].flatMap:
+            step(p, a, index).into[G].flatMap:
               case Dialogue.Answered.Advanced(next) => go(next, index + 1)
               case Dialogue.Answered.Lost(actual) => go(actual, index)
               case Dialogue.Answered.NotAsking(next) => go(next, index)

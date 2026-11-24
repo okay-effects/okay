@@ -15,7 +15,7 @@ class TestUsersDemo extends munit.FunSuite {
   def pureRun[S : Store](init: S): (S, (Seq[String], Option[String])) =
     State.run[S, (Seq[String], Option[String])](init)(
       Writer.run[String, Option[String], Tracked[S] + Pure](
-        tracked[Option[String], S, Pure](rename(7L, "grace").at[Users + Pure])).at[State % S])
+        tracked[Option[String], S, Pure](rename(7L, "grace").into[Users + Pure])).into[State % S])
 
   test("two carriers, one interpreter: the answer and the log do not depend on the store") {
     val (asMap, mapOut) = pureRun(Map(7L -> "ada"))

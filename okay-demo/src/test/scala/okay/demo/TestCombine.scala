@@ -42,7 +42,7 @@ class TestCombine extends munit.FunSuite {
 
   /** the pure run: no effects anywhere, so the answer is a value */
   private def fold(repo: StateRepo, events: Seq[Event]): (Seq[Output], StateRepo) =
-    !.run(Writer.run(through(Writer.of(events.toList).at[Writer % Event])(combine(repo))))
+    !.run(Writer.run(through(Writer.of(events.toList).into[Writer % Event])(combine(repo))))
 
   /** a source that waits a while, then tells its elements */
   private def after[W](millis: Long)(ws: Seq[W]): Source[W] =
@@ -89,7 +89,7 @@ class TestCombine extends munit.FunSuite {
   // parameter it was called with (the same kernel Effects.scala
   // states); exposed here at the call site, not a cast this file adds
   private def foldAccumulating(repo: StateRepo, events: Seq[Event]): Seq[Option[Output]] =
-    !.run(Writer.run(through(Writer.of(events.toList).at[Writer % Event])(accumulating(repo))))._1
+    !.run(Writer.run(through(Writer.of(events.toList).into[Writer % Event])(accumulating(repo))))._1
 
   test("the two formulations agree, event for event") {
     val cases = Seq(
@@ -105,7 +105,7 @@ class TestCombine extends munit.FunSuite {
       assertEquals(viaAccumulate, direct, s"disagreed on $events")
       // and through the filtering stage, the accumulating form is the
       // same pipeline as the direct one — two stages instead of one
-      val piped = !.run(Writer.run(through(Writer.of(events.toList).at[Writer % Event])(accumulated(emptyState))))._1
+      val piped = !.run(Writer.run(through(Writer.of(events.toList).into[Writer % Event])(accumulated(emptyState))))._1
       assertEquals(piped, direct)
   }
 

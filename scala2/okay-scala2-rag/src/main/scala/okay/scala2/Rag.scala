@@ -70,7 +70,7 @@ private[scala2] final class IndexBody(val store: VectorStore[okay.Pure], val emb
 
 /** the embedding model as the `Embed` handler okay-rag asks for */
 private[scala2] final class Embedder(embed: Seq[String] => Seq[Array[Float]]) {
-  val handler: Handler[Embed, [A] =>> A] = Handler.answering[Embed]([A] => (e: Embed[A]) => e match {
+  val handler: Handler[Embed, [A] =>> A] = Handler.tail[Embed]([A] => (e: Embed[A]) => e match {
     case Embed.Of(texts) => embed(texts).map(v => ArraySeq.unsafeWrapArray(v))
   })
 }

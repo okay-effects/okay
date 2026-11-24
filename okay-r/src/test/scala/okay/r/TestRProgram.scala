@@ -1,7 +1,7 @@
 package okay.r
 
 
-import okay.{effect}
+import okay.{perform}
 
 
 import okay.std.{Choose, Reader, runChoice}
@@ -26,7 +26,7 @@ class TestRProgram extends munit.FunSuite {
   private given okay.Answers[REval] = r.handler
   override def afterAll(): Unit = if TestR.rscript.nonEmpty then r.close()
 
-  private val choose = R.callback[Vector[Double], Double]("choose")(xs => effect[Choose, Double](Choose(xs)))
+  private val choose = R.callback[Vector[Double], Double]("choose")(xs => perform[Choose, Double](Choose(xs)))
 
   test("MULTI-SHOT across a process, from R: an R closure continued twice") {
     val pairs = R.program[Double]("progs::pairs").calling(R.callbacks(choose))()
@@ -70,7 +70,7 @@ class TestRReplay extends munit.FunSuite {
         // a call past the deadline: R is killed and a fresh one takes its place
         val late = r.handler.handle(REval.Call("rep::slow", Vector.empty))
         assert(late.left.exists(_.kind == "timeout"), late.toString)
-      effect[Choose, Double](Choose(xs))
+      perform[Choose, Double](Choose(xs))
     }
     try
       val pairs = R.program[Double]("rep::pairs").calling(R.callbacks(choose))()

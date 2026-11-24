@@ -182,9 +182,9 @@ class TestCondition extends munit.FunSuite {
   test("other effects forward: signal-and-resume inside an Async row") {
     val prog: Int ! Op + Async =
       for
-        a <- async(20).at[Op + Async]
-        b <- signal[Int]("double it").at[Op + Async]
-        c <- async(2).at[Op + Async]
+        a <- async(20).into[Op + Async]
+        b <- signal[Int]("double it").into[Op + Async]
+        c <- async(2).into[Op + Async]
       yield a + b + c
     val out = (Async.run(
       Condition.run((_, _) => Resume(20))(prog))).run

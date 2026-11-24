@@ -1,6 +1,6 @@
 package okay.llm
 
-import okay.{!, %, +, Async, effect, pure}
+import okay.{!, %, +, Async, perform, pure}
 import okay.std.{Writer}
 import okay.given
 import okay.codec.Json
@@ -14,7 +14,7 @@ class TestLlm extends munit.FunSuite {
       type F = Writer % String + Async
       def go(ls: List[String]): Unit ! F = ls match
         case Nil => pure(())
-        case l :: t => Writer.tell(l).at[F].flatMap(_ => go(t))
+        case l :: t => Writer.tell(l).into[F].flatMap(_ => go(t))
       go(events)
 
   def deltaEvent(text: String): List[String] = List(
@@ -46,7 +46,7 @@ class TestLlm extends munit.FunSuite {
     val flaky: Transport = new Transport:
       def post(url: String, headers: Map[String, String], body: String)
       : Unit ! Writer % String + Async =
-        effect[Async, Unit](Async.Run { () =>
+        perform[Async, Unit](Async.Run { () =>
           attempts += 1
           if attempts == 1 then throw RuntimeException("wire down")
         }).flatMap(_ => canned.post(url, headers, body))

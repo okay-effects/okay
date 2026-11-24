@@ -43,15 +43,15 @@ class TestZioTypedRow extends munit.FunSuite:
   }
 
   test("toZIOTyped: the Reader is ZIO's environment, raise is fail") {
-    val p: String ! Row = Reader.ask[ZEnvironment[Greeting]].at[Row].map(_.get[Greeting].word)
+    val p: String ! Row = Reader.ask[ZEnvironment[Greeting]].into[Row].map(_.get[Greeting].word)
     assertEquals(exit(toZIOTyped(p).provideEnvironment(hi)), Exit.succeed("hi"))
-    val q: Int ! Row = raise[String, Int]("bad").at[Row]
+    val q: Int ! Row = raise[String, Int]("bad").into[Row]
     assertEquals(exit(toZIOTyped(q).provideEnvironment(hi)), Exit.fail("bad"))
   }
 
   test("a throwable escaping the okay program is a ZIO defect") {
     val boom = RuntimeException("boom")
-    val p: Int ! Row = okay.async[Int](throw boom).at[Row]
+    val p: Int ! Row = okay.async[Int](throw boom).into[Row]
     exit(toZIOTyped(p).provideEnvironment(hi)) match
       case Exit.Failure(c) =>
         assertEquals(c.dieOption, Some(boom))

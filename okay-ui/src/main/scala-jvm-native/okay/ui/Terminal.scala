@@ -101,15 +101,15 @@ object Terminal {
       // that wants to lay itself out differently on a narrow terminal
       // can — `Resized` had been an event no host ever sent
       def first: Source[Event] = measured match
-        case Some((w, h)) => Writer.tell(Event.Resized(w, h)).at[Writer % Event + Async]
+        case Some((w, h)) => Writer.tell(Event.Resized(w, h)).into[Writer % Event + Async]
         case None => pure(())
 
       def go: Source[Event] =
-        effect(Async.Run(() => System.in.read())).at[Writer % Event + Async]
+        perform(Async.Run(() => System.in.read())).into[Writer % Event + Async]
           .flatMap { b =>
             if b < 0 then pure(())                   // stdin ended
             else if b == 3 || b == 17 then           // Ctrl-C, Ctrl-Q
-              Writer.tell(Event.Closed).at[Writer % Event + Async]
+              Writer.tell(Event.Closed).into[Writer % Event + Async]
             else
               val (st, keys) = Frame.feed(keyState, b)
               keyState = st
@@ -120,8 +120,8 @@ object Terminal {
                   // the view keys are the HOST's: they move no focus
                   // and say nothing to the application
                   if key == Frame.Key.PageUp || key == Frame.Key.PageDown then
-                    effect(Async.Run(() =>
-                      page(if key == Frame.Key.PageUp then -1 else 1))).at[Writer % Event + Async]
+                    perform(Async.Run(() =>
+                      page(if key == Frame.Key.PageUp then -1 else 1))).into[Writer % Event + Async]
                   else
                     // a click names a cell of the SCREEN; the frame
                     // may be scrolled under it, so the row is the
@@ -134,12 +134,12 @@ object Terminal {
                     focus = nf
                     caret = nc
                     ev match
-                      case Some(e) => Writer.tell(e).at[Writer % Event + Async]
+                      case Some(e) => Writer.tell(e).into[Writer % Event + Async]
                       case None =>
                         // a focus move re-renders the SAME tree, which
                         // the loop would skip — so the host repaints
                         // itself, and the view follows the focus
-                        if moved then effect(Async.Run(() => paint())).at[Writer % Event + Async]
+                        if moved then perform(Async.Run(() => paint())).into[Writer % Event + Async]
                         else pure(())
                 }
               }

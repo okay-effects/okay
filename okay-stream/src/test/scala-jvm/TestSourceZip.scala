@@ -103,7 +103,7 @@ class TestSourceZip extends munit.FunSuite with okay.testkit.Munit.Diagnosed {
     val produced = AtomicInteger(0)
     @volatile var feeder: Thread | Null = null
     val endless: Source[Int] =
-      effect[Async, Unit](Async.Run(() => feeder = Thread.currentThread())).at[R]
+      perform[Async, Unit](Async.Run(() => feeder = Thread.currentThread())).into[R]
         .flatMap(_ => Source.of(LazyList.from(0).map(i => { produced.incrementAndGet(); i })))
     val out = pairs(Source.zip(Source.of(List(7)), endless, capacity = 4))
     assertEquals(out, Vector((7, 0)))
@@ -124,7 +124,7 @@ class TestSourceZip extends munit.FunSuite with okay.testkit.Munit.Diagnosed {
   test("a side that fails fails the zip, after every pair told before the failure") {
     object Boom extends RuntimeException("boom")
     val failing: Source[Int] =
-      Source.of(List(1, 2)).flatMap(_ => effect[Async, Unit](Async.Run[Unit](() => throw Boom)).at[R])
+      Source.of(List(1, 2)).flatMap(_ => perform[Async, Unit](Async.Run[Unit](() => throw Boom)).into[R])
     val seen = scala.collection.mutable.ArrayBuffer.empty[(Int, Int)]
     val z = Source.zip(Source.of(LazyList.from(10)), failing, capacity = 64)
     val thrown = intercept[RuntimeException](z.runForeach(p => pure[Unit, Async] { seen += p; () }).runWith)

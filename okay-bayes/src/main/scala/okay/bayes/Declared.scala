@@ -1,6 +1,6 @@
 package okay.bayes
 
-import okay.{!, effect}
+import okay.{!, perform}
 import okay.std.Static
 /**
  * A MODEL WHOSE STRUCTURE IS KNOWN BEFORE IT RUNS (specs/okay-bayes.md
@@ -63,7 +63,7 @@ object Declared:
     val _ = sites(params)
     // the declaration folded into a program by its own Selective fold (okay-freer's `toFree` builds okay-freer's
     // tree): each leaf one operation, the program's Monad the Selective
-    val run = params.foldMap[[X] =>> X ! Model]([X] => (op: Model[X]) => effect(op))(using okay.Programs.monad[Model])
+    val run = params.foldMap[[X] =>> X ! Model]([X] => (op: Model[X]) => perform(op))(using okay.Programs.monad[Model])
     run.flatMap(a => Bayes.factor(logLik(a)).map(_ => a))
 
   /**

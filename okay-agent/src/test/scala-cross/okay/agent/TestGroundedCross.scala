@@ -44,9 +44,9 @@ class TestGroundedCross extends munit.FunSuite {
     Keyword.index(files.flatMap(f => Ingest.segment(f, 400)(_.length)))
 
   val ask: Seq[Turn] ! Context + Async =
-    okay.effect(
-      Context.Remember(Turn.User("how do I greet someone by name?"))).at[Context + Async]
-      .flatMap(_ => okay.effect(Context.Recall()).at[Context + Async])
+    okay.perform(
+      Context.Remember(Turn.User("how do I greet someone by name?"))).into[Context + Async]
+      .flatMap(_ => okay.perform(Context.Recall()).into[Context + Async])
 
   /**
    * A retriever that cannot answer now: it rides the platform timer,

@@ -5,7 +5,7 @@ import scala.language.implicitConversions
 import okay.{Async, Source}
 
 import okay.{+, %}
-import okay.{!, effect}
+import okay.{!, perform}
 import okay.std.{Chunk, Stream, Throws, Writer}
 import okay.given
 import okay.std.given
@@ -44,7 +44,7 @@ class TestJdbcInterop extends munit.FunSuite {
     val prog2 = okay.!.widen[java.sql.Connection, okay.std.Resource, Throws % String](
       connection("jdbc:h2:mem:r2")).flatMap { c =>
       conn = c
-      effect(Throws("boom"))
+      perform(Throws("boom"))
     }
     val out = !.run(okay.std.Resource.run(
       okay.std.runEither[Int, okay.std.Resource + Throws % String, String](prog2)))

@@ -3,7 +3,7 @@ package okay.refine
 import scala.collection.mutable
 import scala.reflect.TypeTest
 import okay.{Async, Channel, Scheduler, Source, runForeach}
-import okay.{!, effect, pure}
+import okay.{!, perform, pure}
 import okay.Aggregator
 /**
  * A ROUTING TABLE AS A VALUE, run anywhere (specs/refine.md,
@@ -154,7 +154,7 @@ abstract class Routes[A, B](val pattern: Refine[A, B]) extends Serializable:
         pure(Routed(lanes.map(_.name).zip(counts.toVector), rejected))
       case Left(e) =>
         channels.foreach(_.fail(e))
-        effect(Async.Await[Routed](k => { k(Left(e)); () => () }))
+        perform(Async.Await[Routed](k => { k(Left(e)); () => () }))
     }
 
 object Routes:

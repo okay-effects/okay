@@ -35,10 +35,10 @@ class TestGuarded extends munit.FunSuite:
       case None => fail("the test program did not complete synchronously")
 
   /** lift each half into the row once, so the seams below read plainly */
-  def act(f: => Unit): Unit ! Lines + Async = okay.async(f).at[Lines + Async]
-  def say(line: String): Unit ! Lines + Async = Writer.tell(line).at[Lines + Async]
+  def act(f: => Unit): Unit ! Lines + Async = okay.async(f).into[Lines + Async]
+  def say(line: String): Unit ! Lines + Async = Writer.tell(line).into[Lines + Async]
   def park(register: (Either[Throwable, Unit] => Unit) => Unit): Unit ! Lines + Async =
-    Async.await[Unit] { k => register(k); () => () }.at[Lines + Async]
+    Async.await[Unit] { k => register(k); () => () }.into[Lines + Async]
 
   /** a seam that tells three lines, optionally failing part-way */
   def stream(failAfter: Int = -1): Unit ! Lines + Async =

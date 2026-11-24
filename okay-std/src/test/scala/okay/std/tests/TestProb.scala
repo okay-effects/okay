@@ -132,8 +132,8 @@ class TestProb extends munit.FunSuite:
 
   test("runExact forwards other effects: both branches' tells happen — multi-shot") {
     val p: Boolean ! Dist + Writer % String =
-      dist(true -> 0.5, false -> 0.5).at[Dist + Writer % String].flatMap { b =>
-        Writer.tell(if b then "heads" else "tails").at[Dist + Writer % String].map(_ => b)
+      dist(true -> 0.5, false -> 0.5).into[Dist + Writer % String].flatMap { b =>
+        Writer.tell(if b then "heads" else "tails").into[Dist + Writer % String].map(_ => b)
       }
     val (told, post) = (Writer.run(
       runExact(p))).run

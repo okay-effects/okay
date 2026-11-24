@@ -838,7 +838,7 @@ object Form {
       Condition.run[Outcome[A], Condition.Op + Pure](policy)(
         Condition.within[Outcome[A], Pure]("giveup")(
           Condition.within[Outcome[A], Pure]("reask")(
-            Condition.raiseC(InvalidSubmit(errs, n))(using ans).map(Outcome.Done(_)).at[Condition.Op + Pure]
+            Condition.raiseC(InvalidSubmit(errs, n))(using ans).map(Outcome.Done(_)).into[Condition.Op + Pure]
           )(_ => Outcome.Retry()))(_ => Outcome.Gave())).run
 
     // the policy road has its own loop, and the same start: the state

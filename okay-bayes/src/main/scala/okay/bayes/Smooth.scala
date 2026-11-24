@@ -1,6 +1,6 @@
 package okay.bayes
 
-import okay.{!, Effect, Handler, effect}
+import okay.{!, Effect, Handler, perform}
 import Real.{exp, log, lgamma, log1p, softplus, sigmoid, square, sum}
 
 /** a density over X whose log is differentiable — in its parameters, and in x when x is a `Real` */
@@ -67,8 +67,8 @@ object Smooth:
   final case class Mixture(components: Vector[(Real, Density[Real])]) extends Density[Real]:
     def logPdf(x: Real): Real = Real.logSumExp(components.map((w, d) => log(w) + d.logPdf(x)))
 
-  inline def param(name: String, prior: Prior): Real ! Grad = effect(Grad.Param(name, prior))
-  inline def score(logWeight: Real): Unit ! Grad = effect(Grad.Score(logWeight))
+  inline def param(name: String, prior: Prior): Real ! Grad = perform(Grad.Param(name, prior))
+  inline def score(logWeight: Real): Unit ! Grad = perform(Grad.Score(logWeight))
   /** `n` parameters `name[i]` under one prior — a vector as n named scalars */
   def paramN(name: String, prior: Prior, n: Int): Vector[Real] ! Grad =
     // recursion deferred into the program's flatMap, as Bayes.sampleN
@@ -124,7 +124,7 @@ object Smooth:
     var supports = Vector.empty[Support]
     var total = Real.const(0.0)
     // each operation answered in place (the kernel's Answering): nothing captured, no walk
-    val answers = Handler.answering[Grad]([X] => (op: Grad[X]) => op match
+    val answers = Handler.tail[Grad]([X] => (op: Grad[X]) => op match
       case Grad.Param(name, prior) =>
         require(!names.contains(name), s"Smooth: parameter '$name' drawn twice")
         val (x, logJ) = constrain(prior.support, u(names.length))

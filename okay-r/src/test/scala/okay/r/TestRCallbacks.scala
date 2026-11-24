@@ -49,7 +49,7 @@ class TestRCallbacks extends okay.testkit.Munit.Diagnosed {
 
   test("a callback that calls R again, on the same process, is answered") {
     val via = R.callback[Long, Long]("via_r")(x => R.fn[Long]("square")(x).map(_.getOrElse(-1L)))
-    val prog: Either[Condition, Long] ! REval = R.fn[Long]("nested").calling(R.callbacks(via))(7L).at[REval]
+    val prog: Either[Condition, Long] ! REval = R.fn[Long]("nested").calling(R.callbacks(via))(7L).into[REval]
     assertEquals(prog.runWith, Right(50L))
   }
 

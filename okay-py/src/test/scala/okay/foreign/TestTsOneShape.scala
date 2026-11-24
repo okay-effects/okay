@@ -1,7 +1,7 @@
 package okay.foreign
 
 
-import okay.{effect}
+import okay.{perform}
 
 
 import okay.std.{Choose, Reader, runChoice}
@@ -83,7 +83,7 @@ class TestTsOneShape extends munit.FunSuite {
   }
 
   test("programs as data, multi-shot, in the JSON shape") {
-    val choose = Ts.callback[Vector[Long], Long]("choose")(xs => effect[Choose, Long](Choose(xs)))
+    val choose = Ts.callback[Vector[Long], Long]("choose")(xs => perform[Choose, Long](Choose(xs)))
     val pairs = Ts.program[Long]("shop:pairs").calling(Ts.callbacks(choose))()
     assertEquals(runChoice(pairs.program).runWith.toList, List(Right(11L), Right(21L), Right(12L), Right(22L)))
   }

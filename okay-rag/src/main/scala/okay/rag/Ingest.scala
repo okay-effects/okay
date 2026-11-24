@@ -47,8 +47,8 @@ object Ingest {
       pure[Progress, Embed + F](Progress(sources.length, segs.length, 0, 0))) {
       (acc, group) =>
         acc.flatMap { p =>
-          embed(group.map(_.text)).at[Embed + F].flatMap { vs =>
-            store.upsert(group.zip(vs)).at[Embed + F]
+          embed(group.map(_.text)).into[Embed + F].flatMap { vs =>
+            store.upsert(group.zip(vs)).into[Embed + F]
               .map(_ => p.copy(embedded = p.embedded + group.length))
           }
         }
@@ -84,12 +84,12 @@ object Ingest {
     val staleSpans = before.filterNot(s => after.exists(_.span == s.span)).map(_.span)
 
     val p = Progress(1, after.length, changed.length, reused.length)
-    store.delete(oldSrc.id, staleSpans).at[Embed + F]
+    store.delete(oldSrc.id, staleSpans).into[Embed + F]
       .flatMap { _ =>
         if changed.isEmpty then pure[(Parse.Parsed[Code.K, Code.S, Code.D], Progress), Embed + F]((fresh, p))
         else
-          embed(changed.map(_.text)).at[Embed + F].flatMap { vs =>
-            store.upsert(changed.zip(vs)).at[Embed + F]
+          embed(changed.map(_.text)).into[Embed + F].flatMap { vs =>
+            store.upsert(changed.zip(vs)).into[Embed + F]
               .map(_ => (fresh, p))
           }
       }

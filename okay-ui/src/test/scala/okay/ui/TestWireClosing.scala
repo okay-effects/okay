@@ -25,7 +25,7 @@ class TestWireClosing extends munit.FunSuite {
     case _ => (n, false)
 
   def talk(lines: String*): (Seq[String], Int) =
-    val (out, s) = !.run(Writer.run(through(Writer.of(lines.toList).at[Writer % String])(
+    val (out, s) = !.run(Writer.run(through(Writer.of(lines.toList).into[Writer % String])(
       Wire.serveClosing(0)(view)(update))))
     (out, s)
 
@@ -48,7 +48,7 @@ class TestWireClosing extends munit.FunSuite {
     def upd(n: Int, e: Event): (Int, Boolean) = e match
       case Event.Pressed("inc") => (n + 1, true) // this press ends it
       case _ => (n, false)
-    val (out, s) = !.run(Writer.run(through(Writer.of(List(press("inc"))).at[Writer % String])(
+    val (out, s) = !.run(Writer.run(through(Writer.of(List(press("inc"))).into[Writer % String])(
       Wire.serveClosing(0)(view)(upd))))
     assertEquals(s, 1)
     assertEquals(out, Seq(
@@ -70,7 +70,7 @@ class TestWireClosing extends munit.FunSuite {
   test("serve is serveClosing with the boolean pinned false: byte-identical output") {
     def plainUpdate(n: Int, e: Event): Int = update(n, e)._1
     val lines = List(press("inc"), press("logout"), press("inc"))
-    val (viaServe, sServe) = !.run(Writer.run(through(Writer.of(lines).at[Writer % String])(
+    val (viaServe, sServe) = !.run(Writer.run(through(Writer.of(lines).into[Writer % String])(
       Wire.serve(0)(view)(plainUpdate))))
     // serve never closes on its own, so the trailing "inc" DOES run —
     // proving the two are genuinely different behaviors, not that the

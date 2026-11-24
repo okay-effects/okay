@@ -104,8 +104,8 @@ class TestPipe extends munit.FunSuite {
   test("an effectful producer pipes into a program of its effects") {
     type F = Writer % Int + Async
     def ticks(n: Int): Unit ! F =
-      effect[Async, Unit](Async.Run(() => Thread.sleep(1))).at[F].flatMap: _ =>
-        Writer.tell(n).at[F].flatMap(_ => ticks(n + 1))
+      perform[Async, Unit](Async.Run(() => Thread.sleep(1))).into[F].flatMap: _ =>
+        Writer.tell(n).into[F].flatMap(_ => ticks(n + 1))
     val result: Int ! Async = pipe[Int, Unit, Int, Async](ticks(7))(sums(3, 0))
     assertEquals(result.runWith, 7 + 8 + 9)
   }
@@ -115,10 +115,10 @@ class TestPipe extends munit.FunSuite {
     var effects = 0
     // an effectful stage: an Async op before every doubled output
     def double: Unit ! Row =
-      effect[Take % Int, Option[Int]](Take.Await()).at[Row].flatMap {
+      perform[Take % Int, Option[Int]](Take.Await()).into[Row].flatMap {
         case Some(x) =>
-          effect[Async, Unit](Async.Run(() => effects += 1)).at[Row].flatMap(_ =>
-            Writer.tell(x * 2).at[Row].flatMap(_ => double))
+          perform[Async, Unit](Async.Run(() => effects += 1)).into[Row].flatMap(_ =>
+            Writer.tell(x * 2).into[Row].flatMap(_ => double))
         case None => pure(())
       }
     // a pure stage widened into the row (union ACI lets the ascription)
@@ -127,14 +127,14 @@ class TestPipe extends munit.FunSuite {
         case Some(x) => Stage.tell[Int, Int](x + 1).flatMap(_ => incPure)
         case None => pure(())
       }
-    val inc: Unit ! Row = (incPure).at[Row]
+    val inc: Unit ! Row = (incPure).into[Row]
 
     type Src = Writer % Int + Async
     var told = 0
     def src(n: Int): Unit ! Src =
       if n == 0 then pure(())
-      else effect[Async, Unit](Async.Run(() => told += 1)).at[Src].flatMap(_ =>
-        Writer.tell(n).at[Src].flatMap(_ => src(n - 1)))
+      else perform[Async, Unit](Async.Run(() => told += 1)).into[Src].flatMap(_ =>
+        Writer.tell(n).into[Src].flatMap(_ => src(n - 1)))
 
     // stage∘stage, then the producer through the composite
     val composed = through[Int, Int, Int, Async, Unit, Unit](double)(inc)
@@ -178,11 +178,11 @@ class TestPipe extends munit.FunSuite {
     // sixth door, TestWidenDelay pins the fix), and the delay sits
     // outside it here so that this test measures `through` alone
     val countingG: Unit ! Row = defer {
-      starts += 1; (Stage.id[Int]).at[Row] }
-    val idG: Unit ! Row = (Stage.id[Int]).at[Row]
+      starts += 1; (Stage.id[Int]).into[Row] }
+    val idG: Unit ! Row = (Stage.id[Int]).into[Row]
     val s3 = through[Int, Int, Int, Async, Unit, Unit](countingG)(idG)
     assertEquals(starts, 0, "the effectful through(stage)(stage) builds, runs nothing")
-    val toldG: Int ! Writer % Int + Async = (told).at[Writer % Int + Async]
+    val toldG: Int ! Writer % Int + Async = (told).into[Writer % Int + Async]
     val p4 = through[Int, Int, Async, Int, Unit](toldG)(s3)
     assertEquals(starts, 0, "the effectful through(producer)(stage) builds, runs nothing")
     assertEquals(Writer.run(p4).runWith._1, Seq(1, 2, 3))

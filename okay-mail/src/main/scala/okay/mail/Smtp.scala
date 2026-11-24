@@ -1,7 +1,7 @@
 package okay.mail
 
 
-import okay.{!, Async, effect}
+import okay.{!, Async, perform}
 import okay.conf.{Secret, Secrets}
 import okay.mail.Mail.{Accepted, Rejection}
 import okay.tls.{Tls, TlsConfig}
@@ -46,7 +46,7 @@ object Smtp {
    */
   def send(server: Server, secrets: Secrets = Secrets.env)
           (mail: Mail): Either[Rejection, Accepted] ! Async =
-    effect[Async, Either[Rejection, Accepted]](Async.Run(() => blocking(server, secrets, mail)))
+    perform[Async, Either[Rejection, Accepted]](Async.Run(() => blocking(server, secrets, mail)))
 
   /** the same, without the effect, for a caller that already owns a
    * thread and wants the plain answer */

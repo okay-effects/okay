@@ -1,6 +1,6 @@
 package okay.std.bench
 
-import okay.{!, Answers, effect, traverse}
+import okay.{!, Answers, perform, traverse}
 import okay.Programs.given
 import okay.std.Static
 
@@ -52,7 +52,7 @@ class StaticBenchmark {
   private val N = 1000
   private val spine: Static[Fetch, Seq[Int]] = traverse(1 to N)(i => Static.op(Get(i)))
 
-  private val prog: Seq[Int] ! Fetch = traverse(1 to N)(i => effect[Fetch, Int](Get(i)))
+  private val prog: Seq[Int] ! Fetch = traverse(1 to N)(i => perform[Fetch, Int](Get(i)))
 
   @Benchmark
   def staticToFree(): Int = spine.toProgram.runWith.sum
@@ -61,7 +61,7 @@ class StaticBenchmark {
   def monadicPrebuilt(): Int = prog.runWith.sum
 
   @Benchmark
-  def monadicBuildAndRun(): Int = traverse(1 to N)(i => effect[Fetch, Int](Get(i))).runWith.sum
+  def monadicBuildAndRun(): Int = traverse(1 to N)(i => perform[Fetch, Int](Get(i))).runWith.sum
 
   @Benchmark
   def staticLeaves(): Int = spine.leaves.length

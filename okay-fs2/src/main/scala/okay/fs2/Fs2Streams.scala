@@ -54,21 +54,21 @@ object Fs2Streams:
    */
   def fromFs2[A](s: Stream[IO, A], capacity: Int = 64)(using IORuntime): Source[A] =
     def go(q: Queue[IO, Option[Chunk[A]]]): Source[A] =
-      awaitIO(q.take).at[Writer % A + Async].flatMap {
+      awaitIO(q.take).into[Writer % A + Async].flatMap {
         case None => okay.pure[Unit, Writer % A + Async](())
         case Some(ch) => tellAll(ch.toList).flatMap(_ => go(q))
       }
     def tellAll(xs: List[A]): Unit ! Writer % A + Async = xs match
       case Nil => okay.pure(())
-      case x :: rest => Writer.tell(x).at[Writer % A + Async].flatMap(_ => tellAll(rest))
+      case x :: rest => Writer.tell(x).into[Writer % A + Async].flatMap(_ => tellAll(rest))
     for
-      q <- awaitIO(Queue.bounded[IO, Option[Chunk[A]]](capacity)).at[Writer % A + Async]
+      q <- awaitIO(Queue.bounded[IO, Option[Chunk[A]]](capacity)).into[Writer % A + Async]
       fib <- awaitIO(s.chunks.evalMap(c => q.offer(Some(c))).compile.drain.guarantee(q.offer(None)).start)
-        .at[Writer % A + Async]
+        .into[Writer % A + Async]
       scope = Async.CancelScope(() => fib.cancel.unsafeRunAndForget())
-      _ <- scope.enter.at[Writer % A + Async]
+      _ <- scope.enter.into[Writer % A + Async]
       _ <- go(q)
-      _ <- scope.exit.at[Writer % A + Async]
+      _ <- scope.exit.into[Writer % A + Async]
     yield ()
 
   /** an IO as one `Async.Await` on its future, cancelling the IO when

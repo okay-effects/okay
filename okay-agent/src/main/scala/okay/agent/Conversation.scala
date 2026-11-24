@@ -239,7 +239,7 @@ object Conversation:
     val name = in.frame.intent.toString
 
     def ask(say: Say, id: String): Reply ! Tool =
-      okay.effect(Tool.Call(ToolCall(id, AskOp, Say.encode(say))))
+      okay.perform(Tool.Call(ToolCall(id, AskOp, Say.encode(say))))
         .map(s => Reply.decode(s).getOrElse(Reply.Answer(s)))
 
     /**
