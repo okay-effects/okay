@@ -12,8 +12,8 @@ The author's ask of 2026-11-24, in five commits.
 - c96ada141: okay2/, okay-compose/, okay-swift/, tools/, upstream/ and docs/okay2.md moved to the
   private repository okay-effects/okay-archive (`okay/`); tag `archive/2026-11-24` keeps their history.
   okay-chat, okay-agent, okay-http, okay-llm, okay-mcp and okay-ui stay: modules in the build depend on
-  each. The okay2 job in .github/workflows/ci.yml waits on branch feature/ci-drop-okay2-job (the push
-  token had no `workflow` scope).
+  each. The okay2 job in .github/workflows/ci.yml waits on branch feature/ci-drop-okay2 (the push
+  token had no `workflow` scope; `gh auth refresh -s workflow`, then fast-forward and push it).
 - The renames, against the sibling repositories of the same names: okay-kernel → okay-plugins
   (`okayPlugins`), okay-java → okay-jdk (`okayJdk`, package `okay.java` → `okay.jdk`), okay-rust →
   okay-native (`okayNative`), okay-direct → okay-syntax (`okaySyntax`). Packages `okay.kernel` (okay-watch
