@@ -9,7 +9,7 @@ import java.util.concurrent.{SynchronousQueue, TimeUnit}
 /**
  * ONE OPERATION, THREE MACHINES (specs/java-direct-effects.md, the probe's
  * second half): what a handled operation costs when the resumption is
- * okay's `Free` (what okay-java's `Eff` runs on), a virtual thread handing
+ * okay's `Free` (what okay-jdk's `Eff` runs on), a virtual thread handing
  * the operation to the handler and parking (the public road to a direct
  * style), or `jdk.internal.vm.Continuation` (the machinery under it, used
  * directly; `vthreadBoth` is `vthread`'s control). Each lane runs `N`

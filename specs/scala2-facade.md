@@ -12,7 +12,7 @@ writes ordinary 2.13 code — for-comprehensions, lambdas, pattern
 matches — over types whose SIGNATURES a Scala 2 compiler can read.
 The facade is written in Scala 3 and calls the real library; the
 2.13 side never sees an effect row, an inline method or an opaque
-type. It is `okay-java`'s idea one level up: that module makes the
+type. It is `okay-jdk`'s idea one level up: that module makes the
 library usable from Java, this one from Scala 2.
 
 ## Why not a cross-build (measured 2026-09-22)
@@ -489,7 +489,7 @@ of every module, taken on a fresh `publishLocal` of master:
 | okay-delta | 22 | 0 | 3 | 1 | 0  |
 | okay-demo | 95 | 0 | 15 |  | -  |
 | okay-deploy | 112 | 1 | 0 | 17 | 0  |
-| okay-direct | 186 | 5 | 10 | 2 | 0  |
+| okay-syntax | 186 | 5 | 10 | 2 | 0  |
 | okay-docs | 39 | 0 | 21 | 4 | 0  |
 | okay-flink | 5 | 0 | 0 | 1 | 0  |
 | okay-frame | 34 | 0 | 0 | 4 | 0  |
@@ -498,7 +498,7 @@ of every module, taken on a fresh `publishLocal` of master:
 | okay-guice | 4 | 0 | 1 | 1 | 0  |
 | okay-http | 228 | 1 | 57 | 19 | 2 (Query,Route) |
 | okay-intent | 230 | 0 | 0 | 31 | 0  |
-| okay-java | 70 | 0 | 7 | 6 | 0  |
+| okay-jdk | 70 | 0 | 7 | 6 | 0  |
 | okay-jdbc | 47 | 0 | 17 | 7 | 0  |
 | okay-jetty | 26 | 0 | 8 | 1 | 0  |
 | okay-js | 40 | 1 | 0 | 4 | 0  |
@@ -565,7 +565,7 @@ SERVICE:
 NOT APPLICABLE: the interop modules okay-cats, okay-zio, okay-kyo and
 okay-fs2. Each depends on the `_3` artifacts of its library, and a
 Scala 2 build has that library at `_2.13`. Both on one classpath is a
-conflict, not an interop. okay-direct and okay-staging are Scala 3
+conflict, not an interop. okay-syntax and okay-staging are Scala 3
 metaprogramming.
 
 ## Stage 16 — the row alias `+`, in Scala 2 code (2026-09-24)

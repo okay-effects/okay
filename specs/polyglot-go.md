@@ -55,7 +55,7 @@ stage 3), a Go plugin runs sandboxed inside the JVM, with no Go runtime
 beside the JVM's: it runs inside the module. This is the road for
 untrusted Go code.
 
-- [x] `okay-rust/kernels/sha256-go`: SHA-256 from Go's standard
+- [x] `okay-native/kernels/sha256-go`: SHA-256 from Go's standard
       library, over the Rust kernel's ABI shape: `okay_alloc`,
       `okay_free`, and `okay_sha256(in, n, out)`.
 - [x] `enum Digest[+A] derives okay.Effect` has one operation, `Sha256(bytes)`.

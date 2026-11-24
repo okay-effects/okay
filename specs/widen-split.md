@@ -51,7 +51,7 @@ row of the block. Operator, 2026-09-23: "widen несёт двойственну
       thunk counts is widened with the count at 0, and the count is 1
       after ONE run and 2 after two — the rerun law the eager head
       broke, now true by construction and pinned in core rather than
-      only in okay-clojure/okay-java's stages.
+      only in okay-clojure/okay-jdk's stages.
 - [x] `!.normalize` agrees with `!.widen` on every shape (the law
       above, both directions) and is what the old `widen` was, so the
       stage suites that pinned the deferred-head fix stay green
@@ -145,7 +145,7 @@ one that remains.
 tree shapes including a 200-deep chain, and `widen` enters a deferred
 head 0 times at widen, 1 after one run, 2 after two — the rerun law
 by construction. `TestWidenDelay`, `TestPipe`, `TestStreamSource`,
-`TestGather` (okay-java), `TestTransducers` (okay-clojure) — the
+`TestGather` (okay-jdk), `TestTransducers` (okay-clojure) — the
 suites that pinned the deferred-head fix — unchanged, green.
 
 `compare/WidenBenchmark`, `through(Source.range 10k)(stage)` with a

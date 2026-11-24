@@ -66,7 +66,7 @@ trait Stager[Row[+_], R]
 //         case State.Set(s2) => Handled.shift(k => st => k(s2)((s2, st._2)))
 //         case Writer.Say(v) => Handled.shift(k => st => k(())((st._1, st._2 :+ v)))
 
-// okay-direct
+// okay-syntax
 object Direct:
   /** the block over Handled[Row, R, *]: every marked OPERATION of the
    * row, and every marked leaf program `Free.Inject(op)` (which is
@@ -99,7 +99,7 @@ laws apply to it unchanged.
       error naming the fix; v2 walks it.
 - [x] A marked value of a FOREIGN monad is refused with the same
       "neither … nor" error a Free block gives.
-- [x] MEASURED (`okay-direct` `StagedBenchmark`, two rounds × two
+- [x] MEASURED (`okay-syntax` `StagedBenchmark`, two rounds × two
       forks, minima): the `direct`-emitted block `stagedDirect` is
       7.50 µs / 85 368 B against the hand-written `stagedHand` 7.69 /
       84 568 — parity within 1%, +800 B per run (the two hoisted
@@ -213,7 +213,7 @@ monad's `flatMap`/`pure`, now `Handled`'s.
 
 **2026-09-22, 5a3af433** (history rows `ds-*`):
 
-| lane (okay-direct `StagedBenchmark`, 1 000 ops, minima) | µs | B/op |
+| lane (okay-syntax `StagedBenchmark`, 1 000 ops, minima) | µs | B/op |
 |---|---|---|
 | `freeDirectNested` — the same text as a Free `direct` block, shipping runners | 16.8 | 164 928 |
 | `stagedDirect` — `Direct.staged(sw) { … }` | **7.50** | **85 368** |

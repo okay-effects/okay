@@ -1681,7 +1681,7 @@ unhandled-effect row is also pinned in `TestScala2Guide` with
   Scala 2 build has that library at `_2.13`: both on one classpath is a
   conflict, not an interop. A Scala 2 build that uses cats or ZIO reaches
   okay through `Prog` and `Eff` instead.
-- **okay-direct and okay-staging.** Both are Scala 3 metaprogramming.
+- **okay-syntax and okay-staging.** Both are Scala 3 metaprogramming.
 - **okay-ui's cancellable scopes** (`Scope`) inside a dialog.
 - Everything else is wrapped: sections 8a to 8q, one module each (the
   table in section 1). Where a library's own values and builders are

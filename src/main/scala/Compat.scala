@@ -70,7 +70,7 @@ extension [E[_], X](op: E[X])
   /** an operation as a program, `op.perform` or `perform(op)`: `effect(op)` */
   def perform(using KeyOf[E]): X ! E = effect(op)
 
-/** THE EFFECTS OF `F` ERASED INTO ONE, `T`, that takes any operation (a foreign facade's `Top`: okay-java,
+/** THE EFFECTS OF `F` ERASED INTO ONE, `T`, that takes any operation (a foreign facade's `Top`: okay-jdk,
  * okay-scala2): each of `F`'s operations performed again at `T`'s key — the keys of `F` found at compile time from
  * the shape of `F` as written in its type (an abstract `F` alone: every operation by key that comes) */
 final class Erased[F[_]](val keys: KeysOf[F])

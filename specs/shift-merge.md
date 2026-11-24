@@ -72,7 +72,7 @@ different keys mix in one `flatMap`. `Shift.dynamic(p)` names it.
    door, the one machine guard, `Shift.dynamic`. Every core caller moved
    (Lexical, Layered, Replayable, Delimited's docs, Effects, Cont). The
    static form unchanged in meaning.
-2. **The satellites**: okay-persist, okay-direct, okay-workflow, okay-ui,
+2. **The satellites**: okay-persist, okay-syntax, okay-workflow, okay-ui,
    okay-llm, okay-foreign-workflow and the rest of the 17 files —
    `Delim + F` → `Shift % ? + F`, `Delim.x` → `Shift.x`. Mechanical.
 3. **`Stacked` as `Shift % p.type`**: the type-level prompt stack read

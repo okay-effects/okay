@@ -16,7 +16,7 @@ import scala.reflect.ClassTag
  * okay's `Stage[I, O, A]` — `A ! Take % I + Writer % O` — is that
  * written as a program: a `tell` is a call of `rf`, a stage that
  * ANSWERS is a step answering reduced, and the flush is what the stage
- * tells after its last `await` answered `None`. This is okay-java's
+ * tells after its last `await` answered `None`. This is okay-jdk's
  * `Gather` (the JDK's gatherers) again, with Clojure's accumulator
  * threaded through `rf` where the JDK had a `Downstream`.
  *
@@ -90,7 +90,7 @@ object Transducers {
    * pipeline pulling, `(partition-all 3)` still hands over its tail.
    *
    * A program BUILT over it is a value too, as over
-   * `okay.java.Gather.stage`: `through` starts its drive when the
+   * `okay.jdk.Gather.stage`: `through` starts its drive when the
    * program runs (windows-stage-rerun-loses-pane), so each run of the
    * built program applies `xf` afresh. What cannot be replayed is a
    * continuation from INSIDE a run, resumed again after the run

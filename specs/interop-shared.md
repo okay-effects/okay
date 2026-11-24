@@ -2,7 +2,7 @@
 
 ## Overview
 
-Three bridges grew side by side on 2026-09-23 — okay-java's `Gather` (JDK
+Three bridges grew side by side on 2026-09-23 — okay-jdk's `Gather` (JDK
 gatherers), okay-clojure's `Transducers`/`Program`/`Ops`, okay-frege's
 `Frege`/`Ops` — and each carries its own copy of the same four pieces:
 
@@ -78,7 +78,7 @@ per-language classes stay as the names users bind to (Frege natives name
   Every range overlaps its base; no driver is slower beyond its own
   noise. The transducer reads slightly faster (its accumulator is now a
   field of the process, not a tuple per drive), within noise.
-- 122 tests across okay-java, okay-clojure and okay-frege green,
+- 122 tests across okay-jdk, okay-clojure and okay-frege green,
   unchanged.
 - Mutants on the SHARED code, each caught by a test of an earlier lane:
   `Push.drive` ignoring a refused push fails TestGather's "a refused

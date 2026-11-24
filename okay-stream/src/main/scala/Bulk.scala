@@ -14,7 +14,7 @@ import Chunks.elements
  * expand. A program written against `Bulk[D]` names no platform; the
  * instance in scope is the platform — `Chunks` in one JVM, an RDD on
  * Spark (okay-spark), a `java.util.List` over a machine's cores
- * (okay-java). The seam rule of specs/data.md: a platform enters as an
+ * (okay-jdk). The seam rule of specs/data.md: a platform enters as an
  * instance of this, never as an API surface.
  *
  * Deliberately NO evidence per element type. Spark asks a `ClassTag` of

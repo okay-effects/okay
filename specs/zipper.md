@@ -565,7 +565,7 @@ object Form:
 - [x] `for i <- Take.each[Int] do tell(i * 2).!?` in a direct block IS a
       `Stage`, and a guarded loop over `Take.each` a consumer — tested
       in okay-llm, the module whose test classpath holds both
-      okay-direct and okay-stream (specs/direct-loops.md v3 Results).
+      okay-syntax and okay-stream (specs/direct-loops.md v3 Results).
 
 ### Decisions (stage 5)
 

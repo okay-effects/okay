@@ -442,7 +442,7 @@ union type. The library's combinators are also `inline`, and the
 Scala 2 TASTy reader refuses to call those: *Unsupported Scala 3
 inline method flatMap; found in class okay.freer.Free*. So a 2.13 build
 cannot use okay's own API directly. It gets a small, fixed-row
-surface instead, the way `okay-java` gives Java one. The measurements
+surface instead, the way `okay-jdk` gives Java one. The measurements
 and the stages still to come (State/Reader/Writer carriers, streams)
 are in [`specs/scala2-facade.md`](../../specs/scala2-facade.md).
 

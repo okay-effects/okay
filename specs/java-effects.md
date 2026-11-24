@@ -2,10 +2,10 @@
 
 ## Overview
 
-okay-java bridges the JDK's TYPES — `java.util.stream`, `java.util.function`,
+okay-jdk bridges the JDK's TYPES — `java.util.stream`, `java.util.function`,
 gatherers, collectors — but a Java programmer could not write an okay
 program, perform an operation of an effect of their own, or handle one.
-This lane adds that facade, in `okay.java` (operator ask, 2026-10-04).
+This lane adds that facade, in `okay.jdk` (operator ask, 2026-10-04).
 
 okay's row is a union of type constructors, `State % Int + Throws % E`.
 Java has neither higher-kinded types nor union types, so the row cannot be

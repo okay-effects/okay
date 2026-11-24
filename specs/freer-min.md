@@ -1386,7 +1386,7 @@ extensions, `run` — stays in the core at the package's top. The core names the
 (src/main/scala/Free.scala): an alias each, the companions by a stable path, so `Free.Return(a)` builds, `case
 Free.Bind(Free.Inject(e), k)` matches and `Freer.Return[G, R, A]` is a type, as before — 19 files of the core
 and 105 across the modules untouched; what changed is five sites of `Freer[?, ?, ?, ?]` (an alias with a
-higher-kinded parameter takes no wildcard there: written at its home) and `okay-direct`'s macros, which name
+higher-kinded parameter takes no wildcard there: written at its home) and `okay-syntax`'s macros, which name
 the symbols by their home. `Effects.loop` is `Free.loop`, exported with the four names.
 
 The build: `okayFreer` (JVM, JS, Native, no dependency), the core on it. The module rule "the core is
@@ -1402,13 +1402,13 @@ wildcard-imported `run` (okay-ui, TestPWizard) — they had been found in `Freer
 every `A ! F`, with no import at all. The core's own anchor in that scope is `Diagonal`: `Unary[F]` is
 `Diagonal[F]#L`, a member's projection, and a member's prefix anchors its implicit scope (checked by the build:
 the two sites compile again with the doors in `object Diagonal`). So the doors — the three `handle`s, `run`,
-`directColor`, the tree's `Monad` and `TailRecM` — are `Diagonal`'s companion's, and `okay-direct` names
+`directColor`, the tree's `Monad` and `TailRecM` — are `Diagonal`'s companion's, and `okay-syntax` names
 `directColor` there. The core's files import `Freer` from its home (an explicit import beats the package alias,
 and costs no getter: through the alias `Effects[Free].handle`'s loop had grown past the inlining budget,
 TestInlineBudget). The alias `Freer` stays at the door for everyone else.
 
 Checked: the core and the module on the JVM, JS and Native; the nearest core suites (TestEager, TestReflect,
-TestFreerPara, TestBangLoop, TestFoldCont, TestFoldMap, TestFoldUntil) and the whole `okay-direct` suite — 500
+TestFreerPara, TestBangLoop, TestFoldCont, TestFoldMap, TestFoldUntil) and the whole `okay-syntax` suite — 500
 green; the test classes of `okay-cont`, `okay-spring` and the core compile. Not run: the rest of the build's
 tests, for a change that is a rename of a home; the landing's whole-build pass is theirs.
 
@@ -1468,8 +1468,8 @@ forever; measured as a gate stalled at 0 CPU for 480 s. The variant now compiles
 directory and dependencies.
 
 Checked: the core and the module on the JVM, JS and Native; the cont-stack suites (TestStackRoom, TestContStack,
-the small-stack replays, the four TestDelimited*, TestContMacro, TestColdRoom), TestInlineBudget, `okay-direct`
-whole; `okay-java` (a `Control` user), `okay-cont` and the JMH sources compile; then the pre-merge gate.
+the small-stack replays, the four TestDelimited*, TestContMacro, TestColdRoom), TestInlineBudget, `okay-syntax`
+whole; `okay-jdk` (a `Control` user), `okay-cont` and the JMH sources compile; then the pre-merge gate.
 
 ## Stage 32: `Effects` NAMES ITS CARRIER — THE MACHINE FOLDS NATIVELY (DONE, 2026-10-06)
 
@@ -1526,7 +1526,7 @@ file-level one does not take the package's member over — the four CPS-bound su
 The core's handlers are written through the instance's `control` — `Throws.runEither`/`runUnsafe`
 (`FreeEffects.control.shift`, the instance by its object in an inline body), `Maybe.run`, `Choice.runChoice`/
 `runSeq`, `Prob.runExact`, `Reader.local`, `Handler.control` (`val E = Effects[Free]`, then `E.control.shift`
-and `E.control.pure`), okay-java's `Eff.Control` — so each runs at whichever carrier the instance has; a
+and `E.control.pure`), okay-jdk's `Eff.Control` — so each runs at whichever carrier the instance has; a
 `Cont.shift(k => k(x))` is `control.pure(x)`, the tail resume it was. Left on the CPS machine, as the
 Delimited frames they are (level 2's work, not this stage's): `relay`, `translate`, `HandleFrames` and the
 `Shift` effect.
@@ -1545,7 +1545,7 @@ call, no carrier touched) and, on a capture, runs it with `/` — a `Reset` over
 `Delimited` run on the CPS side — and the rest of the walk is the tree's.
 
 Checked: the lowering suite (`runWith` is `foldCont / identity`) at the default, the handler suites, the
-CPS-bound suites under the import, okay-java; 80 tests in the nearest set, no warning.
+CPS-bound suites under the import, okay-jdk; 80 tests in the nearest set, no warning.
 
 ## Stage 34: ONE PACKAGE FOR okay-freer (DONE, 2026-10-06)
 
@@ -1553,7 +1553,7 @@ The operator: "в okay-freer или всё перенеси в пакет okay.f
 The second: `Freer` is `okay.Freer` again, in okay-freer — the module is the layer below the core, and its
 package is the core's, as the CPS `Cont`, `Delimited`, the type classes and okay-cont's `Carrier` instance
 already said. Gone with it: the core's alias at the door (`type Freer`/`val Freer`), the `import okay.freer.Freer`
-in seven core files and two of the module's, the home-naming in okay-direct's macros (`okay.Freer` again), the
+in seven core files and two of the module's, the home-naming in okay-syntax's macros (`okay.Freer` again), the
 five `okay.freer.Freer[?, ?, ?, ?]` (`Freer[?, ?, ?, ?]` as it was), TestInlineBudget's class path. Nothing else
 moved: the layering of stages 29–33 stands, only the name is one.
 
@@ -1762,7 +1762,8 @@ resolves on the instance; `Effects.apply`'s `summonFrom` still binds the carrier
 
 THE GRAPH, INVERTED. The first cut had the core on okay-freer; the classic cannot be compiled without the
 interface, so: okay-cont dependency-free; the core on okay-cont alone; okay-freer on the core alone; every
-satellite that was on the core takes okay-freer (okay-async carries it for all its dependents; okay-kernel,
+satellite that was on the core takes okay-freer (okay-async carries it for all its dependents; okay-kernel
+(okay-plugins since 2026-11-24),
 okay-optics, okay-guice, okay-cdi named). The module rules (`OkayModules`) say exactly that, and
 specs/modules-infra.md. The JDK 22 StackRoom variant (`jdk22/`) is `okay.freer.StackRoom` now, in okay-freer's
 multi-release jar, whose own tests run against it; the root `src/` holds the core alone (test, cross and native
@@ -1772,8 +1773,8 @@ BY SCRIPT. 228 files moved; 935 files rewritten: `okay.X` → `okay.freer.X` for
 defines (computed from its sources, the core's names excluded), extension-method names (`perform`,
 `toLazyList`, `/>`, …) included; `import okay.*` and `import okay.given` get their `okay.freer` twin; a
 selective `import okay.{a, b}` is split by the same set; files in package `okay` itself (okay-async,
-okay-stream, okay-optics, okay-direct, …) get the two imports after the package clause; `okay.macros.X` for the
-classic's macros only (okay-direct's, okay-optics', okay-workflow's are theirs). The Distinct macro looks the
+okay-stream, okay-optics, okay-syntax, …) get the two imports after the package clause; `okay.macros.X` for the
+classic's macros only (okay-syntax's, okay-optics', okay-workflow's are theirs). The Distinct macro looks the
 classic's `Tag` and `Instances` up by name (`Symbol.classSymbol`, no failure without them). Then unused imports
 stripped from the compiler's own list — from the LAST log only: an aggregate over older logs deleted by stale
 line numbers and had to be repaired from the errors.
@@ -1881,7 +1882,7 @@ TypeableK, Monad, …}`, the names computed from its text and settled by the com
 compiler names the import that would fix an extension method it could not find; a prefix call of one,
 `whenS(c)(b)`, needs the name imported too) — and a file that also imports a same-named term by name from the
 classic (`Bisim.Answers`) hides the facade and takes the wildcard: `import okay.{! as _, + as _, … , *}`. A file
-in package `okay` itself (okay-async, okay-stream, okay-direct, …) sees the core's facade as package members
+in package `okay` itself (okay-async, okay-stream, okay-syntax, …) sees the core's facade as package members
 and the classic's by `import okay.freer.*`, which wins. `okay.Pure` written in full in a module is the classic's
 now, `okay.freer.Pure`.
 

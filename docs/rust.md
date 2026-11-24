@@ -103,7 +103,7 @@ The conformance suite passes in-process:
 
 ## The first kernel: Argon2id
 
-`okay-rust/kernels/argon2` is a Cargo crate built as a `cdylib` and a
+`okay-native/kernels/argon2` is a Cargo crate built as a `cdylib` and a
 `staticlib`. It has one dependency, the RustCrypto `argon2` crate, and
 `Cargo.lock` is checked in, so it builds offline and reproducibly. It
 exports one C function:
@@ -212,7 +212,7 @@ Go reaches the same road with `GOOS=wasip1 GOARCH=wasm`
 
 ## The same kernel on Scala Native
 
-okay-rust is a cross project, and on Scala Native the crate's
+okay-native is a cross project, and on Scala Native the crate's
 `staticlib` is linked into the binary. The call is an ordinary C call,
 with no runtime between:
 

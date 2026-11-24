@@ -24,7 +24,7 @@ in its completion arity. okay's `Stage[I, O, A]` is that as a program:
 a `tell` is a call of the reducing function, a stage that ANSWERS is a
 step answering reduced, and what the stage tells after its last
 `await` answered `None` is the flush. The translation is the one
-okay-java's `Gather` makes for the JDK's gatherers; here Clojure's
+okay-jdk's `Gather` makes for the JDK's gatherers; here Clojure's
 accumulator is threaded through `rf` where the JDK had a `Downstream`.
 
 ```scala

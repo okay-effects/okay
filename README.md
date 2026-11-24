@@ -271,7 +271,7 @@ inspect, ship — the inline shape is for speed.)
   handlers forward the telling, so they are stream transformers.
 - `Gen[W]` (Gen.scala) — Python-style generators: a `yield` that
   suspends until read, `for … yield` over a `Gen` with no macro, a
-  `generator[W] { … }` block in okay-direct with `Gen.emit`/`Gen.stop`
+  `generator[W] { … }` block in okay-syntax with `Gen.emit`/`Gen.stop`
   and `while`/recursion, `iterator` holding the continuation until the
   next `next()`; the chain of `map`/`filter`/`take`/`flatMap`/`++` is
   fused into the reader — a `map.filter.toList` pipeline reads under
@@ -424,7 +424,7 @@ not a library.)
 | 11.7 | 16.2 | **19.2** | 35.5 | 70.7 | 175 | 268 |
 
 Interop: cats, ZIO, kyo, fs2, Kafka, Spark, Flink, JDBC — and the JDK
-itself (`okay-java`), where `Aggregator` IS `java.util.stream.Collector`
+itself (`okay-jdk`), where `Aggregator` IS `java.util.stream.Collector`
 (supplier/accumulator/combiner/finisher against init/add/merge/present)
 and `Chunks` crosses to `Stream` chunk-for-chunk, unboxed in both
 directions for `LongStream`/`IntStream`/`DoubleStream`. And Scala 2.13

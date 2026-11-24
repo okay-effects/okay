@@ -130,8 +130,8 @@ given Control[Func] with
  * evidence a row split needs (`TypeableK`), the marker that promotes
  * it to an effect (`Effect`), and the two-type contract
  * (`DirectEffect`/`DirectCtx`) `Effect` carries so that `okay` stays
- * usable without `okay-direct`: no macro or runtime implementation
- * lives here, only the capability `okay-direct`'s bridge exposes this
+ * usable without `okay-syntax`: no macro or runtime implementation
+ * lives here, only the capability `okay-syntax`'s bridge exposes this
  * same evidence through. `Answers`, below, is what actually PERFORMS
  * an effect once split — the two live in one file because `Answers
  * .union` reaches for `TypeableK`/`split` directly, not just by
@@ -140,11 +140,11 @@ given Control[Func] with
 
 /** The tiny capability surface shared by the effect kernel and the
  * optional direct DSL. It deliberately contains no macro or runtime
- * implementation, so `okay` remains usable without `okay-direct`. */
+ * implementation, so `okay` remains usable without `okay-syntax`. */
 @implicitNotFound("no Direct.Effect[${F}]: auto-coloring is OPT-IN per signature.\nRegister the effect once — `given Direct.Effect[${F}] with {}` — or use the explicit marks\n(.reflect / .? / !prog), which need no marker.")
 trait DirectEffect[F[_]]
 
-/** `DirectCtx`, the evidence installed only while a `direct` block is being compiled, is okay-direct's
+/** `DirectCtx`, the evidence installed only while a `direct` block is being compiled, is okay-syntax's
  * (`Direct.DirectCtx`): the root's words need none of it */
 
 /** ∀X, the runtime test for F[X], by the erasure of F */
@@ -276,7 +276,7 @@ object TypeableK:
  * (it extends `TypeableK`), so everything that asks for one finds
  * this instance in the signature's own companion.
  *
- * When `okay-direct` is present, its bridge exposes this same evidence
+ * When `okay-syntax` is present, its bridge exposes this same evidence
  * as the marker that lets a signature's
  * operations auto-color inside a `direct` block:
  *

@@ -14,7 +14,7 @@ Two seams exist today, and they are not the same thing:
   `flatMap`, `filter`, `join`, `cache`, `aggregate`, `toChunks`; a plan
   with two measured rewrites; extension by a new signature in the
   effect row (`Sort`). Instances: `Chunks` (one JVM), Spark RDD
-  (`SparkBulk`), `java.util.List` (okay-java). Flink has none. Its
+  (`SparkBulk`), `java.util.List` (okay-jdk). Flink has none. Its
   `join` is the hash equi-join alone.
 - **`Flow`** (specs/dataflow.md, okay-cluster): the UNBOUNDED,
   PARTITIONED program of our engine — `Src` per partition, `Local`,

@@ -63,7 +63,7 @@ The largest groups in okay:
 | module | rows |
 |---|---|
 | okay-codec | 78 |
-| okay-direct | 34 |
+| okay-syntax | 34 |
 | okay-ui | 31 |
 | okay-py | 18 |
 | okay-workflow | 16 |
@@ -458,9 +458,9 @@ deleted.
       held reversed so a level costs one cons rather than a copy of the
       path so far, and the indentation capped at 64 levels (a line that
       begins with a screenful of spaces says nothing more).
-- [x] Stage 7 — macros and staging: okay-direct, okay-staging,
+- [x] Stage 7 — macros and staging: okay-syntax, okay-staging,
       okay-optics `Fuse`, `ProcMacro`, per Decision 2 (stack-safety-rest,
-      2026-09-25). Every macro walk — okay-direct's compiler, `ProcMacro`,
+      2026-09-25). Every macro walk — okay-syntax's compiler, `ProcMacro`,
       `ContMacro`, okay-js's `Direct`, `Fuse`, `MarkSyntax` — runs at
       COMPILE time over the user's own source, and that is the bound
       written on 60 rows; `RuntimeStaged` walks a Schema at run time

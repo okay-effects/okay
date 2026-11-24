@@ -7,7 +7,7 @@ import scala.reflect.ClassTag
 /**
  * A `Stage` driven by PUSHING its tells (interop-shared) — how a push-style
  * transformer of another world runs an okay stage: a JDK `Gatherer`
- * (okay-java's `Gather`), a Clojure transducer (okay-clojure's
+ * (okay-jdk's `Gather`), a Clojure transducer (okay-clojure's
  * `Transducers`). Its state between two elements is the stage suspended at
  * its next `await`.
  *

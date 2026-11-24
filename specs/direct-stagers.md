@@ -75,7 +75,7 @@ is the catch.
 - [x] A raise in the middle of a loop ends the block there: the state
       and log at the raise are what `run` returns beside the `Left`,
       and nothing after it ran (a counter says so).
-- [x] MEASURED (okay-direct `StagedBenchmark`, minima of 2 rounds × 2
+- [x] MEASURED (okay-syntax `StagedBenchmark`, minima of 2 rounds × 2
       forks, `-prof gc`): (1) the 10-op State+Writer block through
       `All[Unit, Int, String, Nothing, Int]` against `StateWriter` —
       the price of two unused slots, in µs and B/op; (2) a 10-op
@@ -128,7 +128,7 @@ is the catch.
 
 ## Results
 
-**2026-09-22** (history rows `dst-*`; okay-direct `StagedBenchmark`,
+**2026-09-22** (history rows `dst-*`; okay-syntax `StagedBenchmark`,
 1 000 operations, per-lane minima of 2 rounds × 2 forks, `-prof gc`).
 
 (1) The unused slots, priced — the 10-op State+Writer block:

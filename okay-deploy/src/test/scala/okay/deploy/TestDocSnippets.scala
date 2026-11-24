@@ -26,19 +26,19 @@ class TestDocSnippets extends munit.FunSuite:
 
   /** a document, and the source roots its examples must come from */
   private val pinned: Vector[(String, Vector[String])] = Vector(
-    "docs/jvm-languages.md" -> Vector("okay-java/src/test", "okay-clojure/src/test", "okay-frege/src/test"),
-    "docs/modules/okay-java.md" -> Vector("okay-java/src/test"),
+    "docs/jvm-languages.md" -> Vector("okay-jdk/src/test", "okay-clojure/src/test", "okay-frege/src/test"),
+    "docs/modules/okay-jdk.md" -> Vector("okay-jdk/src/test"),
     "docs/modules/okay-clojure.md" -> Vector("okay-clojure/src/test"),
     "docs/modules/okay-frege.md" -> Vector("okay-frege/src/test"),
     "docs/python-and-r.md" -> Vector("okay-py/src/test", "okay-r/src/test"),
     "docs/foreign-facade.md" -> Vector("okay-foreign-cluster/src/test"),
-    "docs/rust.md" -> Vector("okay-rust", "okay-py/src/test", "okay-rust/.jvm/src/test"),
+    "docs/rust.md" -> Vector("okay-native", "okay-py/src/test", "okay-native/.jvm/src/test"),
     // the JVM-only suites (src/test/scala-jvm) are under src/test, which the walk enters
     "docs/modules/okay-bayes.md" -> Vector("okay-bayes/src/test"),
     "docs/modules/okay-refine.md" -> Vector("okay-refine/src/test", "okay-refine/src/main",
       "okay-spark/src/test"),
-    "docs/go.md" -> Vector("okay-py/src/test", "okay-rust/kernels"),
-    "docs/one-language.md" -> Vector("okay-py/src/test", "okay-rust/.jvm/src/test", "okay-r/src/test",
+    "docs/go.md" -> Vector("okay-py/src/test", "okay-native/kernels"),
+    "docs/one-language.md" -> Vector("okay-py/src/test", "okay-native/.jvm/src/test", "okay-r/src/test",
       "okay-foreign-workflow/src/test"),
     "docs/typescript.md" -> Vector("okay-py/src/test", "okay-ts/src/test", "okay-codec/src/test", "okay-http/src/test",
       "okay-js/src/test", "scripts", "okay-live/src/test", "okay-ts-browser/src"),
@@ -207,7 +207,7 @@ class TestDocSnippets extends munit.FunSuite:
 
   test("the check can fail: a line no source contains is reported") {
     // the instrument's own control (instrument-needs-its-own-control)
-    val known = sourceLines(Vector("okay-java/src/test"))
+    val known = sourceLines(Vector("okay-jdk/src/test"))
     assert(!known("val invented = Stream.never().gather(nothing)"))
-    assert(known(exampleLines("docs/modules/okay-java.md").head._2), "a real example must be found")
+    assert(known(exampleLines("docs/modules/okay-jdk.md").head._2), "a real example must be found")
   }

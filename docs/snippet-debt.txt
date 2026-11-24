@@ -542,8 +542,8 @@ docs/modules/okay-deploy.md	package okay.mysvc
 docs/modules/okay-deploy.md	port      = 8080,                // what the app LISTENS on
 docs/modules/okay-deploy.md	test("okay-my-svc/deploy does not drift from MyDeploy.spec") {
 docs/modules/okay-deploy.md	val spec: Deploy = Deploy(
-docs/modules/okay-direct.md	.dependsOn(okay.jvm, okayDirect.jvm)
-docs/modules/okay-direct.md	lazy val myModule = (project in file("my-module"))
+docs/modules/okay-syntax.md	.dependsOn(okay.jvm, okaySyntax.jvm)
+docs/modules/okay-syntax.md	lazy val myModule = (project in file("my-module"))
 docs/modules/okay-flink.md	.aggregate(fn)          // merge handles pane consolidation
 docs/modules/okay-flink.md	.keyBy(...)
 docs/modules/okay-flink.md	.window(TumblingEventTimeWindows.of(Time.minutes(5)))

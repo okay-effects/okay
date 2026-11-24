@@ -27,7 +27,7 @@ trait Bulk[D[_]]:
 ```
 - Instances: `Bulk[Chunks]` (core, scala-jvm reads the files) — one JVM;
   `SparkInterop.bulk(spark): Bulk[SparkInterop.Rows]` — a cluster;
-  `Parallel.bulk: Bulk[java.util.List]` (okay-java) — one machine's
+  `Parallel.bulk: Bulk[java.util.List]` (okay-jdk) — one machine's
   cores through parallel streams and the Collector bridge.
 - A program written against `Bulk[D]` names no platform; the platform
   is chosen by the instance in scope. The extension methods make it

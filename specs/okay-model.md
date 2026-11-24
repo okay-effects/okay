@@ -36,7 +36,7 @@ long an input is kept, who may approve a model) is okay-watch's.
 | append-only durable logs, compaction | okay-persist (`Store`, `Topic`, `FileStore`, `compact`) | built |
 | Kafka in and out | okay-kafka (`KafkaInterop`, `KafkaStore`) | built |
 | Spark interop | okay-spark (`SparkBulk`, `SparkSchema`) | built |
-| plugins with versioned ports | okay-kernel | built |
+| plugins with versioned ports | okay-plugins | built |
 | secrets as references | okay-conf (`Secret`, `Secrets`) | built |
 | metrics | okay-ops, okay-obs | built |
 | durable workflows (for human review) | okay-workflow | built |
@@ -163,7 +163,7 @@ okay-kafka, okay-http, okay-cluster.
 - **Hooks** — the licensing seam as code: `DecisionSink` (where decisions
   go: the commercial journal plugs in here; the open default is a file or a
   topic), `Admission` (before scoring: limits, a review hold), `Explainer`
-  (after scoring). Ports on okay-kernel, so a build is the set of plugins
+  (after scoring). Ports on okay-plugins, so a build is the set of plugins
   it was assembled with; nothing in the runtime names a commercial module.
 - **Metrics** (MDR §9, the open part): throughput, p50/p99, refusals by
   kind, worker restarts, in-flight, over okay-ops.
@@ -346,7 +346,7 @@ them is okay-watch's.
 - **Mechanisms here, policies in okay-watch**: the chain, the sealed store
   and the forked pool are useful to any okay user; the decision record,
   retention, four-eyes and reports are the regulated product's.
-- **Hooks are okay-kernel ports**: the commercial modules are plugins; the
+- **Hooks are okay-plugins ports**: the commercial modules are plugins; the
   open build without them is complete and useful (decisions to a file or a
   topic).
 

@@ -58,7 +58,7 @@ modification.
 
 ## Behavior
 
-The probe — `okay-direct` test sources, both implementations behind
+The probe — `okay-syntax` test sources, both implementations behind
 one API, one suite over both:
 
 - (a) `Shift % R` as an ordinary effect, `reset` a deep handler over
@@ -111,7 +111,7 @@ one API, one suite over both:
   keeps a capture from reaching a `reset` of another answer type.
 
 - **A key per answer type, made at compile time** (`Key[R]`, a macro
-  in okay-direct's main, package-private): the normalised type, so an
+  in okay-syntax's main, package-private): the normalised type, so an
   alias and a union in either order give one key. `Shift`'s `TypeableK`
   compares keys and is `ByValue`, so `Distinct` passes two answer types
   in one row. An abstract `R` has no key and is asked for one, as a
@@ -208,9 +208,9 @@ one API, one suite over both:
 
 ## Results
 
-Probe: `okay-direct/src/test/scala/ShiftFx.scala`,
+Probe: `okay-syntax/src/test/scala/ShiftFx.scala`,
 `TestShiftFx.scala` (13 tests × 2 implementations, green),
-`okay-direct/src/jmh/scala/okay/ShiftFxBenchmark.scala`.
+`okay-syntax/src/jmh/scala/okay/ShiftFxBenchmark.scala`.
 
 **It types without annotations beyond the effect's own.** The user writes
 `Int ! Shift % Int + State % Int`, `shift[Int, Int, S](k => …)` and

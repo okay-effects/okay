@@ -2,7 +2,7 @@
 
 > **The classic road.** This chapter describes okay-freer, the frozen classic road (its tests stay at the tag `classic-freer`); on the kernel's words the counterpart is [okay-core's delimited control](../../okay-core/docs/guide.md#delimited-control).
 
-> Compiled in `okay-direct/src/test/scala/TestBookComposing.scala`.
+> Compiled in `okay-syntax/src/test/scala/TestBookComposing.scala`.
 > This is the chapter that matters most in a real codebase, because a
 > real codebase never wants exactly one shape.
 

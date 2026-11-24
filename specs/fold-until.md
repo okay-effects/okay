@@ -328,7 +328,7 @@ handed a fold where a `Foldable` was expected.
 A push-side consumer (collect-early-stop, 2026-09-23):
 `Delim.collectUntil(using fo)(body)` stops a `collect`'s producer
 where the fold is done — the state passed down through the prompt's
-answer-function; `TestCollectUntil` (okay-direct, 9).
+answer-function; `TestCollectUntil` (okay-syntax, 9).
 
 Stage 3's first production consumer (wire-serve-transduce-until,
 2026-09-23): `Wire.serveClosing` — the server-driven UI session,
@@ -401,7 +401,7 @@ is what is written by hand — no recursive call, no seed call, and
 unchanged, green. Actor.scala:287 and `Dialog.run` were looked at and
 left alone (Decisions).
 
-okay-direct's generator lane (direct-staged-v2, same day) builds
+okay-syntax's generator lane (direct-staged-v2, same day) builds
 `Gen[W]` as a view over `Unit ! Writer % W` with `take/first/exists`
 through `Writer.foldUntil`, relying on the two laws
 `TestFoldUntilStreams` pins: `done(init)` before the first pull, and

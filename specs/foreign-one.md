@@ -326,7 +326,7 @@ can still say "Python" — but they are the same code.
 | `okay.Foreign` walker, `View[P]`, `Member[F]`, `Push` | **keep** — `JvmRuntime` is the walker; `Push` is a stage driver, not a call |
 | `okay.frege.Ops`, `okay.clojure.Ops`, `okay.Operations` | **fold** → generated from the core effects' `Cbs` (stage 7); the names stay |
 | `Transducers`, `Gather`, `CoreAsync`, `Frege.list/chunks` | **keep, out of this model** — they are bridges of STREAM SHAPES (transducer ↔ stage, gatherer ↔ stage, core.async ↔ channel, lazy list ↔ Chunks), not calls into a language |
-| okay-rust kernels (`PasswordHash`, `Digest`), `NativeLib`, `WasmLib` | **keep** — a kernel is an effect of its own; the links are the model's FFM/wasm links |
+| okay-native kernels (`PasswordHash`, `Digest`), `NativeLib`, `WasmLib` | **keep** — a kernel is an effect of its own; the links are the model's FFM/wasm links |
 | okay-js `Direct`/`Emit` (Scala → JS source) | **keep, out of this model** — code generation, not a runtime |
 | `ForeignActivity`, `ForeignProc` | **keep** over `Runtime[L].call` |
 | `mapPy`, `mapR`, `Reduce.py`, `Reduce.r`, `Stateful.py/r`, `Models.py/r` | **delete** after their derived forms land — the language is the module's type |
@@ -335,7 +335,7 @@ Module layout: `okay-foreign` (the model: `Value`, `Arg`/`Ret`,
 `Runtime`, `Module`, `Pool`, the wire engine, `Foreign[L]`, `Cb`, the
 transcript test) depending on okay-codec, okay-arrow and okay-stream;
 `okay-py`, `okay-r` shrink to their `Language[L]` (shim, `Shape`, env,
-describe); `okay-rust` keeps FFM/Chicory and its kernels; okay-frege
+describe); `okay-native` keeps FFM/Chicory and its kernels; okay-frege
 and okay-clojure keep their `View`s; `okay-foreign-cluster` keeps the
 cluster combinators, each one body. `okay.py` stays as an alias
 package for one release. The engine's package stops being called
@@ -906,7 +906,7 @@ streams of tables take the zero-copy road from the first; 7 and 8 close.
     callback; a wrong secret and none refused by name; a TCP timeout
     reconnected and every branch of a `Choice` replayed). okay-py Live
     226 passed (Python, TypeScript, Go, Rust, Haskell over pipes, TCP,
-    CBOR, auth, TLS, gateway, crash; 27 skips by design); okay-rust's
+    CBOR, auth, TLS, gateway, crash; 27 skips by design); okay-native's
     FFM and wasm link suites 24 passed. Nothing in either suite changed.
   - Found by the first R run: a refusal named the far side by the
     Rscript PATH instead of "the R shim", which `TestRWireCborPlain` pins;
@@ -973,7 +973,7 @@ streams of tables take the zero-copy road from the first; 7 and 8 close.
   - Go and Rust serve a plain `call` of a direct function (they served
     only `start` and programs before).
   - Tests: every Live suite of okay-py (226), okay-r (98 + callbacks 6),
-    okay-rust FFM/wasm (35), okay-foreign-cluster (26) and
+    okay-native FFM/wasm (35), okay-foreign-cluster (26) and
     okay-foreign-workflow (12) green; the only test edits are constructors,
     the journal's op names (`program:…`, `continue`) and the plain-return
     case above. Default gate 137.
@@ -993,7 +993,7 @@ streams of tables take the zero-copy road from the first; 7 and 8 close.
   - Wire: Python and TypeScript shim 8, R shim 11 (an address that is not
     a name is refused by name — R applies functions to objects), the Go,
     Rust and Haskell libraries 8 (the shared version; they hold nothing).
-  - Live: okay-py 226, okay-r 98, okay-rust FFM/wasm 35,
+  - Live: okay-py 226, okay-r 98, okay-native FFM/wasm 35,
     okay-foreign-cluster 30, okay-foreign-workflow 12 — green on the first
     run; tests changed only in constructors and patterns.
   - Mutant: the pool not registering a held answer pool-wide fails both
@@ -1068,7 +1068,7 @@ streams of tables take the zero-copy road from the first; 7 and 8 close.
     Python ×4, TypeScript ×3, R, Go ×7 (pipes, TCP, CBOR, auth, TLS, wasm),
     Rust ×7 (pipes, TCP, CBOR, auth, TLS, FFM), Haskell ×3 (pipes, CBOR,
     gateway). Skipped: Rust on wasm (no direct functions). okay-py 253,
-    okay-r 100, okay-rust 39, all green.
+    okay-r 100, okay-native 39, all green.
   - Mutant: Go reading a columnar column's values under the wrong key fails
     TestGoPipes' table case.
   - Open: answers from Go, Rust, Haskell and TypeScript are v1 cells, not
@@ -1224,11 +1224,11 @@ streams of tables take the zero-copy road from the first; 7 and 8 close.
   Haskell skip it (no mux).
 - **foreign-package-name (2026-09-26, Decision 26).** `package okay.foreign`
   in okay-py (sources moved to `okay/foreign/`), every reference in
-  okay-r, okay-rust, okay-foreign-cluster, okay-foreign-workflow,
+  okay-r, okay-native, okay-foreign-cluster, okay-foreign-workflow,
   okay-frege, okay-clojure and okay-codec, the living docs, the generated
   modules' headers; `okay/py/Aliases.scala` keeps the old names. Gates: the
   affected gate (132 module compiles, no warnings), okay-py's JMH sources,
-  and the Live suites of okay-py 327, okay-r 102, okay-rust 47,
+  and the Live suites of okay-py 327, okay-r 102, okay-native 47,
   okay-foreign-cluster 59, okay-foreign-workflow 12.
 - **foreign-host-streams (2026-09-26, Decision 27).** `Stream`'s optional
   input (an iterator of chunks), sent by a feeder thread under the far

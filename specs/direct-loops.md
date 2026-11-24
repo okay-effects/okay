@@ -80,7 +80,7 @@ tail — and gains one thing each:
       that used `filter`/`exists` as the canonical refused lambda:
       they assert the refusal on `sortBy`/`count` now, and the `lazy
       val` demand under `filter` is a positive test (the cell forced
-      once). okay-direct: 340 green (`TestDirectLoops2`, 12).
+      once). okay-syntax: 340 green (`TestDirectLoops2`, 12).
 
 ## Out of scope
 
@@ -210,7 +210,7 @@ object Pull:
 okay-stream, `Pipe.scala`: `Take.each[I]: Pull[I, Take % I]` — the
 consumer side of an iteratee as a source.
 
-okay-direct, `Direct`: `extension [A, G[+_]](src: Pull[A, G]) def
+okay-syntax, `Direct`: `extension [A, G[+_]](src: Pull[A, G]) def
 foreach[F[_]](f: A => Unit)(using DirectCtx[F]): Unit` — the `for`'s
 `foreach`, typed Unit and present ONLY where a block's ambient
 `DirectCtx` is (Decisions: the lint). Inside a `direct` block, `for x
@@ -221,7 +221,7 @@ row lift a mark takes (`G` must be in the block's row, and the
 refusal is the mark's), the body compiled against the recursive call
 as its tail like every v2 loop, guards honoured.
 
-### Behavior (`TestDirectSource`, okay-direct)
+### Behavior (`TestDirectSource`, okay-syntax)
 
 - [x] `Pull.of(LazyList(1, 2, 3)).loop(f)` is a program: nothing
       runs until `!.run`, then `f` sees 1, 2, 3 in order.
@@ -235,7 +235,7 @@ as its tail like every v2 loop, guards honoured.
       three sees 2, 4, 6 and the end; its `step` reads three of an
       infinite producer and no more. (The direct-block form over
       `Take` is the same macro road as over `Pull.of`, tested in
-      okay-direct; okay-direct and okay-stream do not depend on each
+      okay-syntax; okay-syntax and okay-stream do not depend on each
       other, so the block-over-`Take` spelling is asserted by type in
       `TestTakeEach`'s step test and by the macro tests, not by one
       test holding both.)
@@ -272,7 +272,7 @@ as its tail like every v2 loop, guards honoured.
 
 ### Results (v3)
 
-2026-09-23, one lane. `TestDirectSource` (okay-direct, 7) and
+2026-09-23, one lane. `TestDirectSource` (okay-syntax, 7) and
 `TestTakeEach` (okay-stream, 2), green through `scripts/gate.sh`, no
 warnings. THE DESIGN CHANGED ONCE AGAINST THE CODE, and the code was
 right: `Pull.foreach: Unit ! G` as a member made `for x <- src do …`

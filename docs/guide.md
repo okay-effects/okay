@@ -569,7 +569,7 @@ approximate ones, honest monoids with stated error). The road TO an
 aggregation is a seam of its own, `Bulk[D[_]]` (specs/bulk.md): read a
 CSV, map, filter, join, expand, cache, aggregate — written once against
 `D`, run on `Chunks` in one JVM, on Spark (`SparkBulk`) or on a
-machine's cores (`okay.java.Parallel`) by the instance in scope. No
+machine's cores (`okay.jdk.Parallel`) by the instance in scope. No
 evidence per element type: a platform stores objects, and the Spark
 instance says so in its type rather than asking a `ClassTag` per step.
 Over the seam the same road is an EFFECT, `Tables`: the plan is a value
@@ -617,7 +617,7 @@ further — and `Gen[W]` (specs/generators.md) is that program with the
 words a for-comprehension uses, a `stop`, and the readers above as
 methods. Three ways to write one: a for-comprehension over `Gen`
 (`map`/`flatMap`/`withFilter` are element-wise, no macro), a
-`generator[W] { … }` block in okay-direct where `Gen.emit`, `Gen.stop`
+`generator[W] { … }` block in okay-syntax where `Gen.emit`, `Gen.stop`
 and `for … yield` are the words, and `Gen.of` over any writer program
 you already have. `iterator` is the Python semantics made literal:
 `next()` runs the body to its next tell and holds the continuation for
@@ -851,7 +851,7 @@ exactly the same elements.
 A stage is also a JDK **Gatherer** (JDK 24, [JEP 485](https://openjdk.org/jeps/485)) —
 `stream.gather(g)`, the user-defined intermediate operation, whose
 integrator may push any number of elements and answer `false` to end
-the stream. That is a stage's `tell` and its answer, so okay-java's
+the stream. That is a stage's `tell` and its answer, so okay-jdk's
 `Gather` translates, both ways: `Gather.gatherer(stage)` runs a stage
 inside a `java.util.stream` pipeline — a stage that answers stops
 even an infinite stream — and `Gather.stage(g)` runs any JDK gatherer
@@ -878,7 +878,7 @@ pipeline built with `through` is a VALUE: it starts the gatherer when
 it is run, once per run, so running it twice windows twice. What is
 refused by name is resuming a continuation from INSIDE a run after
 that run finished — a JDK gatherer's state is an opaque mutable
-object that cannot be snapshotted. `docs/modules/okay-java.md` has
+object that cannot be snapshotted. `docs/modules/okay-jdk.md` has
 `Windowed.gatherer`, the event-time window that hands each pane on
 the moment the watermark closes it.
 
@@ -1448,7 +1448,7 @@ story, with the reasoning and the graveyard of refuted alternatives:
 
 ## With other JVM languages, in one paragraph
 
-A `Stage` is a JDK gatherer (okay-java's `Gather`) and a Clojure
+A `Stage` is a JDK gatherer (okay-jdk's `Gather`) and a Clojure
 transducer (okay-clojure's `Transducers`), both ways; okay's effects
 reach Clojure and Frege as a small program-as-data library written in
 that language — `okay.core`, `okay.frege.Prog` — which okay walks, so a

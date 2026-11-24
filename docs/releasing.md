@@ -12,7 +12,7 @@ this repository's GitHub Pages (the next section). The build is the same
 for both.
 
 The **first wave**, named in `project/ReleaseWave.scala`: `okay`,
-`okay-async`, `okay-platform`, `okay-stream`, `okay-direct`,
+`okay-async`, `okay-platform`, `okay-stream`, `okay-syntax`,
 `okay-optics`, `okay-diagnose`, `okay-test`, `okay-lex`, `okay-parse`,
 `okay-codec` and `okay-http`, each for every platform it builds for (JVM,
 Scala.js, Scala Native). Every other module is skipped by `publish`,

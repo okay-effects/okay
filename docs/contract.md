@@ -256,7 +256,7 @@ The kernel says how programs compose. The vocabulary says what they do:
 
 ## What sits on top, and is not the contract
 
-- **Direct style** (`okay-direct`): `direct { val x = p.?; ... }` is
+- **Direct style** (`okay-syntax`): `direct { val x = p.?; ... }` is
   syntax for `flatMap`. By Filinski's theorem it adds nothing a program
   could not already say.
 - **The doors in and out**: `asOkay`, `asIO`, `asZIO`, `asKyo`, and okay's

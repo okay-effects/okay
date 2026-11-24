@@ -253,7 +253,7 @@ trade-off named above, except there it causes a genuine HANG (not a wrong answer
 
 ## Compiling on 25, the floor as a flag (java-gatherers, 2026-09-23)
 
-okay-java bridges `java.util.stream.Gatherer`, final in JDK 24, and
+okay-jdk bridges `java.util.stream.Gatherer`, final in JDK 24, and
 dotc sees only the class library of the JVM it runs in: on 21 the
 import is E008, `-release 25` is "not a valid choice", and Scala 3 has
 no `-system`. So sbt runs on 25 (`.sdkmanrc`). What that must NOT
@@ -272,8 +272,8 @@ move, and did not (measured with `javap` on the built classes):
   - **0**, no flag: modules that reach PAST their floor on purpose,
     behind a guard of their own, and need bytecode 61 so the class
     loads on 17 at all — `okay-platform` and `okay-http` (Loom behind
-    `Schedulers.hasVirtualThreads`), `okay-java` (Gatherer, linked
-    lazily: a JDK 17/21 user of okay-java loads it fine and fails only
+    `Schedulers.hasVirtualThreads`), `okay-jdk` (Gatherer, linked
+    lazily: a JDK 17/21 user of okay-jdk loads it fine and fails only
     by CALLING `Gather`).
   The compiler made that list, not a survey: a full `Test/compile`
   with 17 everywhere named exactly those three main-code modules.

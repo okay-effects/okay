@@ -30,7 +30,7 @@ stage — none has an iterator, so `for x <- src do …` in a direct block
 could not read them. `Pull[A, G]` is that source as a value:
 
 ```scala
-// okay-direct TestDirectSource
+// okay-syntax TestDirectSource
 val (log, _) = run(direct { for x <- Pull.of(List(1, 2, 3)) do say(s"x$x").? })
 assertEquals(log, Seq("x1", "x2", "x3"))
 

@@ -10,7 +10,7 @@ a Clojure transducer inside an okay pipeline, a Frege program asking
 okay's `Reader` and sleeping on okay's timer.
 
 Every Scala, Clojure and Frege example below is copied from a test that
-runs in this repository's gate — `okay-java/…/TestDocExamplesGather.scala`,
+runs in this repository's gate — `okay-jdk/…/TestDocExamplesGather.scala`,
 `okay-clojure/…/TestDocExamplesClojure.scala`,
 `okay-frege/…/TestDocExamplesFrege.scala`, and the Clojure and Frege
 source those suites load — so they compile and pass as written; and a
@@ -96,8 +96,8 @@ val panes = events
   .toList                                   // [Pane(0,10,a,6), Pane(10,20,a,2), Pane(20,30,a,7)]
 ```
 
-Gatherers need JDK 24 at run time; okay-java still loads on 17 and 21
-(a JVM links a class only when it is called). docs/modules/okay-java.md.
+Gatherers need JDK 24 at run time; okay-jdk still loads on 17 and 21
+(a JVM links a class only when it is called). docs/modules/okay-jdk.md.
 
 ## 3. Clojure
 
@@ -404,7 +404,7 @@ bounded by memory, not by the stack.
 
 ## 8. Setting up the build
 
-- **Java**: `okay-java`. Gatherers need a JDK 24+ runtime; nothing else
+- **Java**: `okay-jdk`. Gatherers need a JDK 24+ runtime; nothing else
   does.
 - **Clojure**: `okay-clojure` brings `org.clojure:clojure` 1.12;
   `okay.core` is inside the jar — `(require '[okay.core :as ok])`.

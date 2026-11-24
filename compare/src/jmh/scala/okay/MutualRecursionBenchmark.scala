@@ -8,7 +8,7 @@ import java.util.concurrent.TimeUnit
 /**
  * stack-safe-mutual-recursion (2026-09-26): the like-for-like task.
  *
- * The plain loop and the virtual-call lanes (okay-direct
+ * The plain loop and the virtual-call lanes (okay-syntax
  * StagedBenchmark, docs/benchmarks.md §2c) measure what a handler costs
  * against code that does not need one. This measures a task plain JVM
  * code cannot do at all: UNBOUNDED mutual tail recursion — `isEven`

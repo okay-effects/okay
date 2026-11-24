@@ -92,7 +92,7 @@ when, and the conformance suite covers both forms.
 
 ## Stage 2 — rust-worker (the Rust library)
 
-- [x] A Cargo crate `okay` (`okay-rust/lib/okay`, `serde_json` only,
+- [x] A Cargo crate `okay` (`okay-native/lib/okay`, `serde_json` only,
       offline) holding:
       - `Value` and the wire's encoding (as `Okay.hs` and `okay.go`);
       - `Prog` (`done`, `perform`, `and_then`), whose continuations are
@@ -111,7 +111,7 @@ when, and the conformance suite covers both forms.
       A Rust cdylib gets it from one macro, `okay::export_worker!(programs)`.
       A Go wasm module gets it from `okay.Exchange` and three
       `//go:wasmexport` lines.
-- [x] `FfmLink(lib)` (okay-rust, JVM) and `WasmLink(lib)` (Chicory):
+- [x] `FfmLink(lib)` (okay-native, JVM) and `WasmLink(lib)` (Chicory):
       `roundTrip` is one call.
 - [x] The conformance suite over (Rust, FFM), (Rust, wasm) and
       (Go, wasm).
@@ -431,7 +431,7 @@ replays a program.
     and `main`.
   - `RustWorker.build` compiles offline, and `Rs.ops` writes the typed
     constructors. The crate lives in `okay-py/src/main/resources/okay/rust`,
-    not in the spec's `okay-rust/lib`: it ships in the same jar as the Go
+    not in the spec's `okay-native/lib`: it ships in the same jar as the Go
     and Haskell libraries, next to the engine that drives them.
   - `WireConformance` passes over (Rust, pipes) and (Rust, TCP), including
     the direct case, so Go and Rust answer ONE Scala test body.

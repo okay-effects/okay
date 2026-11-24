@@ -204,7 +204,7 @@ the places a block is not.
 The generator now has its name. `Gen[W]` (Gen.scala; specs/generators.md)
 is a value class over `Unit ! Writer % W + Stop` — the program that
 tells, with `Stop` as one more member of the row for the early end —
-and a `generator[W] { … }` block (okay-direct) is a direct block over
+and a `generator[W] { … }` block (okay-syntax) is a direct block over
 that row in which `for … yield` emits. Two papers fix what the words
 mean. Python's PEP 255 \[[Schemenauer, Peters & Hetland 2001](#ref-pep-255)\]
 gave the everyday semantics — a `yield` suspends the body, the body
@@ -257,7 +257,7 @@ the two forms translate by pure mechanics: the gatherer's state is
 the stage *suspended at its next* `await`, the integrator resumes it
 with the element and pushes whatever it `tell`s on the way to the next
 `await`, and a stage that answers is an integrator returning `false`
-(okay-java's `Gather`, both directions, law-tested against each
+(okay-jdk's `Gather`, both directions, law-tested against each
 other). What neither side can give the other is a combiner: a
 suspended program is a position in the stream, and positions do not
 merge — which JEP 485 accommodates by running a combiner-less gatherer

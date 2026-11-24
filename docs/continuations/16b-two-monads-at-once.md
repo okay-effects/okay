@@ -3,7 +3,7 @@
 > **The classic road.** This chapter describes okay-freer, the frozen classic road (its tests stay at the tag `classic-freer`); on the kernel's words the counterpart is [okay-core's delimited control](../../okay-core/docs/guide.md#delimited-control).
 
 > **Part IV is about building.** Compiled in
-> `okay-direct/src/test/scala/TestBookTwoMonads.scala` and
+> `okay-syntax/src/test/scala/TestBookTwoMonads.scala` and
 > `okay-cats/src/test/scala/bookcats/TestBookTwoMonadsCats.scala`. Chapter 16
 > showed that any ONE monad can be written in direct style. This
 > chapter is about the question every real program asks next: what
@@ -682,7 +682,7 @@ a layer does not resume exactly once. Chapter 11 shows it with numbers
 
 In a `direct` block the marks find each layer by the value's type, so
 a small two-layer program reads like plain code
-(`okay-direct/src/test/scala/TestBookTwoMonads.scala`):
+(`okay-syntax/src/test/scala/TestBookTwoMonads.scala`):
 
 <!-- not-a-test: okay-freer, the classic road (frozen) -->
 ```scala

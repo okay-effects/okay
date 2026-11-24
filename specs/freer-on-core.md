@@ -70,7 +70,7 @@ bind in O(1), no rotation), `HandleFrames` (the machine's stack is on the heap),
 (`okay.Carrier`, `Control[Carrier]`: a program is a `Cont` already).
 
 Stays, untouched — they never look at the tree: `Fold`, `Aggregate`, `Staged`, `Layered`, `Replayable`,
-`ContReplay`, `direct` (okay-direct), the std's effects as enums, every module's programs.
+`ContReplay`, `direct` (okay-syntax), the std's effects as enums, every module's programs.
 
 Moves onto the kernel's nodes, one file at a time with its tests: `Cps` (answers are `I`, `O`), `Delimited` and
 `Shift` (`Dollar`, `Shift0`, `Shifts`), `Indexed` (`Atm`/`PState`), `Static` (lowers a selective into a program:
@@ -213,7 +213,7 @@ Recorded as met; behaviour regressions are accepted where the speed is the point
   indexed tree dropped the commit and left the transaction open); a retryable `sqlState` re-runs the bracket within
   `retries`. A statement outside any transaction is not written with `Tx` (it is the driver's own). `Typed.transact`
   and `region` are unchanged; their `G` is `G[_]`, and `Async` passed as `G` is a second `Async` place now.
-- okay-direct's `Direct.DirectCtx` and `CanTry` are okay-direct's own (`okay.Direct.DirectCtx`, `okay.CanTry`), no
+- okay-syntax's `Direct.DirectCtx` and `CanTry` are okay-syntax's own (`okay.Direct.DirectCtx`, `okay.CanTry`), no
   longer okay-freer's: inside a `direct` block okay-freer's words that took its `DirectCtx` (`Shift`/`Cps`/`Indexed`
   colourings) find none, and a `try` over okay-freer's tree has no `CanTry` (its `rows` instance stays in okay-freer).
   A `try` over programs is `Direct.tryProgram` (the kernel's `recover`), as `CanTry.programs` is.
@@ -343,7 +343,7 @@ A program's `k` is the machine's `Rest`: stepping (`Step`) for the async driver 
 twin and okay-async's drive become one driver; multi-shot `k`; `k.failed` (a handler answering with a failure the
 program's own `recover` sees); guards, finalizers, cancellation, `uncancelable` regions; interceptors (`Sensitive`,
 `Audited`, `observe`); `okay-tx` as a word over any program — `Typed.transact` in okay-sql brackets by construction
-with no change to okay-sql; the protocol (okay-kernel) for every program, through `OnCore`.
+with no change to okay-sql; the protocol (okay-plugins) for every program, through `OnCore`.
 
 ## Order
 
@@ -358,7 +358,7 @@ with no change to okay-sql; the protocol (okay-kernel) for every program, throug
 
 ## Decided (2026-10-15)
 
-- `direct` (okay-direct): a compile-time macro rewriting straight-line code into `flatMap` chains over `!`; no
+- `direct` (okay-syntax): a compile-time macro rewriting straight-line code into `flatMap` chains over `!`; no
   machinery of its own at run time. With the words swapped it emits the kernel's `flatMap`: no change, its suite
   checks it at step 2.
 - The platform's own fitting: there is none left — `Reach` went with the OnOkay bridge (2026-10-14). The fitting

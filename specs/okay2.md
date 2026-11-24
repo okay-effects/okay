@@ -1510,7 +1510,7 @@ no lens — the core's own reason) with `PState.Zooming`.
   macro); the operations here are the interpretation, which the core
   itself falls back to for an optic in a `val`. With it `TestFuse` and
   `TestFuseTwice`. Also `TestArrowLaws` (okay's `laws` module),
-  `TestDirectOpticsArrows` (okay-direct), the `Par` carrier (okay2-async
+  `TestDirectOpticsArrows` (okay-syntax), the `Par` carrier (okay2-async
   is not a dependency here), and `TestOpticsGuide`, which pins a docs
   page of the core. Zipper and TypedZipper are the next lane.
 
@@ -1750,7 +1750,7 @@ okay-stream/-async/-platform/-data/-optics/-workflow/-stm) against
 okay2, after stages 21–30 and the sibling lanes (Prog, HMap,
 interop-async, the fast channels of stage 29; `Flush` is filed as
 `okay2-flush`):
-- **macros of the direct style**: `okay-direct`, `Staged`/`Stager`/
+- **macros of the direct style**: `okay-syntax`, `Staged`/`Stager`/
   `Handled`, `ProcMacro` (`Proc.direct`), `Fuse`;
 - **context-function types**: `Blocking` (`CanBlock ?=> A`; okay2 takes
   `CanBlock` as an implicit), `CanTry`, `DirectCtx`/`DirectEffect`;

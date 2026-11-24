@@ -1,4 +1,4 @@
-# okay-kernel: a microkernel — contracts, plugins, the plan, the start
+# okay-plugins: a microkernel — contracts, plugins, the plan, the start
 
 ## Overview
 
@@ -183,14 +183,14 @@ otherwise the load fails naming the path and the reason.
 
 - [x] okay's own rules: okay-http reaches no okay-mcp, okay-agent,
       okay-llm, okay-rag; okay-ops reaches no okay-docs; the core reaches
-      nothing; okay-kernel reaches only the core.
+      nothing; okay-plugins reaches only the core.
 - [x] a violating rule fails the load with the path
       (`okayHttpJVM -> okayMcpJVM -> okayAgentJVM`) and the why.
 - [x] a test-scope edge is not a violation.
 
 ## Module
 
-`okay-kernel`, cross-built (JVM, JS, Native); depends on the core only.
+`okay-plugins`, cross-built (JVM, JS, Native); depends on the core only.
 `Discover` is JVM-only (`src/main/scala-jvm`): ServiceLoader and class
 loaders are the JVM's. `OkayModules` lives in okay-deploy's sbt plugin,
 beside `OkayDeploy`, so a consumer that already loads that plugin
@@ -224,7 +224,7 @@ beside `OkayDeploy`, so a consumer that already loads that plugin
 
 ## Results (2026-09-25)
 
-- okay-kernel: 4 files, depends on the core only. TestVersion (4),
+- okay-plugins: 4 files, depends on the core only. TestVersion (4),
   TestKernel (15) on JVM, JS and Native; TestDiscover (4) on the JVM —
   61 results, no warnings.
 - The version contract is exercised in both directions: a provision

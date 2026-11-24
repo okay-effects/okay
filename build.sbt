@@ -134,7 +134,7 @@ ThisBuild / scalacOptions ++= Seq(
   // when sbt ran on 21 (dotc's default target; measured). The two
   // cannot be separated — the `-Xunchecked-` variant is overridden by
   // this one — so a module that really calls a 21 API says so with
-  // `jdkFloor(21)`, and okay-java, which bridges JDK 24's Gatherer,
+  // `jdkFloor(21)`, and okay-jdk, which bridges JDK 24's Gatherer,
   // with `jdkFloor(0)` (no flag). TEST code carries no floor at all
   // (project/JdkFloor.scala says why). specs/java-gatherers.md.
   "-java-output-version", "17",
@@ -142,7 +142,7 @@ ThisBuild / scalacOptions ++= Seq(
 
 /** a module's JDK floor, replacing the build's 17 (see above):
  * 21 where the module calls a JDK 21 API outside any adaptive guard,
- * 0 for no check at all (okay-java: JDK 24+ API, loaded lazily) */
+ * 0 for no check at all (okay-jdk: JDK 24+ API, loaded lazily) */
 def jdkFloor(n: Int) = scalacOptions ~= { opts =>
   val rest = JdkFloor.unflagged(opts)
   if (n == 0) rest else rest ++ Seq("-java-output-version", n.toString)
@@ -599,12 +599,12 @@ lazy val okayAsync = crossProject(JVMPlatform, JSPlatform, NativePlatform)
   )
 
 /** The optional direct syntax and its compile-time implementation. */
-lazy val okayDirect = crossProject(JVMPlatform, JSPlatform, NativePlatform)
+lazy val okaySyntax = crossProject(JVMPlatform, JSPlatform, NativePlatform)
   .crossType(CrossType.Pure)
-  .in(file("okay-direct"))
+  .in(file("okay-syntax"))
   .dependsOn(okayAsync, okayPlatform % "test->compile")
   .settings(
-    name := "okay-direct",
+    name := "okay-syntax",
     libraryDependencies += "org.scalameta" %%% "munit" % "1.1.1" % Test,
   )
   // jmh->compile is JVM-only: js/native never enable JmhPlugin, so a
@@ -764,7 +764,7 @@ lazy val okayStream = crossProject(JVMPlatform, JSPlatform, NativePlatform)
 lazy val okayWorkflow = crossProject(JVMPlatform, JSPlatform, NativePlatform)
   .crossType(CrossType.Pure)
   .in(file("okay-workflow"))
-  .dependsOn(okayDirect % "compile->compile;test->test", okayOptics % "compile->compile;test->test")
+  .dependsOn(okaySyntax % "compile->compile;test->test", okayOptics % "compile->compile;test->test")
   .settings(
     name := "okay-workflow",
   )
@@ -851,7 +851,7 @@ lazy val okayData = crossProject(JVMPlatform, JSPlatform, NativePlatform)
 lazy val okayOptics = crossProject(JVMPlatform, JSPlatform, NativePlatform)
   .crossType(CrossType.Pure)
   .in(file("okay-optics"))
-  .dependsOn(okayStd % "compile->compile;test->test", okayDirect % "test->compile", okayPlatform % "test->compile")
+  .dependsOn(okayStd % "compile->compile;test->test", okaySyntax % "test->compile", okayPlatform % "test->compile")
   .settings(
     name := "okay-optics",
   )
@@ -1026,9 +1026,9 @@ lazy val okayStm = crossProject(JVMPlatform, JSPlatform, NativePlatform)
 lazy val okayCats = crossProject(JVMPlatform, JSPlatform, NativePlatform)
   .crossType(CrossType.Pure)
   .in(file("okay-cats"))
-  // okay-direct for the tests only: an IO marked inside a direct block
+  // okay-syntax for the tests only: an IO marked inside a direct block
   // (specs/direct-foreign-mark.md)
-  .dependsOn(okayAsync, okayPlatform, okayDirect % "test->compile", okayTest % "test->compile",
+  .dependsOn(okayAsync, okayPlatform, okaySyntax % "test->compile", okayTest % "test->compile",
     okayFreer % "test->compile")  // the book's two-monads chapter shows okay-freer's Layered (the classic road)
   .settings(
     name := "okay-cats",
@@ -1057,9 +1057,9 @@ lazy val okayCats = crossProject(JVMPlatform, JSPlatform, NativePlatform)
 
 /** interop with ZIO: Async <-> ZIO, ZStream <-> Chunks (P3) */
 lazy val okayZio = (project in file("okay-zio"))
-  // okay-direct for the tests only: ZIO's Monad is core's, and direct
+  // okay-syntax for the tests only: ZIO's Monad is core's, and direct
   // blocks over it are the user's choice (specs/zio-direct-cancel.md)
-  .dependsOn(okay.jvm, okayStream.jvm, compare % "test->compile", okayDirect.jvm % "test->compile", okayTest.jvm % "test->compile")
+  .dependsOn(okay.jvm, okayStream.jvm, compare % "test->compile", okaySyntax.jvm % "test->compile", okayTest.jvm % "test->compile")
   .settings(
     name := "okay-zio",
     libraryDependencies ++= Seq(
@@ -1074,7 +1074,7 @@ lazy val okayKyo = (project in file("okay-kyo"))
   // okay-cats and okay-zio for the tests only: TestMixed composes all
   // three libraries with okay in one expression (specs/interop-compose.md)
   .dependsOn(okayAsync.jvm, okayPlatform.jvm, compare % "test->compile", okayTest.jvm % "test->compile",
-    okayCats.jvm % "test->compile", okayZio % "test->compile", okayDirect.jvm % "test->compile")
+    okayCats.jvm % "test->compile", okayZio % "test->compile", okaySyntax.jvm % "test->compile")
   .settings(
     name := "okay-kyo",
     libraryDependencies ++= Seq(
@@ -1089,13 +1089,13 @@ lazy val okayKyo = (project in file("okay-kyo"))
  * interop with the JDK itself: java.util.stream and
  * java.util.function. No dependency to add — it is the platform.
  */
-lazy val okayJava = (project in file("okay-java"))
+lazy val okayJdk = (project in file("okay-jdk"))
   .dependsOn(okay.jvm, okayStream.jvm, compare % "test->compile", okayTest.jvm % "test->compile")
   .settings(
-    name := "okay-java",
+    name := "okay-jdk",
     // `Gather` names java.util.stream.Gatherer (JDK 24, JEP 485): no
     // API floor here, bytecode stays dotc's default 61, and the class
-    // links lazily — okay-java still loads on 17/21 and only a call
+    // links lazily — okay-jdk still loads on 17/21 and only a call
     // into Gather needs 24+ (specs/java-gatherers.md)
     jdkFloor(0),
     libraryDependencies += "org.scalameta" %% "munit" % "1.1.1" % Test,
@@ -1782,11 +1782,11 @@ lazy val okayScalusFlink = (project in file("okay-scalus-flink"))
   )
 
 lazy val okayFlink = (project in file("okay-flink"))
-  // okay-java is TEST only, and only for §20's third lane: the same
+  // okay-jdk is TEST only, and only for §20's third lane: the same
   // job over java.util.stream, whose `Collector` an okay Aggregator
-  // already is (okay-java's Collect.collector). okay-codec for `Schema`/
+  // already is (okay-jdk's Collect.collector). okay-codec for `Schema`/
   // `Columns`: FlinkSchema translates the engine-free columns.
-  .dependsOn(okay.jvm, okayCodec.jvm, okayJava % Test, compare % "test->compile")
+  .dependsOn(okay.jvm, okayCodec.jvm, okayJdk % Test, compare % "test->compile")
   .settings(
     name := "okay-flink",
     // bench-across-processes: FlinkClusterBench starts a REAL
@@ -2424,7 +2424,7 @@ _root_.okay.deploy.sbt.OkayModules.settings(
     "the classic depends on the core only: it knows nothing of the machine but through the core (specs/modules-infra.md)"),
   _root_.okay.deploy.sbt.OkayModules.forbid("okayStd(JVM|JS|Native)", "(?!(core|okay(Freer)?)(JVM|JS|Native)$).*",
     "the classic's effects depend on the classic's core only (okay-std)"),
-  _root_.okay.deploy.sbt.OkayModules.forbid("okayKernel(JVM|JS|Native)", "(?!(core|okay(Freer|Std)?)(JVM|JS|Native)$).*",
+  _root_.okay.deploy.sbt.OkayModules.forbid("okayPlugins(JVM|JS|Native)", "(?!(core|okay(Freer|Std)?)(JVM|JS|Native)$).*",
     "the kernel depends on the core only: every plugin carries what it does"),
 )
 
@@ -2434,12 +2434,12 @@ _root_.okay.deploy.sbt.OkayModules.settings(
  * (ServiceLoader, a plugins directory). The core only — a kernel that
  * depended on anything would make every plugin carry it.
  */
-lazy val okayKernel = crossProject(JVMPlatform, JSPlatform, NativePlatform)
+lazy val okayPlugins = crossProject(JVMPlatform, JSPlatform, NativePlatform)
   .crossType(CrossType.Pure)
-  .in(file("okay-kernel"))
+  .in(file("okay-plugins"))
   .dependsOn(okayStd)
   .settings(
-    name := "okay-kernel",
+    name := "okay-plugins",
     libraryDependencies += "org.scalameta" %%% "munit" % "1.1.1" % Test,
   )
   .jvmSettings(
@@ -2577,7 +2577,7 @@ lazy val okayBlob = crossProject(JVMPlatform, JSPlatform, NativePlatform)
 lazy val okayLlm = crossProject(JVMPlatform, JSPlatform)
   .crossType(CrossType.Pure)
   .in(file("okay-llm"))
-  .dependsOn(okayCodec, okayDirect)
+  .dependsOn(okayCodec, okaySyntax)
   .settings(
     name := "okay-llm",
     libraryDependencies += "org.scalameta" %%% "munit" % "1.1.1" % Test,
@@ -2983,18 +2983,18 @@ lazy val jettyVersion = "12.0.13"
  */
 /**
  * Rust kernels for okay (specs/polyglot-rust.md): a Rust crate over the C
- * ABI (okay-rust/kernels/<name>, Cargo.lock checked in, builds offline), bound
+ * ABI (okay-native/kernels/<name>, Cargo.lock checked in, builds offline), bound
  * through FFM and offered as an okay EFFECT whose operations are the
  * kernel's calls. JDK 22 floor: FFM is final there (JEP 454). The tests
  * fork with native access enabled, which JDK 24+ otherwise warns about
  * at the first restricted call.
  */
-lazy val okayRust = crossProject(JVMPlatform, NativePlatform)
+lazy val okayNative = crossProject(JVMPlatform, NativePlatform)
   .crossType(CrossType.Pure)
-  .in(file("okay-rust"))
+  .in(file("okay-native"))
   .dependsOn(okay)
   .settings(
-    name := "okay-rust",
+    name := "okay-native",
     libraryDependencies += "org.scalameta" %%% "munit" % "1.1.1" % Test,
   )
   // okay-py: the foreign engine, which InProcessLinks gives an FFM and a
@@ -3962,8 +3962,8 @@ lazy val okayUiGtk = (project in file("okay-ui-gtk"))
   )
 lazy val gtkProjects: Seq[ProjectReference] = if (gtkAvailable) Seq(okayUiGtk) else Seq.empty
 
-lazy val platformMembers: Seq[ProjectReference] = gtkProjects ++ Seq[ProjectReference](okay.jvm, okay.js, okay.native, okayJdk22, okayAsync.jvm, okayAsync.js, okayAsync.native, okayDirect.jvm, okayDirect.js, okayDirect.native, okayPlatform.jvm, okayPlatform.js, okayPlatform.native, okayPlatformJdk25, okayStream.jvm, okayStream.js, okayStream.native, okayWorkflow.jvm, okayWorkflow.js, okayWorkflow.native, okayData.jvm, okayData.js, okayData.native, okayOptics.jvm, okayOptics.js, okayOptics.native, okayStm.jvm, okayStm.js, okayStm.native, okayTx.jvm, okayTx.js, okayTx.native, okayGraphql.jvm, okayGraphql.js, okayGraphql.native, okayGraphqlHttp.jvm, okayGraphqlHttp.js, okayStaging, okayCats.jvm, okayCats.js, okayCats.native, okayZio, okayKyo, okayFs2, okayReactive, okayActor.jvm, okayActor.js, okayActor.native, okayKafka,
-    okayJava, okayAudit, okayClojure, okayFrege, okayScala2, okayScala2Codec, okayScala2Http, okayScala2Sql, okayScala2Agent, okayScala2Ui, okayScala2Ws, okayScala2Resilience, okayScala2Persist, okayScala2Stm, okayScala2Stores, okayScala2Llm, okayScala2Rag, okayScala2Mcp, okayScala2Optics, okayScala2Workflow, okayScala2Services, okayScala2Prelude, okayScala2Probe, okaySpark, okayFlink, okayJdbc, okayR2dbc, okayDelta,
+lazy val platformMembers: Seq[ProjectReference] = gtkProjects ++ Seq[ProjectReference](okay.jvm, okay.js, okay.native, okayJdk22, okayAsync.jvm, okayAsync.js, okayAsync.native, okaySyntax.jvm, okaySyntax.js, okaySyntax.native, okayPlatform.jvm, okayPlatform.js, okayPlatform.native, okayPlatformJdk25, okayStream.jvm, okayStream.js, okayStream.native, okayWorkflow.jvm, okayWorkflow.js, okayWorkflow.native, okayData.jvm, okayData.js, okayData.native, okayOptics.jvm, okayOptics.js, okayOptics.native, okayStm.jvm, okayStm.js, okayStm.native, okayTx.jvm, okayTx.js, okayTx.native, okayGraphql.jvm, okayGraphql.js, okayGraphql.native, okayGraphqlHttp.jvm, okayGraphqlHttp.js, okayStaging, okayCats.jvm, okayCats.js, okayCats.native, okayZio, okayKyo, okayFs2, okayReactive, okayActor.jvm, okayActor.js, okayActor.native, okayKafka,
+    okayJdk, okayAudit, okayClojure, okayFrege, okayScala2, okayScala2Codec, okayScala2Http, okayScala2Sql, okayScala2Agent, okayScala2Ui, okayScala2Ws, okayScala2Resilience, okayScala2Persist, okayScala2Stm, okayScala2Stores, okayScala2Llm, okayScala2Rag, okayScala2Mcp, okayScala2Optics, okayScala2Workflow, okayScala2Services, okayScala2Prelude, okayScala2Probe, okaySpark, okayFlink, okayJdbc, okayR2dbc, okayDelta,
     okayLex.jvm, okayLex.js, okayLex.native, okayCrdt.jvm, okayCrdt.js, okayCrdt.native, okayChain.jvm, okayChain.js, okayChain.native, okayScalus, okayScalusSpark, okayScalusFlink, okayX402.jvm, okayX402.js, okayX402Evm, okayX402Cdp, okayX402Signers, okayX402Mcp.jvm, okayX402Mcp.js,
     okayParse.jvm, okayParse.js, okayParse.native,
     okayCodec.jvm, okayCodec.js, okayCodec.native, okayLlm.jvm, okayLlm.js,
@@ -3983,12 +3983,12 @@ lazy val platformMembers: Seq[ProjectReference] = gtkProjects ++ Seq[ProjectRefe
     okayObs.jvm, okayObs.js, okayObs.native,
     okayBlob.jvm, okayBlob.js, okayBlob.native, okayTls, okayPy, okayArrow.jvm, okayArrow.js, okayArrow.native, okayParquet.jvm, okayParquet.js, okayParquet.native, okayLake, okayCompress.jvm, okayCompress.js, okayCompress.native, okayDiagnose.jvm, okayDiagnose.js, okayDiagnose.native, okayFreer.jvm, okayFreer.js, okayFreer.native, okayStd.jvm, okayStd.js, okayStd.native, okayTest.jvm, okayTest.js, okayTest.native, okayForeignWorkflow, okayR, okayForeignCluster, okayForeignWs,
     okayTelegram.jvm, okayTelegram.js,
-    okaySecurity.jvm, okaySecurity.js, okaySecurityArgon2, okayRust.jvm,
+    okaySecurity.jvm, okaySecurity.js, okaySecurityArgon2, okayNative.jvm,
     okayFrame.jvm, okayFrame.js,
     okayDurable.jvm, okayDurable.js, okayDurablePersist.jvm, okayDurablePersist.js,
     okayAgent.jvm, okayAgent.js, okayIntent.jvm, okayIntent.js, okayChatWeb.jvm, okayChatWeb.js, okayLangchain4j, okayRag.jvm, okayRag.js, okayDemo, okaySubscription, okayAdmin, okayChat, okayDlm, okayDlmRemote, okayDeploy, okayLive, okayScript,
     okayMcp.jvm, okayMcp.js, okayMcpHttp.jvm, okayMcpHttp.js,
-    okayKernel.jvm, okayKernel.js, okayKernel.native, okayUi.jvm, okayUi.js, okayUi.native,
+    okayPlugins.jvm, okayPlugins.js, okayPlugins.native, okayUi.jvm, okayUi.js, okayUi.native,
     okayDesktop,
     okayHttp.jvm, okayHttp.js, okayJetty, okayNetty, okayCaps,
     okayResilience.jvm, okayResilience.js,
@@ -4051,7 +4051,7 @@ lazy val root = (project in file("."))
  */
 lazy val auditProjects: Seq[ProjectReference] = Seq(
   okay.jvm, okayAsync.jvm, okayPlatform.jvm, okayStream.jvm,
-  okayOptics.jvm, okayData.jvm, okayParse.jvm, okayLex.jvm, okayCodec.jvm, okayCrdt.jvm, okayBayes.jvm, okayJava,
+  okayOptics.jvm, okayData.jvm, okayParse.jvm, okayLex.jvm, okayCodec.jvm, okayCrdt.jvm, okayBayes.jvm, okayJdk,
   okayHttp.jvm, okaySql.jvm, okayPersist.jvm, okayJdbc, okayR, okayPy, okayNetty, okayJetty, okayKafka, okayBlob.jvm, okayCache.jvm, okayAudit)
 
 // the dogfood's layers (specs/okay-audit.md, Behavior): the core and its
@@ -4059,7 +4059,7 @@ lazy val auditProjects: Seq[ProjectReference] = Seq(
 // and interpreters are handlers; pure computation is business. The first run
 // (2026-10-05) moved four modules from business to handlers on what it found:
 // okay-codec (files, processes, TLS, SecureRandom), okay-bayes (Random, a
-// shutdown hook, threads), okay-java (Files.lines, reflect.Array) and
+// shutdown hook, threads), okay-jdk (Files.lines, reflect.Array) and
 // okay-data now takes its clock and random source as parameters; the real
 // sources live in okay-platform, so data is a business module.
 okay.jvm / auditLayer := "runtime"
@@ -4073,7 +4073,7 @@ okayLex.jvm / auditLayer := "business"
 okayCodec.jvm / auditLayer := "handlers"
 okayCrdt.jvm / auditLayer := "business"
 okayBayes.jvm / auditLayer := "handlers"
-okayJava / auditLayer := "handlers"
+okayJdk / auditLayer := "handlers"
 okayHttp.jvm / auditLayer := "handlers"
 okaySql.jvm / auditLayer := "handlers"
 okayPersist.jvm / auditLayer := "handlers"

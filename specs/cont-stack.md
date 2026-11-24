@@ -76,7 +76,7 @@ the body's tree and classifies each use of `k`:
   wrong; what keeps statePara switch-free is Layer 3's exact room
   (its 1000 levels fit the 2 MB thread, and the reader says so).
 - **B, the answer is used.** `k(1) + k(10)`, string interpolation,
-  `a :: k(x)`. The body is CPS-transformed selectively, as okay-direct
+  `a :: k(x)`. The body is CPS-transformed selectively, as okay-syntax
   does for `Free`: each `k(e)` becomes a step `Call(e, x => rest of
   body)`. The runner keeps an explicit, type-aligned stack of pending
   body parts (the `Wrap`/`Args` technique of stage 1a), runs the rest
@@ -112,7 +112,7 @@ the body's tree and classifies each use of `k`:
   compilation, or TASTy on the classpath with `-Yretain-trees`), is
   rewritten recursively along the path `k` flows. Transformed functions
   are cached.
-- **`direct { !k(…) }`** inside a body: read with okay-direct's
+- **`direct { !k(…) }`** inside a body: read with okay-syntax's
   machinery.
 - **Opaque.** Everything else, where `k` flows into code the macro
   cannot read:

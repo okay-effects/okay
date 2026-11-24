@@ -21,7 +21,7 @@ probed what already works, before anything was built
 
 ## Design
 
-- GAP 1: `markTerm` (okay-direct, DirectRow.scala) gets one more branch.
+- GAP 1: `markTerm` (okay-syntax, DirectRow.scala) gets one more branch.
   A marked value `M[X]` that is not a program, when a
   `Layered.Reflect[M, R]` is found in the implicit scope at the mark,
   becomes `Layered.reflect(m)[R, Pure]` (a `X ! Delim`), which the

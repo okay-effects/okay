@@ -34,7 +34,7 @@ echo "wroclaw: days=$DAYS rounds=$ROUNDS fraction=1/$PART — a JVM per lane"
 for lane in \
   "compare/runMain okay.wroclaw.OkayBench" \
   "compare/runMain okay.wroclaw.JvmBench" \
-  "okayJava/Test/runMain okay.java.wroclaw.JavaBench" \
+  "okayJdk/Test/runMain okay.jdk.wroclaw.JavaBench" \
   "okayFs2/Test/runMain okay.fs2.wroclaw.Fs2Bench" \
   "okayZio/Test/runMain okay.zio.wroclaw.ZioBench" \
   "okayKyo/Test/runMain okay.kyo.wroclaw.KyoBench" \

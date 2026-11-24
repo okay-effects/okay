@@ -619,7 +619,7 @@ same material with the measurements attached.
   an inner generator's `Stop` ends the whole generation. `iterator`
   holds the continuation and applies it on the NEXT `next()` (the
   Python law) over `program`, the chain materialised as walks; a
-  `generator[W] { … }` block (okay-direct) reads `program` too.
+  `generator[W] { … }` block (okay-syntax) reads `program` too.
   `Gen.emit`/`stop`/`from`/`unfold`/`of` build one. Non-memoising
   (`toLazyList` memoises). A value class because an extension on the
   row alias cannot infer `W` and an extension on an opaque lost to
@@ -641,7 +641,7 @@ same material with the measurements attached.
   `Bulk[Chunks]` (core, files read by scala-jvm), `SparkBulk.Rows`
   (okay-spark, an opaque `RDD[Any]` — one documented cast, no
   `ClassTag` per intermediate type), `java.util.List` over parallel
-  streams (okay-java `Parallel`). The extension methods are the
+  streams (okay-jdk `Parallel`). The extension methods are the
   collection view for code generic in `D`; a concrete `Chunks` is a
   program and its own `map` wins, so local code calls `B.map(d)(f)`.
   **`Csv`** — the RFC 4180 subset on one line, `Row = Map[String, String]`.

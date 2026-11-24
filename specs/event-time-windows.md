@@ -167,7 +167,7 @@ object Windows:
   stage where the window has to sit in a pipeline.
 
 - **The operator crosses the JDK seam** (jdk-event-time-collector,
-  2026-09-10): `okay.java.Windowed` puts a `Windows` inside a
+  2026-09-10): `okay.jdk.Windowed` puts a `Windows` inside a
   `java.util.stream.Collector`, folding each pane into a downstream
   aggregator as the watermark closes it. On §20's job that is 2.15x
   faster than `Collectors.groupingBy` on 38% less heap, and it

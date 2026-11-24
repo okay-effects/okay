@@ -1,4 +1,4 @@
-# java-gatherers — JDK Stream Gatherers in okay-java
+# java-gatherers — JDK Stream Gatherers in okay-jdk
 
 ## Overview
 
@@ -36,10 +36,10 @@ BY ACCIDENT is now asked for by flag:
   overridden by it; measured), so N is per module: **17** by default
   (the bytecode every module already emits), **21** only where a module
   really calls a 21 API (the compiler names them), and **none** for
-  okay-java, which needs 24+ API at bytecode 61.
-- okay-java still LOADS on 17/21: the JVM links `Gatherer` lazily, so a
+  okay-jdk, which needs 24+ API at bytecode 61.
+- okay-jdk still LOADS on 17/21: the JVM links `Gatherer` lazily, so a
   class that names it fails with `NoClassDefFoundError` only when
-  called (probe: `G.windowed` on 21). Everything else in okay-java is
+  called (probe: `G.windowed` on 21). Everything else in okay-jdk is
   untouched by it.
 
 ## Behavior
@@ -47,7 +47,7 @@ BY ACCIDENT is now asked for by flag:
 - [x] `.sdkmanrc` pins 25; `gate.sh` picks it up (it exports
       `JAVA_HOME` from `.sdkmanrc`); the full matrix is green on it
 - [x] every Scala 3 module carries `-java-output-version` 17 or 21;
-      okay-java carries none; a module on 17 that reaches a 21 API
+      okay-jdk carries none; a module on 17 that reaches a 21 API
       fails to COMPILE (that is how the 21 list is made, not by hand)
 - [x] `Gather.gatherer(stage)`: a `Stage[I, O, ?]` as a
       `Gatherer[I, ?, O]` — each element resumes the stage with
@@ -82,7 +82,7 @@ BY ACCIDENT is now asked for by flag:
       EMITS each pane the moment the watermark closes it (the
       `Collector` can only hand them over at the end); the remainder
       is flushed by the finisher; its state is the live panes only
-- [x] docs: docs/modules/okay-java.md, the guide paragraph with
+- [x] docs: docs/modules/okay-jdk.md, the guide paragraph with
       examples and the literature; every snippet in a gated test
 
 ## Decisions

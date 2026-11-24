@@ -19,7 +19,7 @@ Direct.reset[Int, S](for x <- shift[Int, Int, S](k => k(1)) yield x + 1)
 
 ## Design
 
-- In `okay-direct`, beside `direct` (the core cannot reach the direct
+- In `okay-syntax`, beside `direct` (the core cannot reach the direct
   compiler). The operator first chose qualified names only; members of
   `Direct` cannot be kept out of `import okay.Direct.*`, which shadowed the
   core's `reset`/`shift` and broke TestShiftDirect — so (operator: "всё же

@@ -547,7 +547,7 @@ get, set, tell, three times, then get — inside a 100-iteration loop),
 written as a plain `while` loop with a `var` state
 (handlers-vs-plain-loop, 2026-09-26).
 
-| lane (okay-direct `StagedBenchmark`, 1 000 operations) | µs/op | ns per operation | B/op | against the Vector loop |
+| lane (okay-syntax `StagedBenchmark`, 1 000 operations) | µs/op | ns per operation | B/op | against the Vector loop |
 |---|---:|---:|---:|---:|
 | `plainLoopBuffer` — `var` state, mutable `ArrayBuffer` log | **0.706** | 0.71 | 4 192 | 0.25x |
 | `plainLoopVector` — `var` state, the same persistent `Vector` log the handlers thread | **2.79** | 2.8 | 34 136 | 1.00x |
@@ -4326,7 +4326,7 @@ and never priced as if it were free.
 **How a row is produced** (the operator's list, all of it implemented):
 
 1. **A JVM per lane.** Every lane lives in its own interop module —
-   `okay-java`, `okay-fs2`, `okay-zio`, `okay-kyo`, `okay-flink`,
+   `okay-jdk`, `okay-fs2`, `okay-zio`, `okay-kyo`, `okay-flink`,
    `okay-spark` — with its own `main`, and `scripts/wroclaw-bench.sh`
    runs each in a forked JVM. No lane inherits another's heap, JIT
    state or garbage; the first version of this table, one JVM for
@@ -4355,7 +4355,7 @@ and never priced as if it were free.
    `AggregateFunction` over a POJO accumulator; Spark's RDD lane uses
    its own `aggregateByKey` over a flat tuple. The one place our types
    still cross a seam is labelled as such — `java.util.stream, windowed
-   collector` is okay-java's `Windowed`, and it is in the table to
+   collector` is okay-jdk's `Windowed`, and it is in the table to
    answer what the JDK's own rows raise, not to stand in for them.
 
    **Handing a competitor our value was a HANDICAP, not a favour, and
@@ -4385,7 +4385,7 @@ row; Lane is where that class's lane logic actually lives.
 | the job itself | [Job.scala](../compare/src/main/scala/okay/wroclaw/Job.scala), [Gtfs.scala](../compare/src/main/scala/okay/wroclaw/Gtfs.scala) | [Bench.scala](../compare/src/main/scala/okay/wroclaw/Bench.scala) (shared harness) |
 | okay (merge) | [OkayBench.scala](../compare/src/main/scala/okay/wroclaw/OkayBench.scala) | [OkayLane.scala](../compare/src/main/scala/okay/wroclaw/OkayLane.scala) |
 | plain JVM | [JvmBench.scala](../compare/src/main/scala/okay/wroclaw/JvmBench.scala) | [JvmLane.scala](../compare/src/main/scala/okay/wroclaw/JvmLane.scala) |
-| java.util.stream | [JavaBench.scala](../okay-java/src/test/scala/okay/java/wroclaw/JavaBench.scala) | [JavaLane.scala](../okay-java/src/test/scala/okay/java/wroclaw/JavaLane.scala) |
+| java.util.stream | [JavaBench.scala](../okay-jdk/src/test/scala/okay/jdk/wroclaw/JavaBench.scala) | [JavaLane.scala](../okay-jdk/src/test/scala/okay/jdk/wroclaw/JavaLane.scala) |
 | fs2 | [Fs2Bench.scala](../okay-fs2/src/test/scala/okay/fs2/wroclaw/Fs2Bench.scala) | [Fs2Lane.scala](../okay-fs2/src/test/scala/okay/fs2/wroclaw/Fs2Lane.scala) |
 | zio-streams | [ZioBench.scala](../okay-zio/src/test/scala/okay/zio/wroclaw/ZioBench.scala) | [ZioLane.scala](../okay-zio/src/test/scala/okay/zio/wroclaw/ZioLane.scala) |
 | kyo | [KyoBench.scala](../okay-kyo/src/test/scala/okay/kyo/wroclaw/KyoBench.scala) | [KyoLane.scala](../okay-kyo/src/test/scala/okay/kyo/wroclaw/KyoLane.scala) |
@@ -4815,7 +4815,7 @@ target, and the achieved column is the one to read.
 definition every lane computes), `Native` (the fold the five
 in-process libraries carry), `OkayLane`, `JvmLane` and `Bench` — is
 `compare/src/main/scala/okay/wroclaw/`; each engine's lane is in its
-own interop module's tests (`okay-flink`, `okay-spark`, `okay-java`,
+own interop module's tests (`okay-flink`, `okay-spark`, `okay-jdk`,
 `okay-fs2`, `okay-zio`, `okay-kyo`), with a `main` per module and a
 `Test` beside it that asserts the lane's answer against okay's.
 `scripts/wroclaw-bench.sh` runs the lot. Flink's
@@ -4831,18 +4831,18 @@ what Flink's extractor would have read.
 below, not instead of it.** The JDK's HONEST row — `Arrays.stream`, the
 platform's own `filter`/`map`, and a fold into maps that never evict —
 is there, and it is the fastest single-core row in the whole table.
-This subsection is about the two roads that go through okay-java's
+This subsection is about the two roads that go through okay-jdk's
 interop instead, and about what `Collectors.groupingBy` does when the
 grouping is high-cardinality; it was written when those were the only
 JDK roads measured, and its findings still stand for them.
 
 The operator asked for the same job on the JDK's own streams, and it
-belongs here for the same reason the Flink lane does: okay-java's
+belongs here for the same reason the Flink lane does: okay-jdk's
 `Collect.collector` says an okay `Aggregator` IS a JDK `Collector`
 (supplier/accumulator/combiner/finisher against init/add/merge/
 present), exactly as `toFlink` says it is an `AggregateFunction`. So
 `Job.stats` — one value — now runs on three engines, and the third is
-the one every JVM already has. The source is okay-java's own bridge,
+the one every JVM already has. The source is okay-jdk's own bridge,
 `Streams.stream(chunks, parallel)`, whose spliterator hands over one
 CHUNK per split.
 
@@ -4860,7 +4860,7 @@ reason it does not fit at the full size is the finding:
 
 **A JDK stream has no event time — until you give it one.** The third
 row is the answer to the rest of this subsection, and it is worth
-reading before the complaints: with `okay.java.Windowed` in place of
+reading before the complaints: with `okay.jdk.Windowed` in place of
 `Collectors.groupingBy`, the same lane on the same JDK runs **2.15x
 faster on 38% less heap**, and finishes the FULL 2 414 119-event feed —
 which the `groupingBy` road cannot do at all — in 992 ms at 2 431 201
@@ -4885,7 +4885,7 @@ builds one map per split and merges them pairwise, and with ~800 000
 distinct groups at this size that merge IS the work — parallel streams
 are built for cheap reductions over many elements, not for
 high-cardinality grouping. `groupingByConcurrent` would avoid the
-per-split maps, and okay-java's `Collect.collector` deliberately does
+per-split maps, and okay-jdk's `Collect.collector` deliberately does
 NOT claim `CONCURRENT` (its own comment says why: an `Aggregator`
 promises nothing about its accumulator being thread-safe), so that
 road is honestly closed. The answer for a shape like this one is not
@@ -4908,7 +4908,7 @@ here. It is charged to the lane honestly; it is what the model costs.
 
 The complaint above is not really about `java.util.stream`. The
 collector is OUR side of the seam, and an event-time window is a fold
-with a watermark — so `okay.java.Windowed` makes one a `Collector`: the
+with a watermark — so `okay.jdk.Windowed` makes one a `Collector`: the
 accumulator is an `okay.Windows` plus a downstream aggregator's state,
 each pane is folded into the downstream the moment the watermark
 CLOSES it, and evicted. The bunching stage got the same treatment from
@@ -4920,7 +4920,7 @@ accumulator per key instead of every element that ever had that key.
 | the JDK lane, sequential | throughput | wall | peak heap | full feed? |
 |---|---:|---:|---:|---|
 | `Collectors.groupingBy` | 1 160 632 ev/s | 520 ms | 652 MB | no — OOM at 2.4M |
-| `okay.java.Windowed` | 2 493 921 ev/s | 242 ms | 403 MB | **yes: 992 ms, 825 MB** |
+| `okay.jdk.Windowed` | 2 493 921 ev/s | 242 ms | 403 MB | **yes: 992 ms, 825 MB** |
 
 **2.15x faster and 38% less heap at the same size, and it finishes the
 job the other road dies on** — while being, at the full feed, 0.70x
@@ -5470,7 +5470,7 @@ time. When the handlers are known where the block is written,
 docs/direct-style.md Layer 2½) compiles each operation to its
 handler's arm — a `Stager`'s `inline match` on the operation as
 written — and the block runs as a function of its continuation with
-no tree and no `split`. okay-direct `StagedBenchmark`: a static 10-op
+no tree and no `split`. okay-syntax `StagedBenchmark`: a static 10-op
 block inside a 100-iteration loop, per-lane minima of two rounds × two
 forks, `-prof gc`; rows `ds-*`, `dst-*`, `dib-*`.
 

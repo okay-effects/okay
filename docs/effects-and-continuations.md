@@ -152,7 +152,7 @@ val listed = collect(evens(6)).run   // List(6, 4, 2)
 
 ## Direct style
 
-The same programs as plain code, with `okay-direct`'s `direct` block. A program marked with `.?` is its
+The same programs as plain code, with `okay-syntax`'s `direct` block. A program marked with `.?` is its
 value. The body of `shift` is a block too:
 
 <!-- not-a-test: okay-freer, the classic road (frozen) -->

@@ -39,7 +39,7 @@ Five stages, one definition (`Job`), run on every engine:
 **Why the comparison is unusually fair.** An okay `Aggregator` IS a
 Flink `AggregateFunction` field for field (`init/add/merge/present`
 against `createAccumulator/add/merge/getResult`) and IS a JDK
-`Collector` the same way (`okay-java`'s `Collect.collector`). So the
+`Collector` the same way (`okay-jdk`'s `Collect.collector`). So the
 same VALUE — `Job.stats` — is handed to three engines rather than
 reimplemented three times, and what separates the numbers is the
 engine, not the arithmetic.
@@ -240,14 +240,14 @@ the correction of an earlier, wrongly-attributed reading:
 `Collectors.groupingBy` has no event time, so a "window" is only a key
 and every pane of the run stays live until the terminal operation
 finishes — the parallel lane dies with an `OutOfMemoryError` on an 8 GB
-heap at the full 2.4M events. `okay.java.Windowed` makes an
+heap at the full 2.4M events. `okay.jdk.Windowed` makes an
 `okay.Windows` fold into a `Collector` instead, evicting a pane the
 moment its watermark closes it:
 
 | the JDK lane, sequential, 603 529 events | throughput | wall | peak heap | full feed? |
 |---|---:|---:|---:|---|
 | `Collectors.groupingBy` | 1 160 632 ev/s | 520 ms | 652 MB | no — OOM at 2.4M |
-| `okay.java.Windowed` | 2 493 921 ev/s | 242 ms | 403 MB | **yes: 992 ms, 825 MB** |
+| `okay.jdk.Windowed` | 2 493 921 ev/s | 242 ms | 403 MB | **yes: 992 ms, 825 MB** |
 
 2.15x faster, 38% less heap, and it finishes the job the other road
 cannot. It is also, deliberately, sequential: a parallel `collect`
@@ -291,7 +291,7 @@ Lane is where that class's logic lives.
 | the job itself | [Job.scala](../compare/src/main/scala/okay/wroclaw/Job.scala), [Gtfs.scala](../compare/src/main/scala/okay/wroclaw/Gtfs.scala) | [Bench.scala](../compare/src/main/scala/okay/wroclaw/Bench.scala) (shared harness) |
 | okay (merge) | [OkayBench.scala](../compare/src/main/scala/okay/wroclaw/OkayBench.scala) | [OkayLane.scala](../compare/src/main/scala/okay/wroclaw/OkayLane.scala) |
 | plain JVM | [JvmBench.scala](../compare/src/main/scala/okay/wroclaw/JvmBench.scala) | [JvmLane.scala](../compare/src/main/scala/okay/wroclaw/JvmLane.scala) |
-| java.util.stream | [JavaBench.scala](../okay-java/src/test/scala/okay/java/wroclaw/JavaBench.scala) | [JavaLane.scala](../okay-java/src/test/scala/okay/java/wroclaw/JavaLane.scala) |
+| java.util.stream | [JavaBench.scala](../okay-jdk/src/test/scala/okay/jdk/wroclaw/JavaBench.scala) | [JavaLane.scala](../okay-jdk/src/test/scala/okay/jdk/wroclaw/JavaLane.scala) |
 | fs2 | [Fs2Bench.scala](../okay-fs2/src/test/scala/okay/fs2/wroclaw/Fs2Bench.scala) | [Fs2Lane.scala](../okay-fs2/src/test/scala/okay/fs2/wroclaw/Fs2Lane.scala) |
 | zio-streams | [ZioBench.scala](../okay-zio/src/test/scala/okay/zio/wroclaw/ZioBench.scala) | [ZioLane.scala](../okay-zio/src/test/scala/okay/zio/wroclaw/ZioLane.scala) |
 | kyo | [KyoBench.scala](../okay-kyo/src/test/scala/okay/kyo/wroclaw/KyoBench.scala) | [KyoLane.scala](../okay-kyo/src/test/scala/okay/kyo/wroclaw/KyoLane.scala) |

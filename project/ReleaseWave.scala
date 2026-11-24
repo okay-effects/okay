@@ -31,7 +31,7 @@ object ReleaseWave extends AutoPlugin {
   /** the first wave: the core, what runs it, its streams and syntax, and
    * the codec/http pair with the parser pair okay-codec needs */
   val names: Set[String] = Set(
-    "okay", "okay-async", "okay-platform", "okay-stream", "okay-direct",
+    "okay", "okay-async", "okay-platform", "okay-stream", "okay-syntax",
     "okay-optics", "okay-diagnose", "okay-test",
     "okay-lex", "okay-parse", "okay-codec", "okay-http")
 

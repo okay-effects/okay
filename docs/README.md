@@ -288,7 +288,7 @@ API reference, gotchas.
 | [`okay-freer`](modules/okay-freer.md) | the classic: the effect library over the freer tree — `A ! F`, handlers, rows, `Shift`, `Cps` and its machine — package `okay.freer`, above the core as one `Effects` instance; `import okay.freer.*` beside `import okay.*` |
 | [`okay-std`](modules/okay-std.md) | the classic's effects — State, Reader, Writer, Throws, Choose, Resource, Stream and the rest — package `okay.std`, over okay-freer; `import okay.std.*` beside `import okay.freer.*` |
 | [`okay-async`](modules/okay-async.md) | the portable `Async` effect and its callback-based runtime semantics, with no platform default instances of its own |
-| [`okay-direct`](modules/okay-direct.md) | the optional direct syntax (`direct { ... }`) and its compile-time macro implementation |
+| [`okay-syntax`](modules/okay-syntax.md) | the optional direct syntax (`direct { ... }`) and its compile-time macro implementation |
 | [`okay-platform`](modules/okay-platform.md) | the concrete JVM, JavaScript and Native runtimes — `CanBlock`, the schedulers, the net and system facades |
 | [`okay-stream`](modules/okay-stream.md) | streams, channels, chunks and the buffers under them; it left the core because nothing in the effect system referred to it, and the core kept only the `Stream` typeclass and `Handoff` |
 | [`okay-workflow`](modules/okay-workflow.md) | the static workflow: `Wf`'s questions, `Proc`'s free arrow over them, and the macro that builds one — a leaf of the core, so it became a module |
@@ -313,7 +313,7 @@ API reference, gotchas.
 | [`okay-js`](modules/okay-js.md) | JavaScript as a value: a typed tree, a printer, a compile-time constant, and `js { }` |
 | [`okay-ts`](modules/okay-ts.md) | TypeScript programs walked inside okay on Scala.js (multi-shot), and okay handed to TypeScript as a Promise |
 | [`okay-ts-npm`](modules/okay-ts-npm.md) | okay as an npm package, `@okay/ts`: programs with async callbacks, CRDT replicas, channels as `AsyncIterable`; its `index.d.ts` written by the module itself |
-| [`okay-rust`](modules/okay-rust.md) | Rust kernels over the C ABI through FFM, as an okay effect (`PasswordHash`: Argon2id, byte-equal to BouncyCastle) |
+| [`okay-native`](modules/okay-native.md) | Rust kernels over the C ABI through FFM, as an okay effect (`PasswordHash`: Argon2id, byte-equal to BouncyCastle) |
 | [`okay-lex`](modules/okay-lex.md) | total streaming tokenization: chunked, snapshottable, incremental |
 | [`okay-chain`](modules/okay-chain.md) | blockchains and ledgers read uniformly: CAIP ids, a sans-I/O follower (depth or declared finality, rollbacks said), a ledger projection beside the native transaction |
 | [`okay-scalus`](modules/okay-scalus.md) | the Cardano chain as okay-chain events, from a relay over Ouroboros node-to-node, with scalus's ledger model for the blocks |
@@ -345,7 +345,7 @@ API reference, gotchas.
 | [`okay-graphql-http`](modules/okay-graphql-http.md) | GraphQL over HTTP (POST, GET, both media types) and subscriptions over a WebSocket (graphql-transport-ws), on okay-http's seams |
 | [`okay-jetty`](modules/okay-jetty.md) | Jetty behind the same two seams — and the WebSocket SERVER okay-http could not serve |
 | [`okay-caps`](modules/okay-caps.md) | tracked capabilities (Scala 3 capture checking), measured: a transaction that cannot outlive its bracket; what the checker refuses and what it does not yet |
-| [`okay-kernel`](modules/okay-kernel.md) | a microkernel: versioned contracts (`Port`), plugins that need and provide them, a plan that names every problem before anything runs, a start that releases in reverse; ServiceLoader and a plugins directory on the JVM |
+| [`okay-plugins`](modules/okay-plugins.md) | a microkernel: versioned contracts (`Port`), plugins that need and provide them, a plan that names every problem before anything runs, a start that releases in reverse; ServiceLoader and a plugins directory on the JVM |
 | [`okay-staging`](modules/okay-staging.md) | the staged codec for a schema that exists only at run time — JVM only, optional by construction, switchable off at launch |
 | [`okay-netty`](modules/okay-netty.md) | Netty behind the same two seams, plus the cross-backend matrix that proves the seam |
 | [`okay-security`](modules/okay-security.md) | authorization once: claims as values, JWT/JWKS over a crypto seam, PBKDF2, policies as an algebra, routes wrapped so a principal must exist, OAuth2 client flows |
@@ -393,7 +393,7 @@ API reference, gotchas.
 | [`okay-onnx`](modules/okay-onnx.md) | the direct ONNX session: the pooled vector AND the token vectors with their characters, from one forward pass — the door `okay.intent.Spans` reads through |
 | [`okay-demo-e2e-browser`](modules/okay-demo-e2e-browser.md) | one chat round through a real headless browser — the fetch/ReadableStream glue a JVM test cannot reach |
 | [`okay-security-argon2`](modules/okay-security-argon2.md) | the one satellite that buys a dependency: Argon2id in the PHC form, RFC-vector-pinned |
-| [`okay-java`](modules/okay-java.md) | the JDK itself as interop: an Aggregator IS a Collector, a Stage IS a Gatherer (JDK 24) |
+| [`okay-jdk`](modules/okay-jdk.md) | the JDK itself as interop: an Aggregator IS a Collector, a Stage IS a Gatherer (JDK 24) |
 | [`okay-clojure`](modules/okay-clojure.md) | Clojure from okay, and a Stage IS a Clojure transducer, both ways |
 | [`okay-frege`](modules/okay-frege.md) | Frege (a Haskell for the JVM) programs as okay programs — a thin Frege monad over okay's effects; multi-shot, no threads |
 | [`okay-scala2`](modules/okay-scala2.md) | okay from Scala 2.13: `Prog`, a fixed-row program type the 2.13 TASTy reader can read, and the two-stdlib classpath it needs |

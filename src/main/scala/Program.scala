@@ -81,7 +81,7 @@ object Run:
   /** `p` made when the run gets to it — ONE closure, the thunk itself the kernel's `Defer` (`defer` the inline word
    * that makes it: not inlined further, so the program's type is this method's, never the kernel's) */
   def deferred[A, Es[_]](p: () => A ! Es): A ! Es = Cont.Defer[OnePure, Nothing, Nothing, A](p)
-  /** the same by name, as a method: for a tree made by a macro (okay-direct's deferral), which calls no inline word */
+  /** the same by name, as a method: for a tree made by a macro (okay-syntax's deferral), which calls no inline word */
   def defer[A, Es[_]](p: => A ! Es): A ! Es = Cont.Defer[OnePure, Nothing, Nothing, A](() => p)
 
   extension [A, E[_]](p: A ! E)

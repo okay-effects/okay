@@ -856,7 +856,7 @@ force, all already practiced, none previously written down:
   2026-09-29, `dev.okay` before — specs/modules-infra.md, "Publishing").
 - **Three JDKs, three jobs** (specs/jdk-compatibility.md). sbt
   COMPILES on 25 (`.sdkmanrc`, since java-gatherers 2026-09-23 —
-  okay-java needs JDK 24's `Gatherer` API at compile time). Tests
+  okay-jdk needs JDK 24's `Gatherer` API at compile time). Tests
   and `run` EXECUTE on 26 (`Test / javaHome`). And the FLOOR a user
   can run on is a compiler flag, not the build JVM:
   `-java-output-version 17` on every Scala 3 module (API check AND

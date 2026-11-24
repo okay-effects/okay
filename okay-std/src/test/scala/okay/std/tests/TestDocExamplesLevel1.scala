@@ -7,7 +7,7 @@ import okay.std.*
 
 /**
  * docs/effects-and-continuations.md, VERBATIM: every example line as the page prints it, answer comment
- * included, then asserted. The direct-style section is okay-direct's TestDocExamplesLevel1Direct.
+ * included, then asserted. The direct-style section is okay-syntax's TestDocExamplesLevel1Direct.
  */
 class TestDocExamplesLevel1 extends munit.FunSuite:
 

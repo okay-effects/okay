@@ -13,7 +13,7 @@ side is `~/work/my/jobs/biz/regulatory-mapping.md`). Operator ask,
 The answer is: little. The library already has every mechanism — the
 row as the declaration (`A ! F`), `Replayable[F]` as the replay discipline
 spelt as a type, `provide`/`Module` as compile-time composition, `Resource`,
-okay-kernel's ports and forbidden edges, okay-watch's sealed evidence
+okay-plugins's ports and forbidden edges, okay-watch's sealed evidence
 journal — and this spec adds the RULE that connects them to the audit,
 plus the few places where our own code breaks the rule today.
 
@@ -32,7 +32,7 @@ everything a handler is told is journaled.** Four clauses, four layers.
 | **3. Handlers** | one module per external thing: the Postgres `Db`, the real `Http` over the platform's `Web`, the system `Clock`; the journaling wrapper; the replaying wrapper | `handlers` | whatever that thing needs — and that is what the inventory lists |
 | **4. Runtime** | the core, `Async`, the platform, the scheduler; the main that assembles 1–3 with `provide`/`Module` or the kernel | `runtime` | the JVM |
 
-Dependencies point DOWN only: 1 → 2 → core; 3 → 2; 4 → all. okay-kernel's
+Dependencies point DOWN only: 1 → 2 → core; 3 → 2; 4 → all. okay-plugins's
 `OkayModules.forbid` states that in the build and fails the load on a
 violation (specs/kernel.md "Forbidden edges"); okay-audit states it in the
 bytecode and fails the build on a reach. Two witnesses, one rule.
@@ -93,7 +93,7 @@ rule's APIs, per package):
 | okay-watch `trace` | `Evidence` already journals `Web`; legacy replay already retained the sealed report time, but did not record a typed Clock answer (the earlier rebuild-time diagnosis was refuted) | report time through the `Clock` port, journaled with `Web`; modern replay refuses missing answers, legacy replay preserves the sealed time | implemented in okay-watch |
 | okay-watch `api` | pages and routes read the clock, files and the network directly (246 reaches) — correct for an API layer, which IS a handler layer | classify as `handlers`; nothing to change | none |
 | okay-watch root (`Rule`, `Watch`, `Risk`) | the rules read `Instant.now` and `Random` (77 reaches in 21 files, most in `Demo` and `Synthetic`) | `Demo`/`Synthetic` are handlers (they make data); `Rule`/`Watch`/`Risk` take time from the `Clock` port | small |
-| okay-codec, okay-bayes, okay-java | reach files/processes/TLS/`Random`/reflection | stay `handlers`; okay-bayes gets its `Random` as a parameter when a replayable model is wanted (not now) | none now |
+| okay-codec, okay-bayes, okay-jdk | reach files/processes/TLS/`Random`/reflection | stay `handlers`; okay-bayes gets its `Random` as a parameter when a replayable model is wanted (not now) | none now |
 
 Everything else — the core's `Replayable`, `provide`/`Module`, `Resource`,
 the kernel's ports and forbidden edges, okay-watch's sealed journal and

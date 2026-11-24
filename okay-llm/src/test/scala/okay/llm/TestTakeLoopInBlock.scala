@@ -7,10 +7,10 @@ import okay.Direct.*
 /**
  * specs/direct-loops.md v3 — `for i <- Take.each[I] do …` INSIDE a
  * direct block: the iteratee written as a loop. It lives here because
- * okay-llm is a module whose test classpath holds both okay-direct
+ * okay-llm is a module whose test classpath holds both okay-syntax
  * (the macro) and okay-stream (`Take`, `pipe`, `through`), which do
  * not depend on each other; the loop itself is the same road as over
- * any `Pull`, tested in okay-direct.
+ * any `Pull`, tested in okay-syntax.
  */
 class TestTakeLoopInBlock extends munit.FunSuite:
 

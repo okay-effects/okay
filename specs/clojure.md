@@ -147,7 +147,7 @@ answers for, made reusable for it as `ChannelLawsSuite`.
   the part of Clojure that is a *transformation*, reusable across
   collections, channels and processes — the same reason the JDK side
   bridged `Gatherer` and not `Stream`.
-- **The drive loop is Gather's, copied, not shared.** okay-java's
+- **The drive loop is Gather's, copied, not shared.** okay-jdk's
   `Gather.drive` and this `drive` are the same twenty lines over
   `resume`/`split`, differing in how a tell leaves (a `Downstream.push`
   answering a Boolean vs `rf` threading an accumulator that may come

@@ -11,7 +11,7 @@ import okay.core.Split
  * docs/guide.md's core examples, VERBATIM (doc-snippet-debt): each
  * line as the page prints it, answer comment included, then asserted.
  * The stream examples are okay-stream's TestDocExamplesFoldUntil and
- * the generator ones okay-direct's TestDocExamplesGen.
+ * the generator ones okay-syntax's TestDocExamplesGen.
  */
 object GuideUsers:
 

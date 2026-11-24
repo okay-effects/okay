@@ -30,7 +30,7 @@ gives a LAW to hold the binding to: the same inputs give the same bytes.
 
 ## Stage 1 — Argon2id on the JVM through FFM
 
-- [x] `okay-rust/kernels/argon2` is a Cargo crate, `cdylib` and
+- [x] `okay-native/kernels/argon2` is a Cargo crate, `cdylib` and
       `staticlib`, with the RustCrypto `argon2` 0.5.3 crate as its only
       dependency. `Cargo.lock` is checked in, so a build is reproducible
       and works offline.
@@ -90,7 +90,7 @@ and for Go (`GOOS=wasip1`) as well as Rust.
 ## Results
 
 - Stage 1 (polyglot-rust, 2026-09-23).
-  - okay-rust: the crate builds offline in about 1.3 s (argon2 0.5.3 and
+  - okay-native: the crate builds offline in about 1.3 s (argon2 0.5.3 and
     14 locked packages, all in the local cargo cache).
   - `NativeLib` and `PasswordHash` compile on JDK 25 with a floor of 22. The tests
     run on 26 with native access enabled, and no restricted-method
@@ -122,7 +122,7 @@ and for Go (`GOOS=wasip1`) as well as Rust.
     `Instance.export` is called as ``instance.`export`(name)``.
 
 - Stage 2 (rust-native, 2026-09-24).
-  - okay-rust is `crossProject(JVMPlatform, NativePlatform)`. The effect,
+  - okay-native is `crossProject(JVMPlatform, NativePlatform)`. The effect,
     `PasswordHash.using` and `argon2id` are shared, and `object PasswordHash extends
     PasswordHashPlatform`, whose trait is each platform's: FFM and Chicory on the
     JVM, `@extern` on Native.
@@ -143,6 +143,6 @@ and for Go (`GOOS=wasip1`) as well as Rust.
   term. `PasswordHash.rust`, `.wasm`, `.native` and `.using` are the
   handlers, as before.
   The same lane found that rust-native had broken the JVM Live tests' path
-  to the crates: a forked test starts in `okay-rust/.jvm` now. The gate it
+  to the crates: a forked test starts in `okay-native/.jvm` now. The gate it
   ran did not include them. `Kernels.dir` finds `kernels/` from either
   place.

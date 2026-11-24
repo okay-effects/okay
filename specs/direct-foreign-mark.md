@@ -71,7 +71,7 @@ refused naming both.
 - Prefix `!z` stays refuted for ZIO (specs/zio-direct-cancel.md): ZIO's
   own `unary_!` wins over any extension. Cats `IO` and `Future` have none,
   so `!io` works.
-- The typeclass lives in okay-async, beside `Async`, so okay-direct needs
+- The typeclass lives in okay-async, beside `Async`, so okay-syntax needs
   no dependency on ZIO or cats; each library's instance lives in its own
   interop module, behind that module's `given` import (AGENTS.md: every
   dependency behind an abstraction).
@@ -92,6 +92,6 @@ refused naming both.
 
 ## Results
 
-- okay-direct TestDirectForeign (Future): 5 passed, watched red first
+- okay-syntax TestDirectForeign (Future): 5 passed, watched red first
   (the old refusal on all three marked Futures).
 - okay-zio TestZioForeign: 4 passed; okay-cats TestCatsForeign: 2 passed.

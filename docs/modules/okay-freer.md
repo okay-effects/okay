@@ -20,7 +20,7 @@ Writer, Throws, Choose, Resource and the rest are `okay.std`, `import okay.std.*
 | `Shift`, `CanTry`, `RowOf`, `Replayable` | the one effect the core is built on (dynamic prompts, `HandleFrames`), and the evidence the direct block and replay need; every other effect is okay-std's (`okay.std`) |
 | `Cps[A, S, R]` (`A />> R` its diagonal; `A /> R` is the machine's, `Carrier[A, R, R]`), `Delimited`, `StackRoom`, `StackPool` | the CPS tree at the shift signature, and the classic's machine of delimited continuations (the JDK 22 StackRoom variant is in this module's multi-release jar) |
 | `Aggregator`, `Fold` | the folds written over the tree (`Stream`, `Gen`, `Producer`, `Chunk` are okay-std's) |
-| `DirectCtx`, `Diagonal`, the macros | what `okay-direct`'s `direct` block and the handler macros need, under `okay.freer.macros` |
+| `DirectCtx`, `Diagonal`, the macros | what `okay-syntax`'s `direct` block and the handler macros need, under `okay.freer.macros` |
 
 What stays in the core (`okay`): `Effects` over rows and the machine's instance of it, the program `A ! R`
 (the machine's `Free`) with `pure`, `effect`, `perform`, `handle`, `value`, the rows at its door, `Control`,
@@ -54,7 +54,7 @@ val inEager = summon[Classic[Eager]].run(summon[Classic[Eager]].handle(program[E
 ```
 
 A macro or a tool that names the tree by its path names it at its home: `okay.freer.Freer`, `okay.freer.Free`,
-`okay.freer.Diagonal`, as `okay-direct`'s do.
+`okay.freer.Diagonal`, as `okay-syntax`'s do.
 
 ## Two wildcards
 

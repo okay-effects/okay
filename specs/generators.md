@@ -52,7 +52,7 @@ object Gen:
   def unfold[S, W](s: S)(f: S => Option[(W, S)]): Gen[W]
   def of[W](p: Unit ! Writer % W): Gen[W]         // a plain Writer program, row widened by Stop
 
-// okay-direct, Direct.scala
+// okay-syntax, Direct.scala
 inline def generator[W](inline block: DirectCtx[[A] =>> A ! Gen.Row[W]] ?=> Any): Gen[W]
 ```
 
@@ -183,8 +183,8 @@ multi-shot re-entry is sound (direct-loops' rule).
 
 ## Results
 
-2026-09-22. `TestGen` 10/10 (core), `TestGenerator` 9/9 (okay-direct, the docs snippets verbatim as the ninth);
-okay-direct suite 348/348. Every box above closed by a law that names
+2026-09-22. `TestGen` 10/10 (core), `TestGenerator` 9/9 (okay-syntax, the docs snippets verbatim as the ninth);
+okay-syntax suite 348/348. Every box above closed by a law that names
 its counter: the laziness laws by a `Counted` body (k `next()` → k
 steps, `take(3)` → 3, `first` → 1, `find(_ > 4)` → 5, `exists(_ == 2)`
 → 2), termination by `after == 0` past a `stop` and `steps == 3` past a
