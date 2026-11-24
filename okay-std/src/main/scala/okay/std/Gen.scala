@@ -1,6 +1,6 @@
 package okay.std
 
-import okay.{!, +, %, Effect, Run, defer, effect, pure}
+import okay.{!, +, %, Effect, Run, defer, perform, pure}
 import okay.FoldUntil
 import okay.one.machine.Machine
 import okay.one.machine.Machine.Head
@@ -312,8 +312,8 @@ object Gen:
    * per element on a walk's hot path is a wrapper, a chain and a
    * node the reader never asked for (measured: +96 B per element).
    * Each one node, its operation at its place in the row's paths */
-  private def say[W](w: W): Unit ! Row[W] = effect[Writer % W, Unit](Writer(w)).at[Row[W]]
-  private def ended[W]: Unit ! Row[W] = effect[Stop, Unit](Stop.Now).at[Row[W]]
+  private def say[W](w: W): Unit ! Row[W] = perform[Writer % W, Unit](Writer(w)).into[Row[W]]
+  private def ended[W]: Unit ! Row[W] = perform[Stop, Unit](Stop.Now).into[Row[W]]
 
   def empty[W]: Gen[W] = fromProgram(pure(()))
 
@@ -336,7 +336,7 @@ object Gen:
     fromProgram(go(s))
 
   /** a plain Writer program as a generator — the row widened by `Stop` */
-  def of[W](p: Unit ! Writer % W): Gen[W] = fromProgram(p.at[Row[W]])
+  def of[W](p: Unit ! Writer % W): Gen[W] = fromProgram(p.into[Row[W]])
 
   // ---- the walks, over programs
 
@@ -381,14 +381,14 @@ object Gen:
    */
   private[okay] def splice[W, V](g: Unit ! Row[W])(f: W => Unit ! Row[V]): Unit ! Row[V] =
     g.translate[Writer % W, Row[V]]([X] => (op: Writer[W, X]) => op match
-      case Writer.Say(w) => f(w)).at[Row[V]]
+      case Writer.Say(w) => f(w)).into[Row[V]]
 
   /** keep the tells `p` accepts — each tell translated into itself or
    * into nothing, answered in place where it was: no walk, no node
    * per rejection */
   private def filtering[W](p: W => Boolean)(g: Unit ! Row[W]): Unit ! Row[W] =
     g.translate[Writer % W, Writer % W]([X] => (op: Writer[W, X]) => op match
-      case Writer.Say(w) => if p(w) then Writer.tell(w) else pure[Unit, Writer % W](())).at[Row[W]]
+      case Writer.Say(w) => if p(w) then Writer.tell(w) else pure[Unit, Writer % W](())).into[Row[W]]
 
   /** the walks that keep a count or end early: the body STEPPED, each
    * tell told again, the rest stepped when the reader resumes past it */

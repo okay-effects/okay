@@ -51,7 +51,9 @@ object Run:
     /** `p` then `q`, `p`'s value dropped */
     def >>[B, Es3[_]](q: => B ! Es3)(using j: Join[Es, Es3]): B ! j.Out =
       (p: okay.one.![A, OnePure]).flatMap((_: A) => (q: okay.one.![B, OnePure]))
-    /** the same program needing more effects, `Es` among `Es2`: itself */
+    /** the same program needing more effects, `Es` among `Es2`: itself (the family's `into`) */
+    def into[Es2[_]](using w: Within[Es, Es2]): A ! Es2 = p
+    @deprecated("use `into`", "0.2.0")
     def at[Es2[_]](using w: Within[Es, Es2]): A ! Es2 = p
     /** `h`'s effect taken off wherever it is among `Es`: `h` installed at its key, a program needing the rest */
     def handle[E[_], O[_]](h: Handler[E, O])(using s: Split[Es, E], k: KeyOf[E]): O[A] ! s.Rest =
@@ -70,6 +72,8 @@ object Run:
     /** an error thrown in `p` given to `f`: its program in `p`'s place (the kernel's guard) */
     def recover[B >: A](f: Throwable => B ! Es): B ! Es = Cont.recover(p: okay.one.![B, OnePure])(f)
     /** `fin` after `p`, whatever way it is left */
+    def ensuring(fin: Unit ! Es): A ! Es = Cont.ensure(p)(fin)
+    @deprecated("use `ensuring`", "0.2.0")
     def ensure(fin: Unit ! Es): A ! Es = Cont.ensure(p)(fin)
     /** a cancel at a step of `p` kept for when it is left */
     def uncancelable: A ! Es = Cont.uncancelable(p)
@@ -191,8 +195,16 @@ object Program:
 
 /** a value, needing nothing — at any effects */
 def pure[A, Es[_]](a: A): A ! Es = Run.of(Cont.Return[OnePure, Nothing, A](a))
-/** an operation: a program needing its effect, performed at the effect's key */
-def effect[E[_], X](op: E[X])(using k: KeyOf[E]): X ! E = Run.of(Cont.perform[E, OnePure, X](op)(using k.in))
+extension [E[_], X](op: E[X])
+  /** an operation: a program needing its effect, performed at the effect's key — `perform(op)` or `op.perform` */
+  def perform(using k: KeyOf[E]): X ! E = Run.of(Cont.perform[E, OnePure, X](op)(using k.in))
+extension [A, Es[_]](p: A ! Es)
+  /** `fin` after `p`, whatever way it is left — top level as well as `Run`'s, so that `p.ensuring` is found by its
+   * name before Predef's `Ensuring` (`x.ensuring(cond)`), a conversion in lexical scope */
+  def ensuring(fin: Unit ! Es): A ! Es = Run.ensuring(p)(fin)
+/** the same as `perform(op)` */
+@deprecated("use `perform`", "0.2.0")
+def effect[E[_], X](op: E[X])(using k: KeyOf[E]): X ! E = perform(op)
 /** `p` built when the run gets to it: a tail call in constant stack */
 inline def defer[A, Es[_]](inline p: A ! Es): A ! Es = Run.deferred[A, Es](() => p)
 inline def tailcall[A, Es[_]](inline p: A ! Es): A ! Es = Run.deferred[A, Es](() => p)
@@ -202,33 +214,48 @@ trait Handler[E[_], O[_]]:
   def kernel[T <: okay.core.Row, A]: OneHandler[E, T, A, O[A]]
 
 object Handler:
-  /** each operation ANSWERED in place by `value`: nothing captured (the kernel's `Answering`) */
-  def answering[E[_]](answer: [X] => E[X] => X): Handler[E, [A] =>> A] = new Handler[E, [A] =>> A]:
+  /** each operation ANSWERED in place by `value`, a tail-resumptive handler: nothing captured (the kernel's
+   * `Answering`) */
+  def tail[E[_]](answer: [X] => E[X] => X): Handler[E, [A] =>> A] = new Handler[E, [A] =>> A]:
     def kernel[T <: okay.core.Row, A]: OneHandler[E, T, A, A] = new okay.one.handler.Answering[E, T, A, A]:
       def ret(a: A) = Cont.pure(a)
       def value[X](op: E[X]): X = answer(op)
   /** a STATE from `s0`: each operation its value and the next state (the kernel's `Stateful`) */
-  def state[E[_], S](s0: S)(step: [X] => (S, E[X]) => (S, X)): Handler[E, [A] =>> (S, A)] = new Handler[E, [A] =>> (S, A)]:
-    def kernel[T <: okay.core.Row, A]: OneHandler[E, T, A, (S, A)] = new okay.one.handler.Stateful[E, T, S, A, (S, A)]:
-      // the machine asks `value`, then at once `next`, of one operation (the kernel's `Stateful` contract, okay-std's
-      // `State.Cell` the same): the step once, at `value`, its next state kept for `next`
-      private var nextS: S = s0
-      def initial = s0
-      def ret(s: S, a: A) = Cont.pure((s, a))
-      def value[X](s: S, op: E[X]): X = { val r = step(s, op); nextS = r._1; r._2 }
-      def next[X](s: S, op: E[X]): S = nextS
+  def stateful[E[_], S](s0: S)(step: [X] => (S, E[X]) => (S, X)): Handler[E, [A] =>> (S, A)] =
+    new Handler[E, [A] =>> (S, A)]:
+      def kernel[T <: okay.core.Row, A]: OneHandler[E, T, A, (S, A)] =
+        new okay.one.handler.Stateful[E, T, S, A, (S, A)]:
+          // the machine asks `value`, then at once `next`, of one operation (the kernel's `Stateful` contract,
+          // okay-std's `State.Cell` the same): the step once, at `value`, its next state kept for `next`
+          private var nextS: S = s0
+          def initial = s0
+          def ret(s: S, a: A) = Cont.pure((s, a))
+          def value[X](s: S, op: E[X]): X = { val r = step(s, op); nextS = r._1; r._2 }
+          def next[X](s: S, op: E[X]): S = nextS
   /** a clause given `k`, the rest under the handler — dropped, resumed, resumed again (the kernel's `Deep`) */
-  def deep[E[_], O[_]](ret0: [A] => A => O[A])(clause: [A, X] => (E[X], X => O[A] ! Pure) => O[A] ! Pure): Handler[E, O] =
+  def general[E[_], O[_]](ret0: [A] => A => O[A])(
+      clause: [A, X] => (E[X], X => O[A] ! Pure) => O[A] ! Pure): Handler[E, O] =
     new Handler[E, O]:
       def kernel[T <: okay.core.Row, A]: OneHandler[E, T, A, O[A]] = new okay.one.handler.Deep[E, T, A, O[A]]:
         def ret(a: A) = Cont.pure(ret0(a))
         def apply[X](op: E[X], k: X => okay.one.![O[A], T]) =
           Run.kernel[O[A], Pure, T](clause[A, X](op, x => Program.lift(k(x))))
   /** an operation ENDS the body: its answer in the body's place, the rest dropped (the kernel's `Aborting`) */
-  def aborting[E[_], O[_]](ret0: [A] => A => O[A])(stop: [A, X] => E[X] => O[A]): Handler[E, O] = new Handler[E, O]:
+  def abort[E[_], O[_]](ret0: [A] => A => O[A])(stop: [A, X] => E[X] => O[A]): Handler[E, O] = new Handler[E, O]:
     def kernel[T <: okay.core.Row, A]: OneHandler[E, T, A, O[A]] = new okay.one.handler.Aborting[E, T, A, O[A]]:
       def ret(a: A) = Cont.pure(ret0(a))
       def abort[X](op: E[X]) = Cont.pure(stop[A, X](op))
+
+  @deprecated("use `Handler.tail`", "0.2.0")
+  def answering[E[_]](answer: [X] => E[X] => X): Handler[E, [A] =>> A] = tail[E](answer)
+  @deprecated("use `Handler.stateful`", "0.2.0")
+  def state[E[_], S](s0: S)(step: [X] => (S, E[X]) => (S, X)): Handler[E, [A] =>> (S, A)] = stateful[E, S](s0)(step)
+  @deprecated("use `Handler.general`", "0.2.0")
+  def deep[E[_], O[_]](ret0: [A] => A => O[A])(
+      clause: [A, X] => (E[X], X => O[A] ! Pure) => O[A] ! Pure): Handler[E, O] = general[E, O](ret0)(clause)
+  @deprecated("use `Handler.abort`", "0.2.0")
+  def aborting[E[_], O[_]](ret0: [A] => A => O[A])(stop: [A, X] => E[X] => O[A]): Handler[E, O] =
+    abort[E, O](ret0)(stop)
 
 /** `Es` AMONG `Es2`: proved at compile time, nothing at run time — a program needing `Es` is one needing `Es2` */
 sealed abstract class Within[Es[_], Es2[_]]
@@ -310,7 +337,7 @@ object Evidence:
   inline def within[Es[_], Es2[_]]: Within[Es, Es2] = Within.derived[Es, Es2]
 
 /** a program needing fewer effects where one needing more is expected: itself */
-given widen[A, Es[_], Es2[_]](using w: Within[Es, Es2]): Conversion[A ! Es, A ! Es2] = p => p.at[Es2]
+given widen[A, Es[_], Es2[_]](using w: Within[Es, Es2]): Conversion[A ! Es, A ! Es2] = p => p.into[Es2]
 
 /** THE TYPECLASSES of a program, by import (`import okay.Programs.given`): NOT in the program's implicit scope, where
  * the Monad's own `flatMap` (one row) would be found beside the program's (rows joined) */
@@ -326,3 +353,11 @@ object Programs:
       Run.flatMap(f(a))(e => e match
         case Left(a2) => defer(tailRecM(a2)(f))
         case Right(b) => okay.pure[B, Es](b))(using Join.same[Es])
+
+// ── control and audit: okay-core's own (okay.one), on the facade — the family's words (Sensitive, audit, Audited,
+// handleAudited, Pass; `Audit.observe`, not a top-level `observe`: Logic's and Prob's, imported by wildcard beside
+// `okay.*`, would be ambiguous). They are over the kernel's rows (`okay.one.!`); okay-core's TestIntercept
+export okay.one.row.{Sensitive, Audited}
+export okay.one.handler.{Interceptor, Observer, Pass}
+export okay.one.std.Audit
+export okay.one.std.Audit.{audit, handleAudited}

@@ -10,12 +10,12 @@ object LexicalState:
 
   /** DEEP: the kernel's `Deep`, the state passed through the answers — the rest `k`, resumable any number of times */
   def deep[S, A, Es[_]](s0: S)(body: Lexical.Inst[State % S] => A ! Es): (S, A) ! Es =
-    Lexical.handle[State % S, [a] =>> Ans[S, a], A, Es](Handler.deep[State % S, [a] =>> Ans[S, a]](
+    Lexical.handle[State % S, [a] =>> Ans[S, a], A, Es](Handler.general[State % S, [a] =>> Ans[S, a]](
       [a] => (x: a) => (s: S) => pure[(S, a), Pure]((s, x)))(
       [a, X] => (e: State[S, X], k: X => Ans[S, a] ! Pure) => e match
         case State.Get() => pure[Ans[S, a], Pure]((s: S) => k(s).flatMap(f => f(s)))
         case State.Update(g) => pure[Ans[S, a], Pure]((s: S) => { val (b, s1) = g(s); k(b).flatMap(f => f(s1)) })
-    ))(body).flatMap(f => f(s0).at[Es])
+    ))(body).flatMap(f => f(s0).into[Es])
 
   /** the default: tail */
   def apply[S, A, Es[_]](s0: S)(body: Lexical.Inst[State % S] => A ! Es): (S, A) ! Es = tail(s0)(body)

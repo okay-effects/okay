@@ -1,6 +1,6 @@
 package okay.std
 
-import okay.{!, ==>, Join, Run, Selective, defer, effect}
+import okay.{!, ==>, Join, Run, Selective, defer, perform}
 
 
 import scala.annotation.tailrec
@@ -262,7 +262,7 @@ object Static:
      */
     def toProgram(using okay.KeyOf[F]): A ! F = s match
       case Pure(a) => okay.pure[A, F](a)
-      case Op(fa) => effect(fa)
+      case Op(fa) => perform(fa)
       case Ap(f, a) => Run.flatMap(defer(f.toProgram))(g => Run.map(a.now)(g))(using Join.same[F])
       case sel: Select[F, x, A] =>
         Run.flatMap(defer(sel.e.toProgram))((v: Either[x, A]) => v match
@@ -290,7 +290,7 @@ object Static:
      */
     private def now(using okay.KeyOf[F]): A ! F = s match
       case Pure(a) => okay.pure[A, F](a)
-      case Op(fa) => effect(fa)
+      case Op(fa) => perform(fa)
       case _ => defer(s.toProgram)
 
     /**

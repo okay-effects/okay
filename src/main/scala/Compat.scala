@@ -11,8 +11,8 @@ object `!`:
   def run[A](p: A ! Pure): A = p.run
   /** a tail call: built when the run gets to it (`defer`) */
   def tailcall[A, Es[_]](p: => A ! Es): A ! Es = defer(p)
-  /** the same program needing one effect more (`p.at[F + G]`) */
-  def widen[A, F[_], G[_]](p: A ! F): A ! F + G = p.at[F + G]
+  /** the same program needing one effect more (`p.into[F + G]`) */
+  def widen[A, F[_], G[_]](p: A ! F): A ! F + G = p.into[F + G]
   /** `tailRecM` for programs: from `s`, a `Left` goes on, a `Right` answers; each turn deferred */
   def loop[S, A, Es[_]](s: S)(f: S => (Either[S, A] ! Es)): A ! Es = Programs.tailRecM[Es].tailRecM(s)(f)
   /** a fold that performs, built right-nested — each step's continuation builds the next, nothing rotated; indexed
@@ -36,17 +36,19 @@ object `!`:
   def translate[A, F[_], G[_]](p: A ! F + G)(h: [X] => F[X] => X ! G)(using KeyOf[F]): A ! G = p.translateInto[F, G](h)
   /** `F` translated into `G` beside the rest `H` */
   def interpret[A, F[_], G[_], H[_]](p: A ! F + H)(h: [X] => F[X] => X ! G + H)(using KeyOf[F]): A ! G + H =
-    p.translate[F, G + H](h).at[G + H]
+    p.translate[F, G + H](h).into[G + H]
 
 /** okay-freer's `Row` words: widening by membership, a sum's answers from its parts */
 object Row:
   extension [A, Es[_]](p: A ! Es)
     /** the same program needing `G` more: `A ! Es + G` */
-    def plus[G[_]]: A ! Es + G = p.at[Es + G]
-    /** the same program needing more effects, `Es` among `Es2` */
-    def at[Es2[_]](using w: Within[Es, Es2]): A ! Es2 = Run.at(p)[Es2]
-    /** the same as `at` */
-    def up[Es2[_]](using w: Within[Es, Es2]): A ! Es2 = Run.at(p)[Es2]
+    def plus[G[_]]: A ! Es + G = p.into[Es + G]
+    /** the same program needing more effects, `Es` among `Es2` (`p.into[Es2]`) */
+    @deprecated("use `into`", "0.2.0")
+    def at[Es2[_]](using w: Within[Es, Es2]): A ! Es2 = Run.into(p)[Es2]
+    /** the same as `into` */
+    @deprecated("use `into`", "0.2.0")
+    def up[Es2[_]](using w: Within[Es, Es2]): A ! Es2 = Run.into(p)[Es2]
   /** a sum's answers, each part's own (`Answers.sum`) */
   def union[F[_], G[_]](using f: Answers[F], g: Answers[G]): Answers[F + G] = Answers.sum[F, G]
 
@@ -65,10 +67,6 @@ sealed trait Distinct[R[_]]
 object Distinct:
   private object Any extends Distinct[[x] =>> scala.Any]
   given any[R[_]]: Distinct[R] = Any.asInstanceOf[Distinct[R]]
-
-extension [E[_], X](op: E[X])
-  /** an operation as a program, `op.perform` or `perform(op)`: `effect(op)` */
-  def perform(using KeyOf[E]): X ! E = effect(op)
 
 /** THE EFFECTS OF `F` ERASED INTO ONE, `T`, that takes any operation (a foreign facade's `Top`: okay-jdk,
  * okay-scala2): each of `F`'s operations performed again at `T`'s key — the keys of `F` found at compile time from

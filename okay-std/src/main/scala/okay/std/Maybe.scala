@@ -1,6 +1,6 @@
 package okay.std
 
-import okay.{!, +, Effect, Handler, Join, Pure, Run, Within, effect, pure}
+import okay.{!, +, Effect, Handler, Join, Pure, Run, Within, perform, pure}
 import okay.core.Split
 
 /**
@@ -22,7 +22,7 @@ import okay.core.Split
  * there, or did it break?" has two answers, from two handlers.
  *
  * WHY NOT `Option` ITSELF as the signature. It could be, the way a
- * `List` is nondeterminism (Choice.scala) — and Choice.scala gives the
+ * `List` is nondeterminism (Choose.scala) — and Choose.scala gives the
  * reason not to: a row wants a signature that means ONE thing. The
  * box costs one allocation per operation, `Choose`'s price.
  *
@@ -35,15 +35,15 @@ final case class Maybe[+A](value: Option[A]) extends Final derives Effect:
 
 extension [A](o: Option[A])
   /** the value, or stop: `None` ends the program at `Maybe.run` */
-  inline def maybe: A ! Maybe = effect[Maybe, A](Maybe(o))
+  inline def maybe: A ! Maybe = perform[Maybe, A](Maybe(o))
 
 object Maybe:
   /** stop: nothing is there */
-  inline def none[A]: A ! Maybe = effect[Maybe, A](Maybe(None))
+  inline def none[A]: A ! Maybe = perform[Maybe, A](Maybe(None))
 
   /** the handler as a value: `p.handle(Maybe.option)` answers `Option[A]` — `Some` resumes the rest with its
    * value, `None` drops it (the kernel's `Deep`) */
-  def option: Handler[Maybe, Option] = Handler.deep[Maybe, Option]([A] => (a: A) => Some(a))(
+  def option: Handler[Maybe, Option] = Handler.general[Maybe, Option]([A] => (a: A) => Some(a))(
     [A, X] => (m: Maybe[X], k: X => Option[A] ! Pure) => m.value match
       case Some(x) => k(x)
       case None => pure[Option[A], Pure](None))
@@ -83,7 +83,7 @@ object Maybe:
    */
   def prune[A, Es[_]](p: A ! Es)(using s: Split[Es, Maybe], j: Join[Choose, s.Rest]): A ! j.Out =
     val q: A ! Choose + s.Rest =
-      p.translate[Maybe, Choose]([X] => (m: Maybe[X]) => effect[Choose, X](Choose(m.value.toList)))
+      p.translate[Maybe, Choose]([X] => (m: Maybe[X]) => perform[Choose, X](Choose(m.value.toList)))
     // the same program: the effects joined are the compiler's
     Run.of[A, j.Out](Run.kernel(q))
 
@@ -91,7 +91,7 @@ object Maybe:
     /** where p found nothing, try q — a handler installed over p alone,
      * so the effects come out unchanged (Throws' `orElse`, for absence) */
     def orElse(using s: Split[Es, Maybe], w: Within[s.Rest, Es])(q: => A ! Es): A ! Es =
-      run[A, Es](p)(using s).at[Es].flatMap:
+      run[A, Es](p)(using s).into[Es].flatMap:
         case Some(a) => pure[A, Es](a)
         case None => q
 

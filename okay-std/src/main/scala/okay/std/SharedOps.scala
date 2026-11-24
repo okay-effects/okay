@@ -1,6 +1,6 @@
 package okay.std
 
-import okay.{!, %, effect}
+import okay.{!, %, perform}
 import okay.core.{+:, Eff, Pure}
 import okay.one.Cont
 
@@ -20,8 +20,8 @@ import okay.one.Cont
  * (DirectRow's shared-node table).
  */
 object SharedOps:
-  val getNode: Any ! State % Any = effect(State.Get[Any, Any]())
-  val askNode: Any ! Reader % Any = effect(Reader.Ask[Any, Any]())
+  val getNode: Any ! State % Any = perform(State.Get[Any, Any]())
+  val askNode: Any ! Reader % Any = perform(Reader.Ask[Any, Any]())
   /** the threaded road's read, one node for every state type and row
    * (indexed-effects stage 1): `PState.Op.Get` has no fields either, and an
    * operation of the row's head names no place */

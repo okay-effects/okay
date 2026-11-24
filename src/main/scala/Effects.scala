@@ -55,7 +55,7 @@ object Effects:
 /** `import okay.*` is the one monad's facade: `A ! R`, `effect`, `op.perform`, `p.handle(h)`, `p.value` */
 // the interface's own words are `Effects.machine`'s, imported where wanted: the root's `!` is the program as a
 // value (Program.scala), `!!` the facade's context function
-/** an operation not yet at a row: `effect(op)`, `op.perform` — its path found where it is bound (`flatMap`, `map`),
+/** an operation not yet at a row: `perform(op)`, `op.perform` — its path found where it is bound (`flatMap`, `map`),
  * or given, `at[R]` */
 type Op[E[_], X] = Effects.machine.Operation[E, X]
 

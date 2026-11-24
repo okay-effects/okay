@@ -1,6 +1,6 @@
 package okay.std
 
-import okay.{!, Effect, Handler, effect}
+import okay.{!, Effect, Handler, perform}
 import okay.core.Split
 
 
@@ -24,7 +24,7 @@ enum Random[+A] derives Effect:
 
 object Random:
   /** 64 random bits */
-  inline def nextLong: Long ! Random = effect(NextLong())
+  inline def nextLong: Long ! Random = perform(NextLong())
 
   /** a uniform `[0, 1)` */
   def nextDouble: Double ! Random = nextLong.map(l => (l >>> 11) * (1.0 / (1L << 53)))
@@ -37,7 +37,7 @@ object Random:
   /** the handler over a source of 64-bit draws — the only door to a real one: each draw answered in place (the
    * kernel's `Answering`) */
   def at(source: () => Long): Handler[Random, [A] =>> A] =
-    Handler.answering[Random]([X] => (e: Random[X]) => e match
+    Handler.tail[Random]([X] => (e: Random[X]) => e match
       case NextLong() => source())
 
   private final val Golden = 0x9E3779B97F4A7C15L
@@ -51,7 +51,7 @@ object Random:
   /** repeatable draws from `seed` (SplitMix64); the answer carries the next seed — a register of the machine (the
    * kernel's `Stateful`), so a `k` taken past it continues from the seed it was captured with */
   def seeded(seed: Long): Handler[Random, [A] =>> (Long, A)] =
-    Handler.state[Random, Long](seed)([X] => (s: Long, e: Random[X]) => e match
+    Handler.stateful[Random, Long](seed)([X] => (s: Long, e: Random[X]) => e match
       case NextLong() => { val s2 = s + Golden; (s2, mix(s2)) })
 
   /** repeatable draws from `seed`, wherever Random is among the program's effects: the rest of them forwarded */

@@ -1,6 +1,6 @@
 package okay.std
 
-import okay.{!, Answers, Effect, Handler, Run, defer, effect, pure}
+import okay.{!, Answers, Effect, Handler, Run, defer, perform, pure}
 import okay.core.{Row, Split}
 import okay.one.Cont
 import okay.one.handler.{Deep, Guard, Recovering, Handler as OneHandler}
@@ -143,7 +143,7 @@ object Resource {
 
   /** acquire inside the enclosing Resource.run scope */
   inline def acquire[R](make: => R)(release: R => Unit): R ! Resource =
-    effect[Resource, R](Acquire(() => make, release))
+    perform[Resource, R](Acquire(() => make, release))
 
   /**
    * Open the scope and KEEP it open: acquire everything now, hand
@@ -158,7 +158,7 @@ object Resource {
   def open[A](a: A ! Resource): (A, () => Unit) = {
     var fin = List.empty[() => Unit]
     def close(): Unit = { val f = fin; fin = Nil; releaseAll(f) }
-    val acquiring = Handler.answering[Resource]([X] => (op: Resource[X]) => op match
+    val acquiring = Handler.tail[Resource]([X] => (op: Resource[X]) => op match
       case Acquire(mk, rel) =>
         val r = mk()
         fin = (() => rel(r)) :: fin

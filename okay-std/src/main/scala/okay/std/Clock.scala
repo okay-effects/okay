@@ -1,6 +1,6 @@
 package okay.std
 
-import okay.{!, Effect, Handler, effect}
+import okay.{!, Effect, Handler, perform}
 import okay.core.Split
 
 
@@ -24,12 +24,12 @@ enum Clock[+A] derives Effect:
 
 object Clock:
   /** the time, in milliseconds since the epoch */
-  inline def now: Long ! Clock = effect(Now())
+  inline def now: Long ! Clock = perform(Now())
 
   /** the handler over a source of milliseconds — the only door to a real clock: each reading answered in place (the
    * kernel's `Answering`) */
   def at(source: () => Long): Handler[Clock, [A] =>> A] =
-    Handler.answering[Clock]([X] => (e: Clock[X]) => e match
+    Handler.tail[Clock]([X] => (e: Clock[X]) => e match
       case Now() => source())
 
   /** every reading is `millis`: a test's clock */
@@ -38,7 +38,7 @@ object Clock:
   /** readings `first`, `first + increment`, …: a test's clock that moves — the next reading a register of the
    * machine (the kernel's `Stateful`), the answer carrying it */
   def ticking(first: Long, increment: Long): Handler[Clock, [A] =>> (Long, A)] =
-    Handler.state[Clock, Long](first)([X] => (s: Long, e: Clock[X]) => e match
+    Handler.stateful[Clock, Long](first)([X] => (s: Long, e: Clock[X]) => e match
       case Now() => (s + increment, s))
 
   /** answer every `now` with `millis`, wherever Clock is among the program's effects: the rest of them forwarded */

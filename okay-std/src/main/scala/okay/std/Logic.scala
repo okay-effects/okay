@@ -1,6 +1,6 @@
 package okay.std
 
-import okay.{!, Run, Within, defer, effect, pure}
+import okay.{!, Run, Within, defer, perform, pure}
 import okay.core.Split
 import okay.one.Cont
 import okay.one.row.{In, Pure as OnePure}
@@ -30,10 +30,10 @@ object Logic {
   /** all of it at once, on a lazy stream: alternatives explored
    * depth-first, left to right */
   private def alts[A, Es[_]](ps: Seq[A ! Es])(using c: Within[Choose, Es]): A ! Es =
-    effect[Choose, A ! Es](Choose(ps)).at[Es].flatMap(identity)
+    perform[Choose, A ! Es](Choose(ps)).into[Es].flatMap(identity)
 
   /** no answer: the branch dies */
-  private def none[A, Es[_]](using Within[Choose, Es]): A ! Es = effect[Choose, A](Choose(Seq.empty)).at[Es]
+  private def none[A, Es[_]](using Within[Choose, Es]): A ! Es = perform[Choose, A](Choose(Seq.empty)).into[Es]
 
   /**
    * The primitive: the first answer with the rest-of-the-search as a
@@ -138,7 +138,7 @@ object Logic {
    * (2026-09-16): that word is `!.once` now, the by-need effect, and
    * a file importing both `!.*` and `Logic.*` had the two collide. */
   def cut[A, Es[_]](m: A ! Es)(using s: Split[Es, Choose], w: Within[s.Rest, Es], c: Within[Choose, Es]): A ! Es =
-    msplit(m).at[Es].flatMap:
+    msplit(m).into[Es].flatMap:
       case Some((a, rest)) => abandon(rest); pure[A, Es](a)
       case None => none[A, Es]
 
@@ -149,7 +149,7 @@ object Logic {
                        (th: A => B ! Es)
                        (el: => B ! Es)
                        (using s: Split[Es, Choose], w: Within[s.Rest, Es], c: Within[Choose, Es]): B ! Es =
-    msplit(cond).at[Es].flatMap:
+    msplit(cond).into[Es].flatMap:
       case Some((a, rest)) => alts[B, Es](Seq(defer(th(a)), defer(rest.flatMap(th))))
       case None => el
 
@@ -162,7 +162,7 @@ object Logic {
    * cannot starve b */
   def interleave[A, Es[_]](a: A ! Es, b: => A ! Es)
                           (using s: Split[Es, Choose], w: Within[s.Rest, Es], c: Within[Choose, Es]): A ! Es =
-    msplit(a).at[Es].flatMap:
+    msplit(a).into[Es].flatMap:
       case Some((x, rest)) => alts[A, Es](Seq(pure[A, Es](x), defer(interleave(b, rest))))
       case None => b
 
@@ -170,7 +170,7 @@ object Logic {
    * f-branch monopolizes the search */
   def fairBind[A, B, Es[_]](m: A ! Es)(f: A => B ! Es)
                            (using s: Split[Es, Choose], w: Within[s.Rest, Es], c: Within[Choose, Es]): B ! Es =
-    msplit(m).at[Es].flatMap:
+    msplit(m).into[Es].flatMap:
       case Some((a, rest)) => interleave(f(a), fairBind(rest)(f))
       case None => none[B, Es]
 

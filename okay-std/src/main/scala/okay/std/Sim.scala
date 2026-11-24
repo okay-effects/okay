@@ -1,6 +1,6 @@
 package okay.std
 
-import okay.{!, effect}
+import okay.{!, perform}
 import okay.one.machine.Machine
 import okay.one.machine.Machine.Head
 import scala.collection.mutable
@@ -78,14 +78,14 @@ object Sim {
 
   // ── the program-side surface ───────────────────────────────────
 
-  def fork(prog: Unit ! Op): Fiber ! Op = effect(Op.Fork(prog))
-  def sleep(millis: Long): Unit ! Op = effect(Op.Sleep(millis))
-  def now: Long ! Op = effect(Op.Now())
-  def channel[A](capacity: Int = Int.MaxValue): SimChannel[A] ! Op = effect(Op.Chan[A](capacity))
-  def send[A](ch: SimChannel[A], a: A): Unit ! Op = effect(Op.Send(ch, a))
-  def receive[A](ch: SimChannel[A]): Option[A] ! Op = effect(Op.Receive(ch))
-  def yieldNow: Unit ! Op = effect(Op.Yield())
-  def close[A](ch: SimChannel[A]): Unit ! Op = effect(Op.Close(ch))
+  def fork(prog: Unit ! Op): Fiber ! Op = perform(Op.Fork(prog))
+  def sleep(millis: Long): Unit ! Op = perform(Op.Sleep(millis))
+  def now: Long ! Op = perform(Op.Now())
+  def channel[A](capacity: Int = Int.MaxValue): SimChannel[A] ! Op = perform(Op.Chan[A](capacity))
+  def send[A](ch: SimChannel[A], a: A): Unit ! Op = perform(Op.Send(ch, a))
+  def receive[A](ch: SimChannel[A]): Option[A] ! Op = perform(Op.Receive(ch))
+  def yieldNow: Unit ! Op = perform(Op.Yield())
+  def close[A](ch: SimChannel[A]): Unit ! Op = perform(Op.Close(ch))
 
   /** what a run answered: how it ended, the virtual time it took,
    * and the decision TRACE — two runs are the same run iff their

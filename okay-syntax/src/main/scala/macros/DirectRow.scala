@@ -177,12 +177,15 @@ private[okay] trait DirectRow[F[_]] extends DirectPhase[F]:
     case None => injectTerm(op, elem, row)
 
   /** the root's program words, as a staged block reads them */
-  lazy val effectSym: Symbol = calleeRoot('{ okay.effect[Option, Int](None) }.asTerm)
+  lazy val performSym: Symbol = calleeRoot('{ okay.perform[Option, Int](None) }.asTerm)
+  /** `perform`, and `effect`, its deprecated alias (the same shape: `[E, X](op)(using key)`) */
+  lazy val effectSyms: Set[Symbol] = Set(performSym) ++ performSym.owner.methodMember("effect")
   lazy val pureSym: Symbol = calleeRoot('{ okay.pure[Int, Pure](0) }.asTerm)
   private lazy val runModule = Symbol.requiredModule("okay.Run")
   lazy val runFlatMap: Symbol = runModule.methodMember("flatMap").head
   lazy val runMap: Symbol = runModule.methodMember("map").head
-  lazy val runAt: Symbol = runModule.methodMember("at").head
+  /** `into`, and `at`, its deprecated alias */
+  lazy val runAts: Set[Symbol] = (runModule.methodMember("into") ++ runModule.methodMember("at")).toSet
 
   /**
    * THE INLINER'S PROXIES, SUBSTITUTED. An inline method's by-value
@@ -253,11 +256,11 @@ private[okay] trait DirectRow[F[_]] extends DirectPhase[F]:
     case TypeApply(Select(inner, "asInstanceOf"), _) => unwrap(inner)
     case _ => (Nil, t)
 
-  /** a call of one of the root's program words (`effect`, `pure`,
+  /** a call of one of the root's program words (`perform`, `pure`,
    * `flatMap`, `map`) */
   def programNode(t: Term): Boolean =
     val f = calleeRoot(t)
-    f == effectSym || f == pureSym || f == runFlatMap || f == runMap || f == runAt
+    effectSyms(f) || f == pureSym || f == runFlatMap || f == runMap || runAts(f)
 
   /**
    * A PROGRAM of the row, staged (specs/direct-staged.md v2): after
@@ -284,10 +287,10 @@ private[okay] trait DirectRow[F[_]] extends DirectPhase[F]:
     def walk(t: Term): Option[Term] =
       val (bs, core) = unwrap(t)
       core match
-        // `effect[E, X](op)(using key)`: the operation, its key the effect's
-        case Apply(Apply(TypeApply(f, targs), List(op)), _) if f.symbol == effectSym =>
+        // `perform[E, X](op)(using key)`: the operation, its key the effect's
+        case Apply(Apply(TypeApply(f, targs), List(op)), _) if effectSyms(f.symbol) =>
           opLeaf(bs, op, targs.last.tpe.widen)
-        case Apply(TypeApply(f, targs), List(op)) if f.symbol == effectSym =>
+        case Apply(TypeApply(f, targs), List(op)) if effectSyms(f.symbol) =>
           opLeaf(bs, op, targs.last.tpe.widen)
         case ref: Ref if sharedNodes.contains(sharedKey(ref.symbol)) =>
           elemOf(t).flatMap(elem => opLeaf(bs, sharedNodes(sharedKey(ref.symbol))(elem.asType), elem))
@@ -296,8 +299,8 @@ private[okay] trait DirectRow[F[_]] extends DirectPhase[F]:
           opLeaf(bs, op, elem)
         case Apply(TypeApply(f, targs), List(a)) if f.symbol == pureSym =>
           Some(wrap(bs, pureF(Typed(a, Inferred(targs.head.tpe.widen)))))
-        // `Run.at[A, Es](m)[Es2](using w)`: the same program, more effects
-        case Apply(TypeApply(Apply(TypeApply(f, _), List(m)), _), _) if f.symbol == runAt => walk(m).map(wrap(bs, _))
+        // `Run.into[A, Es](m)[Es2](using w)`: the same program, more effects
+        case Apply(TypeApply(Apply(TypeApply(f, _), List(m)), _), _) if runAts(f.symbol) => walk(m).map(wrap(bs, _))
         // `Run.map[A, Es](m)[B](x => body)`: a bind into a pure
         case Apply(TypeApply(Apply(TypeApply(f, targs1), List(m)), targs2), List(k)) if f.symbol == runMap =>
           val aT = targs1.head.tpe.widen

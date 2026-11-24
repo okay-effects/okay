@@ -1,6 +1,6 @@
 package okay.std
 
-import okay.{!, +, %, Answers, Handler, Pure, Run, TypeableK, effect, pure, typeableK}
+import okay.{!, +, %, Answers, Handler, Pure, Run, TypeableK, perform, pure, typeableK}
 import okay.core.{Eff, Row, Split}
 import okay.{Cps, />>}
 import okay.{Fold, FoldUntil}
@@ -63,7 +63,7 @@ object Writer {
    */
   def tracing[A, F[_], W, Es[_]](prog: A ! Es)(show: [X] => F[X] => W)(using s: Split[Es, F], k: okay.KeyOf[F])
   : A ! Writer % W + F + s.Rest =
-    prog.translate[F, Writer % W + F]([X] => (e: F[X]) => tell(show(e)) >> effect[F, X](e))
+    prog.translate[F, Writer % W + F]([X] => (e: F[X]) => tell(show(e)) >> perform[F, X](e))
 
 
   /** handle-frames-loops: what a Writer operation told, read off an erased operation — `Say` is the only
@@ -76,7 +76,7 @@ object Writer {
   inline def apply[W](w: W): Writer[W, Unit] = Say(w)
 
   /** tell w: emit it as an operation, which answers NOTHING */
-  inline def tell[W](w: W): Unit ! Writer % W = effect[Writer % W, Unit](Say(w))
+  inline def tell[W](w: W): Unit ! Writer % W = perform[Writer % W, Unit](Say(w))
 
   /**
    * The continuation after a value a stream view has just HANDED OVER,
@@ -248,7 +248,7 @@ object Writer {
    */
   def listen[W, A, Es[_]](a: A ! Es)(using s: Split[Es, Writer % W]): (A, Seq[W]) ! Writer % W + s.Rest =
     a.translate[Writer % W, Heard % W + Writer % W]([X] => (op: Writer[W, X]) => op match
-        case Say(w) => effect[Heard % W, Unit](Heard.Hear(w)) >> tell(w))
+        case Say(w) => perform[Heard % W, Unit](Heard.Hear(w)) >> tell(w))
       .handle(hearing[W])
       .map((heard, x) => (x, heard.reverse))
 
@@ -268,7 +268,7 @@ object Writer {
    * to many, and a filter) over the same scope.
    */
   def censor[W, A, Es[_]](a: A ! Es)(f: Seq[W] => Seq[W])(using s: Split[Es, Writer % W]): A ! Writer % W + s.Rest =
-    collect[W, A, Es](a).flatMap((ws, x) => tellAll(f(ws).toIndexedSeq, 0).map(_ => x).at[Writer % W + s.Rest])
+    collect[W, A, Es](a).flatMap((ws, x) => tellAll(f(ws).toIndexedSeq, 0).map(_ => x).into[Writer % W + s.Rest])
 
   /**
    * Re-tell at a WIDER element type with NO transform — `map`'s
@@ -602,3 +602,13 @@ given writerStreamIn[A, G[_]](using okay.KeyOf[G]): Stream[[W] =>> A ! Writer % 
   override def iterator[W](s: A ! Writer % W + G)(using H: Answers[G]): Iterator[W] =
     Stepping.Iter[Writer % W, W, A](() => Stepping.start(s), Telling.key, Telling[W](),
       Stepping.Other.answers(H))
+
+/** THE FAMILY'S NAME for a stream of told values (okay-effects' `Emit`): `Writer`, the same effect under another
+ * name — `A ! Emit[String]` is `A ! Writer % String`; nothing new runs */
+type Emit[W] = Writer % W
+
+object Emit:
+  /** `Writer.tell` */
+  inline def send[W](w: W): Unit ! Emit[W] = Writer.tell(w)
+  /** `Writer.run`: everything sent, in order, beside the value; the rest of the effects forwarded */
+  def collect[W, A, Es[_]](a: A ! Es)(using s: Split[Es, Writer % W]): (Seq[W], A) ! s.Rest = Writer.run[W, A, Es](a)

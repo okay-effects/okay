@@ -1,6 +1,6 @@
 package okay.std
 
-import okay.{!, Handler, effect, typeableK}
+import okay.{!, Handler, perform, typeableK}
 import okay.core.{Row, Split}
 import okay.one.handler.{Stateful, Handler as OneHandler}
 
@@ -76,13 +76,13 @@ object Refs:
   given okay.Effect[Refs] = okay.Effect.of(typeableK(classOf[Refs[?]]))
 
   /** a new cell, holding init */
-  inline def ref[S](init: S): Ref[S] ! Refs = effect(New(init))
+  inline def ref[S](init: S): Ref[S] ! Refs = perform(New(init))
 
   /** what the cell holds */
-  inline def read[S](c: Ref[S]): S ! Refs = effect(Read(c))
+  inline def read[S](c: Ref[S]): S ! Refs = perform(Read(c))
 
   /** replace it, answering the new value */
-  inline def write[S](c: Ref[S], s: S): S ! Refs = effect(Write(c, s))
+  inline def write[S](c: Ref[S], s: S): S ! Refs = perform(Write(c, s))
 
   /**
    * The handler is `State`'s over a HEAP: the next free slot and the

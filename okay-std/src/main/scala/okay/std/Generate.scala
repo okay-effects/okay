@@ -1,6 +1,6 @@
 package okay.std
 
-import okay.{!, +, Answers, Handler, Id, Pure, Run, TypeableK, effect, pure}
+import okay.{!, +, Answers, Handler, Id, Pure, Run, TypeableK, perform, pure}
 import okay.core.Split
 import okay.{Cps, />>}
 import okay.{Fold, FoldUntil, Foldable}
@@ -127,7 +127,7 @@ type Chunk[+A] = scala.collection.immutable.ArraySeq[A]
  * apart — measured the hard way in okay-watch (a zero-byte object
  * under the right key, blob-source-seam).
  */
-inline def produce[A](a: A): Producer[A] = effect[Produce, A](a)
+inline def produce[A](a: A): Producer[A] = perform[Produce, A](a)
 
 /**
  * The ANSWER of a produce operation is the value it produced.
@@ -226,7 +226,7 @@ object Producer {
    * okay2-split-at-rest; TestFoldUntil pins it).
    */
   def each[W, A, Es[_]](p: A ! Es)(f: W => Unit)(using s: Split[Es, Produce]): A ! s.Rest =
-    p.handle(Handler.answering[Produce]([X] => (w: Produce[X]) => { f(produced[W](w)); w }))
+    p.handle(Handler.tail[Produce]([X] => (w: Produce[X]) => { f(produced[W](w)); w }))
 
   /** an Answers printing each produced value on the way through */
   def log(prefix: String = "", suffix: String = "\n"): Answers[Produce] = new:

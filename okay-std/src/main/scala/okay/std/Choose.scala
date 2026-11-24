@@ -1,6 +1,6 @@
 package okay.std
 
-import okay.{!, +, Effect, Handler, MonadPlus, Pure, Run, TypeableK, effect, typeableK}
+import okay.{!, +, Effect, Handler, MonadPlus, Pure, Run, TypeableK, perform, typeableK}
 import okay.core.Split
 import scala.collection.immutable.ArraySeq
 
@@ -65,7 +65,7 @@ object Forked:
     go(as, Nil)
 
 /** one of the given alternatives */
-inline def choose[A](as: A*): A ! Choose = effect[Choose, A](Choose(as))
+inline def choose[A](as: A*): A ! Choose = perform[Choose, A](Choose(as))
 
 /**
  * Nondeterminism is the canonical MonadPlus: no alternatives is
@@ -75,12 +75,12 @@ inline def choose[A](as: A*): A ! Choose = effect[Choose, A](Choose(as))
  */
 given chooseMonadPlus: MonadPlus[[A] =>> A ! Choose] with
   override def pure[A](a: A): A ! Choose = okay.pure[A, Choose](a)
-  override def empty[A]: A ! Choose = effect[Choose, A](Choose(Seq.empty))
+  override def empty[A]: A ! Choose = perform[Choose, A](Choose(Seq.empty))
   extension [A](x: A ! Choose)
     // the program's own bind, by its object: `x.flatMap` here would be this extension
     override def flatMap[B](f: A => B ! Choose): B ! Choose = Run.flatMap(x)(f)
     override def append(y: A ! Choose): A ! Choose =
-      Run.flatMap(effect[Choose, A ! Choose](Choose(Seq(x, y))))(identity)
+      Run.flatMap(perform[Choose, A ! Choose](Choose(Seq(x, y))))(identity)
 
 /**
  * A row CONTAINING Choose is a MonadPlus too — which is what lets
@@ -89,11 +89,11 @@ given chooseMonadPlus: MonadPlus[[A] =>> A ! Choose] with
  */
 given chooseRowMonadPlus[F[_]]: MonadPlus[[A] =>> A ! Choose + F] with
   override def pure[A](a: A): A ! Choose + F = okay.pure[A, Choose + F](a)
-  override def empty[A]: A ! Choose + F = effect[Choose, A](Choose(Seq.empty)).at[Choose + F]
+  override def empty[A]: A ! Choose + F = perform[Choose, A](Choose(Seq.empty)).into[Choose + F]
   extension [A](x: A ! Choose + F)
     override def flatMap[B](f: A => B ! Choose + F): B ! Choose + F = Run.flatMap(x)(f)
     override def append(y: A ! Choose + F): A ! Choose + F =
-      Run.flatMap(effect[Choose, A ! Choose + F](Choose(Seq(x, y))).at[Choose + F])(identity)
+      Run.flatMap(perform[Choose, A ! Choose + F](Choose(Seq(x, y))).into[Choose + F])(identity)
 
 object Choose:
   /** a handler that will start no more of `c`'s alternatives says so: what they share is released when nothing
@@ -102,7 +102,7 @@ object Choose:
 
   /** the handler as a value: `p.handle(Choose.all)` answers every branch's result, in order — the rest resumed
    * once per alternative (the kernel's `Deep`) */
-  def all: Handler[Choose, Seq] = Handler.deep[Choose, Seq]([A] => (a: A) => Seq(a))(
+  def all: Handler[Choose, Seq] = Handler.general[Choose, Seq]([A] => (a: A) => Seq(a))(
     [A, X] => (c: Choose[X], k: X => Seq[A] ! Pure) =>
       val all = foldM[X, Seq[A], Pure](c.as)(Seq.empty[A])((s, x) => k(x).map(s ++ _))
       // a branch point something is shared through: a throw that leaves the search abandons it (logic-cut-releases)
@@ -138,7 +138,7 @@ def runChoice[A, Es[_]](a: A ! Es)(using s: Split[Es, Choose]): Seq[A] ! s.Rest 
  * same handler is the point.
  */
 def runSeq[S[+X] <: Seq[X], A, Es[_]](p: A ! Es)(using sp: Split[Es, S], k: okay.KeyOf[S]): Seq[A] ! sp.Rest =
-  p.handle(Handler.deep[S, Seq]([A] => (a: A) => Seq(a))(
+  p.handle(Handler.general[S, Seq]([A] => (a: A) => Seq(a))(
     [A, X] => (s: S[X], k: X => Seq[A] ! Pure) =>
       foldM[X, Seq[A], Pure](s)(Seq.empty[A])((prev, x) => k(x).map(prev ++ _))))
 

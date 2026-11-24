@@ -1,6 +1,6 @@
 package okay.std
 
-import okay.{!, Effect, Handler, Join, Within, defer, effect, pure}
+import okay.{!, Effect, Handler, Join, Within, defer, perform, pure}
 import okay.core.{Row, Split}
 import okay.one.handler.{Stateful, Handler as OneHandler}
 
@@ -81,8 +81,8 @@ object Once:
     // `Once` and p's effects among the joined ones (the join proved it)
     given Within[Once, j.Out] = Within.it
     val inP: Within[Es, j.Out] = Within.it
-    at[A, j.Out](new Handle[A])(h => effect[Once, Option[A]](Force(h)).at[j.Out])(
-      (h, a) => effect[Once, A](Store(h, a)).at[j.Out])(() => p.at[j.Out](using inP))
+    at[A, j.Out](new Handle[A])(h => perform[Once, Option[A]](Force(h)).into[j.Out])(
+      (h, a) => perform[Once, A](Store(h, a)).into[j.Out])(() => p.into[j.Out](using inP))
 
   /**
    * The same over the WHOLE row R, with the two operations already

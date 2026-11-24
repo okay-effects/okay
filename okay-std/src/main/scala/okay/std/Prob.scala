@@ -1,6 +1,6 @@
 package okay.std
 
-import okay.{!, Effect, Handler, Pure, effect, pure}
+import okay.{!, Effect, Handler, Pure, perform, pure}
 import okay.core.Split
 
 /**
@@ -9,7 +9,7 @@ import okay.core.Split
  * names a weighted choice, `observe` conditions on evidence, and
  * INFERENCE IS A HANDLER over the ordinary program — the same
  * "several handlers, one program" shape `Choose`'s own doc states for
- * nondeterminism (Choice.scala), with weights instead of a bare set
+ * nondeterminism (Choose.scala), with weights instead of a bare set
  * of alternatives.
  *
  * `runExact` is the showcase this earns its keep for: it explores
@@ -39,7 +39,7 @@ case class Dist[+A](choices: Seq[(A, Double)]) derives Effect
 object Prob:
   /** a weighted choice: pick one of the given (value, weight) pairs.
    * Weights need not sum to 1 — a handler normalizes if it wants to */
-  inline def dist[A](choices: (A, Double)*): A ! Dist = effect(Dist(choices))
+  inline def dist[A](choices: (A, Double)*): A ! Dist = perform(Dist(choices))
 
   /** an unweighted choice, one of Hansei's own idioms: every
    * alternative equally likely */
@@ -47,11 +47,11 @@ object Prob:
 
   /** CONDITION: a false observation prunes this branch entirely — a
    * `Dist` with no alternatives contributes ZERO WEIGHT, the same
-   * shape `Choose(Seq.empty)` prunes a search (Choice.scala's
+   * shape `Choose(Seq.empty)` prunes a search (Choose.scala's
    * `empty`). Named as `Prob.observe`, never bare — see the object's
    * own doc comment for why. */
   inline def observe(cond: Boolean): Unit ! Dist =
-    if cond then pure(()) else effect(Dist(Seq.empty))
+    if cond then pure(()) else perform(Dist(Seq.empty))
 
   /** merge two weight maps, adding weight where a value appears in both */
   private def merge[A](a: Map[A, Double], b: Map[A, Double]): Map[A, Double] =
@@ -73,7 +73,7 @@ object Prob:
   /** the handler as a value: `p.handle(Prob.exact)`, the exact posterior by exhaustive multi-shot (the kernel's
    * `Deep`) */
   def exact: Handler[Dist, [A] =>> Map[A, Double]] =
-    Handler.deep[Dist, [A] =>> Map[A, Double]]([A] => (a: A) => Map(a -> 1.0))(
+    Handler.general[Dist, [A] =>> Map[A, Double]]([A] => (a: A) => Map(a -> 1.0))(
       [A, X] => (c: Dist[X], k: X => Map[A, Double] ! Pure) =>
         foldM[(X, Double), Map[A, Double], Pure](c.choices)(Map.empty[A, Double]): (m, choice) =>
           val (x, w) = choice
@@ -103,7 +103,7 @@ object Prob:
         val r = rng.nextDouble() * total
         var acc = 0.0
         choices.find { case (_, w) => acc += w; acc >= r }.map(_._1)
-    p.handle(Handler.deep[Dist, Option]([B] => (b: B) => Some(b))(
+    p.handle(Handler.general[Dist, Option]([B] => (b: B) => Some(b))(
       [B, X] => (c: Dist[X], k: X => Option[B] ! Pure) => pick(c.choices) match
         case None => pure[Option[B], Pure](None)
         case Some(v) => k(v))).run

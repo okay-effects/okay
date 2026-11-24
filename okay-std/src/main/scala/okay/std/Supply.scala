@@ -1,6 +1,6 @@
 package okay.std
 
-import okay.{!, %, Effect, Handler, effect}
+import okay.{!, %, Effect, Handler, perform}
 import okay.core.{Row, Split}
 import okay.one.handler.{Stateful, Handler as OneHandler}
 
@@ -34,22 +34,24 @@ object Fresh:
   /** a fresh number */
   inline def next: Long ! Fresh = Supply.next[Long]
 
-  /** the handler as a value: `p.handle(Fresh.counter)` — fresh numbers from 0, the next one a register of the
+  /** the handler as a value: `p.handle(Fresh.run)` — fresh numbers from 0, the next one a register of the
    * machine (the kernel's `Stateful`), the answer the body's value */
-  def counter: Handler[Fresh, [A] =>> A] = new Handler[Fresh, [A] =>> A]:
+  def run: Handler[Fresh, [A] =>> A] = new Handler[Fresh, [A] =>> A]:
     def kernel[T <: Row, A]: OneHandler[Fresh, T, A, A] = new Stateful[Fresh, T, Long, A, A]:
       def initial: Long = 0L
       def ret(n: Long, a: A) = okay.one.Cont.pure(a)
       def value[X](n: Long, op: Supply[Long, X]): X = op match
         case Supply.Next() => n
       def next[X](n: Long, op: Supply[Long, X]): Long = n + 1
+  @deprecated("use `Fresh.run`", "0.2.0")
+  def counter: Handler[Fresh, [A] =>> A] = run
 
   /** handle Fresh from 0, wherever it is among the program's effects: the rest of them forwarded */
-  def run[A, Es[_]](p: A ! Es)(using s: Split[Es, Fresh]): A ! s.Rest = p.handle(counter)
+  def run[A, Es[_]](p: A ! Es)(using s: Split[Es, Fresh]): A ! s.Rest = p.handle(run)
 
 object Supply:
   /** draw the next value */
-  inline def next[S]: S ! Supply % S = effect(Next())
+  inline def next[S]: S ! Supply % S = perform(Next())
 
   /**
    * the handler: the first draw answers `first`, each later one `step`
@@ -65,7 +67,7 @@ object Supply:
   /** the handler as a value: `p.handle(Supply.from(first)(step))`, answering the next supply and `A` (the kernel's
    * `Stateful`) */
   def from[S](first: S)(next: S => S): Handler[Supply % S, [A] =>> (S, A)] =
-    Handler.state[Supply % S, S](first)([X] => (s: S, op: Supply[S, X]) => op match
+    Handler.stateful[Supply % S, S](first)([X] => (s: S, op: Supply[S, X]) => op match
       case Next() => (next(s), s))
 
   /** `p`'s draws from `first`, wherever Supply is among its effects: the rest of them forwarded */

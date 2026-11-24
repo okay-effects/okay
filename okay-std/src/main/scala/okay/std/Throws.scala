@@ -1,6 +1,6 @@
 package okay.std
 
-import okay.{!, %, Effect, Handler, Within, effect, pure}
+import okay.{!, %, Effect, Handler, Within, perform, pure}
 import okay.core.Split
 
 
@@ -31,19 +31,21 @@ import scala.annotation.implicitNotFound
 case class Throws[E, +A](e: E) extends Final derives Effect
 
 object Throws:
-  /** the handler as a value: `p.handle(Throws.either)` answers `Either[E, A]` — a raise ENDS the body, its
+  /** the handler as a value: `p.handle(Throws.run)` answers `Either[E, A]` — a raise ENDS the body, its
    * `Left` in the body's place, the rest dropped (the kernel's `Aborting`) */
-  def either[E]: Handler[Throws % E, [A] =>> Either[E, A]] =
-    Handler.aborting[Throws % E, [A] =>> Either[E, A]]([A] => (a: A) => Right(a))(
+  def run[E]: Handler[Throws % E, [A] =>> Either[E, A]] =
+    Handler.abort[Throws % E, [A] =>> Either[E, A]]([A] => (a: A) => Right(a))(
       [A, X] => (t: Throws[E, X]) => Left(t.e))
+  @deprecated("use `Throws.run`", "0.2.0")
+  def either[E]: Handler[Throws % E, [A] =>> Either[E, A]] = run[E]
 
 /** perform the failure */
-inline def raise[E, A](e: E): A ! Throws % E = effect[Throws % E, A](Throws[E, A](e))
+inline def raise[E, A](e: E): A ! Throws % E = perform[Throws % E, A](Throws[E, A](e))
 
 /** handle Throws by aborting into Either, wherever Throws is among the program's effects: the rest of them
  * forwarded */
 def runEither[A, Es[_], E](a: A ! Es)(using s: Split[Es, Throws % E]): Either[E, A] ! s.Rest =
-  a.handle(Throws.either[E])
+  a.handle(Throws.run[E])
 
 /** handle Throws into the throws union (an Either already is one) */
 def runThrows[A, Es[_], E <: Unsafe](a: A ! Es)(using s: Split[Es, Throws % E]): (A throws E) ! s.Rest =
@@ -87,7 +89,7 @@ extension [E, A](e: Either[E, A])
 /** handle Throws by actually throwing: the JVM is the handler — the raise ends the body, thrown where the handler
  * is reached (the kernel's `Aborting`) */
 def runUnsafe[A, Es[_], E <: Unsafe](a: A ! Es)(using s: Split[Es, Throws % E]): A ! s.Rest =
-  a.handle(Handler.aborting[Throws % E, [A] =>> A]([A] => (a: A) => a)([A, X] => (t: Throws[E, X]) => throw t.e))
+  a.handle(Handler.abort[Throws % E, [A] =>> A]([A] => (a: A) => a)([A, X] => (t: Throws[E, X]) => throw t.e))
 
 /**
  * RECOVERY, in the row rather than around it: run the alternative
@@ -116,7 +118,7 @@ def runUnsafe[A, Es[_], E <: Unsafe](a: A ! Es)(using s: Split[Es, Throws % E]):
 extension [A, Es[_]](p: A ! Es)
   /** answer the failure, seeing the error */
   def recover[E](using s: Split[Es, Throws % E], w: Within[s.Rest, Es])(h: E => A ! Es): A ! Es =
-    runEither[A, Es, E](p)(using s).at[Es].flatMap(_.fold(h, pure[A, Es]))
+    runEither[A, Es, E](p)(using s).into[Es].flatMap(_.fold(h, pure[A, Es]))
 
   /** answer the failure, ignoring the error */
   def orElse[E](using s: Split[Es, Throws % E], w: Within[s.Rest, Es])(q: => A ! Es): A ! Es =
@@ -335,21 +337,21 @@ trait CanFail[Es[_]]:
 trait CanFailLow:
   /** stop: the rest of the program does not run */
   given viaAbort: [Es[_]] => okay.Evidence.All[Abort, Es] => Within[Abort, Es] => CanFail[Es] = new:
-    def fail[A]: A ! Es = abort[A].at[Es]
+    def fail[A]: A ! Es = abort[A].into[Es]
 
 trait CanFailMid extends CanFailLow:
   /** nothing is there: a refuted `case Some(x) <-` IS an absence, so
    * where a row carries both Maybe and Abort, Maybe answers it
    * (specs/core-gaps.md) */
   given viaMaybe: [Es[_]] => okay.Evidence.All[Maybe, Es] => Within[Maybe, Es] => CanFail[Es] = new:
-    def fail[A]: A ! Es = Maybe.none[A].at[Es]
+    def fail[A]: A ! Es = Maybe.none[A].into[Es]
 
 object CanFail extends CanFailMid:
   /** prune: this branch dies, the search continues — and it wins over
    * Abort where a row carries both, because in a searching row `guard`
    * already means prune */
   given viaChoose: [Es[_]] => okay.Evidence.All[Choose, Es] => Within[Choose, Es] => CanFail[Es] = new:
-    def fail[A]: A ! Es = effect[Choose, A](Choose(Seq.empty)).at[Es]
+    def fail[A]: A ! Es = perform[Choose, A](Choose(Seq.empty)).into[Es]
 
 extension [A, Es[_]](p: A ! Es)
   /** the desugaring target of a pattern bind and of an `if` guard */

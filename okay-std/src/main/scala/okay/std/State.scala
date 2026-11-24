@@ -1,6 +1,6 @@
 package okay.std
 
-import okay.{!, +, %, Effect, Handler, effect, pure}
+import okay.{!, +, %, Effect, Handler, perform, pure}
 import okay.core.{+:, Split}
 import okay.one.Cont
 import okay.one.handler.Stateful
@@ -46,9 +46,9 @@ extension [A](a: A)
 
 object State {
   /** the state */
-  def get[S]: S ! State % S = effect(Get[S, S]())
+  def get[S]: S ! State % S = perform(Get[S, S]())
   /** replace the state, answering the new one */
-  def set[S](s: S): S ! State % S = effect(Update[S, S](Put(s)))
+  def set[S](s: S): S ! State % S = perform(Update[S, S](Put(s)))
 
   /** `set`'s function, a value: its `toString` reads in a trace */
   final case class Put[S](s: S) extends (S => (S, S)):
@@ -61,9 +61,9 @@ object State {
     override def toString: String = s"Modified($f)"
 
   /** the state through `f`, answering the new one */
-  def modify[S](f: S => S): S ! State % S = effect(Update[S, S](Modified(f)))
+  def modify[S](f: S => S): S ! State % S = perform(Update[S, S](Modified(f)))
   /** the state through `f`, answering `f`'s value — one operation */
-  def update[S, B](f: S => (B, S)): B ! State % S = effect(Update[S, B](f))
+  def update[S, B](f: S => (B, S)): B ! State % S = perform(Update[S, B](f))
   /** the state through `f`, answering the old and the new */
   def swap[S](f: S => S): (S, S) ! State % S = update(s => { val next = f(s); ((s, next), next) })
 

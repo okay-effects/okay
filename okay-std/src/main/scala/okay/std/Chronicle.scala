@@ -1,6 +1,6 @@
 package okay.std
 
-import okay.{!, %, Effect, Handler, Pure, Within, effect, pure}
+import okay.{!, %, Effect, Handler, Pure, Within, perform, pure}
 import okay.core.Split
 
 /**
@@ -40,10 +40,10 @@ enum Chronicle[E, +A] derives Effect:
 
 object Chronicle:
   /** record an error and go on */
-  inline def dictate[E](e: E): Unit ! Chronicle % E = effect(Dictate(e))
+  inline def dictate[E](e: E): Unit ! Chronicle % E = perform(Dictate(e))
 
   /** stop, with what has been recorded so far (`these`' condemn shape) */
-  inline def halt[E, A]: A ! Chronicle % E = effect[Chronicle % E, A](Halt())
+  inline def halt[E, A]: A ! Chronicle % E = perform[Chronicle % E, A](Halt())
 
   /** record an error and stop */
   inline def confess[E, A](e: E): A ! Chronicle % E = dictate(e).flatMap(_ => halt[E, A])
@@ -63,7 +63,7 @@ object Chronicle:
    * program finished. A clause given `k` (the kernel's `Deep`): a dictate resumes the rest once and puts its error in
    * front of the rest's verdict; a halt drops the rest, `Failed` with nothing after it */
   def verdict[E]: Handler[Chronicle % E, [A] =>> Verdict[E, A]] =
-    Handler.deep[Chronicle % E, [A] =>> Verdict[E, A]]([A] => (a: A) => Clean(a))(
+    Handler.general[Chronicle % E, [A] =>> Verdict[E, A]]([A] => (a: A) => Clean(a))(
       [A, X] => (op: Chronicle[E, X], k: X => Verdict[E, A] ! Pure) => op match
         case Dictate(err) => k(()).map(recorded(err, _))
         case Halt() => pure[Verdict[E, A], Pure](Failed(Vector.empty)))
@@ -99,6 +99,6 @@ object Chronicle:
           case Clean(b) => (bs :+ b, es, halted)
           case Warned(b, more) => (bs :+ b, es ++ more, halted)
           case Failed(more) => (bs, es ++ more, true)
-    perElement.at[Es].flatMap: (bs, es, halted) =>
-      val told = foldM[E, Unit, Es](es)(())((_, e) => dictate(e).at[Es])
-      told.flatMap(_ => if halted then halt[E, Vector[B]].at[Es] else pure[Vector[B], Es](bs))
+    perElement.into[Es].flatMap: (bs, es, halted) =>
+      val told = foldM[E, Unit, Es](es)(())((_, e) => dictate(e).into[Es])
+      told.flatMap(_ => if halted then halt[E, Vector[B]].into[Es] else pure[Vector[B], Es](bs))

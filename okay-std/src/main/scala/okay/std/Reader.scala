@@ -1,6 +1,6 @@
 package okay.std
 
-import okay.{!, %, Effect, Handler, effect}
+import okay.{!, %, Effect, Handler, perform}
 import okay.core.Split
 import okay.one.handler.{Answering, Handler as OneHandler}
 
@@ -22,7 +22,7 @@ enum Reader[R, +A] derives Effect {
 
 object Reader {
   /** the environment */
-  def ask[R]: R ! Reader % R = effect(Ask[R, R]())
+  def ask[R]: R ! Reader % R = perform(Ask[R, R]())
 
   /**
    * E HOLDS A T, and here is how to take it out — the accessor, as a typeclass, so that membership is a
@@ -52,10 +52,10 @@ object Reader {
       def get(e: E): T = h.get(Tuple.fromProductTyped(e)(using m))
 
   /** the T inside this environment: `read[Env, User]` — `ask` with a projection, one operation */
-  def read[E, T](using h: Has[E, T]): T ! Reader % E = effect(Asks[E, T](h.get))
+  def read[E, T](using h: Has[E, T]): T ! Reader % E = perform(Asks[E, T](h.get))
 
   /** a context function `E ?=> A` as a Reader program: ask once and apply */
-  def lift[E, A](cf: E ?=> A): A ! Reader % E = effect(Asks[E, A](e => cf(using e)))
+  def lift[E, A](cf: E ?=> A): A ! Reader % E = perform(Asks[E, A](e => cf(using e)))
 
   /** a Reader program as a context function: run under the ambient E */
   def unlift[E, A, Es[_]](p: A ! Es)(using s: Split[Es, Reader % E]): E ?=> A ! s.Rest = run[E, A, Es](summon[E])(p)
@@ -76,5 +76,5 @@ object Reader {
    * asked once. An interceptor: a handler of Reader for `p` whose own ask goes to the reader outside.
    */
   def local[R, A, Es[_]](f: R => R)(p: A ! Es)(using okay.Within[Reader % R, Es]): A ! Es =
-    ask[R].at[Es].flatMap(r => p.intercept(Reader(f(r))))
+    ask[R].into[Es].flatMap(r => p.intercept(Reader(f(r))))
 }

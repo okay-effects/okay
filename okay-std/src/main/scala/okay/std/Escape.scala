@@ -1,6 +1,6 @@
 package okay.std
 
-import okay.{!, Handler, Within, effect, pure}
+import okay.{!, Handler, Within, perform, pure}
 import okay.core.Split
 
 /**
@@ -33,7 +33,7 @@ object Escape:
   private type Ended[A] = Either[Leave[?], A]
 
   /** the body run to its answer or its first leave — the rest of it dropped */
-  private val ending: Handler[Escape, Ended] = Handler.aborting[Escape, Ended]([A] => (a: A) => Right(a))(
+  private val ending: Handler[Escape, Ended] = Handler.abort[Escape, Ended]([A] => (a: A) => Right(a))(
     [A, X] => (op: Escape[X]) => op match
       case l: Leave[r] => Left(l))
 
@@ -44,7 +44,7 @@ object Escape:
     if l.prompt eq p then Some(l.value.asInstanceOf[A]) else None
 
   /** leave the scope of `p` with `value` */
-  def escape[A, R](p: Prompt[R])(value: R): A ! Escape = effect[Escape, Nothing](Leave(p, value))
+  def escape[A, R](p: Prompt[R])(value: R): A ! Escape = perform[Escape, Nothing](Leave(p, value))
 
   /** leave the nearest enclosing scope (or a named one, by binding its evidence) with `value` */
   def leave[A, R](value: R)(using p: Prompted[R]): A ! Escape = escape[A, R](p.prompt)(value)
@@ -54,12 +54,12 @@ object Escape:
   def prompt[A, Es[_]](body: Prompt[A] => A ! Es)
                       (using s: Split[Es, Escape], in: Within[s.Rest, Es], up: Within[Escape, Es]): A ! Es =
     val p = Prompt[A]()
-    body(p).handle(ending)(using s).at[Es](using in).flatMap {
+    body(p).handle(ending)(using s).into[Es](using in).flatMap {
       case Right(a) => pure[A, Es](a)
       case Left(l) => answer(p, l) match
         case Some(a) => pure[A, Es](a)
         // past this scope: raised again outside it, to an enclosing one
-        case None => effect[Escape, Nothing](l).at[Es](using up)
+        case None => perform[Escape, Nothing](l).into[Es](using up)
     }
 
   /** install a scope whose prompt is ambient in the body */
