@@ -19,7 +19,7 @@ class TestBoardEntries extends munit.FunSuite:
   private def rootBoards: List[Path] =
     List("sprint.d", "backlog.d").map(root.resolve).filter(Files.isDirectory(_))
 
-  /** a module's OWN backlog, `<dir>/backlog.d` (okay2-backlog, 2026-09-24):
+  /** a module's OWN backlog, `<dir>/backlog.d` (okay2-backlog, 2026-09-24; okay2, the first, archived 2026-11-24):
    * the same layout, checked with the root boards */
   private def moduleBacklogs: List[Path] =
     Files.list(root).iterator.asScala
@@ -39,7 +39,6 @@ class TestBoardEntries extends munit.FunSuite:
 
   test("both boards exist as directories, with a preamble and an order"):
     assertEquals(rootBoards.map(_.getFileName.toString).sorted, List("backlog.d", "sprint.d"))
-    assert(moduleBacklogs.map(root.relativize(_).toString).contains("okay2/backlog.d"), moduleBacklogs.toString)
     boards.foreach: b =>
       assert(Files.isRegularFile(b.resolve("_preamble.md")), s"$b has no _preamble.md")
       assert(Files.isRegularFile(b.resolve("_order")), s"$b has no _order")

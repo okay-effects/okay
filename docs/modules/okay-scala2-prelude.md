@@ -6,8 +6,8 @@ for `okay.scala2`, compiled by scalac 2.13 itself. The facade
 TASTy reader does not see a Scala 3 top-level definition, so these are
 the names only a Scala 2 compiler can provide. With this module on the
 classpath, one `import okay.scala2._` brings them together with the
-rest of the facade — as `import okay2._` does on
-[okay2](../okay2.md), and as the Scala 3 core spells them.
+rest of the facade — as `import okay2._` did on okay2 (archived 2026-11-24), and as the Scala 3 core
+spells them.
 
 | | |
 |---|---|

@@ -58,8 +58,6 @@ session so `set` settings remain available to following commands.
 Bare `sbt test` now runs JVM only. JS/Native are explicitly selected with
 their build projects or the managed commands. Individual project tasks
 remain available for scoped development.
-The shared gate retains ordinary `test` when run from okay2's separate
-build, which does not expose the root build's `family` command.
 
 These changes bound concurrent work; they do not prove that every single
 Native compilation fits in the configured heap. An OOM needs its own

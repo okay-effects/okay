@@ -86,7 +86,8 @@ provide(stubHttp, testSecrets) { app }     // the test — same program
 Nesting resolves to the nearest installation (inner `provide`
 shadows outer). Arities 1..22 are generated — the same answer Cats
 gives for `mapN`, applied at the platform's own cap
-(`ContextFunctionN` ends at 22); `tools/gen_provide.py` regenerates.
+(`ContextFunctionN` ends at 22); `tools/gen_provide.py` generated them
+(archived 2026-11-24: okay-effects/okay-archive, `okay/tools/`).
 `provide` is `inline` and free of allocation — when the flat form
 fits, it is the zero-cost spelling.
 

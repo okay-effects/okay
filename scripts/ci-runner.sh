@@ -398,15 +398,6 @@ run_once() {
     rc=$?
     relinked=1
   fi
-  touches_okay2=0
-  git diff --name-only "$from..$to" -- okay2 2>/dev/null | grep -q . && touches_okay2=1
-  if [ "$rc" -eq 0 ] && [ "$touches_okay2" -eq 1 ]; then
-    echo "ci-runner: range touches okay2/ — gating its own build too" | tee -a "$log"
-    ( cd okay2 && sh ../scripts/gate-retry.sh "$PWD" "$log.okay2" 6 test )
-    rc=$?
-    cat "$log.okay2" >> "$log" 2>/dev/null
-    rm -f "$log.okay2"
-  fi
 
   case "$rc" in
     0)

@@ -325,8 +325,9 @@ systems, and okay's Scala 3 API behaves the same way.
 ## 3a. okay's names, and okay2
 
 This module is a door from Scala 2 into the Scala 3 world. Its sibling
-`okay2` (docs/okay2.md) is okay itself on pure Scala 2, smaller by
-default, for code that must not depend on Scala 3 at all. Both speak
+`okay2` was okay itself on pure Scala 2, smaller by
+default, for code that must not depend on Scala 3 at all (archived
+2026-11-24: okay-effects/okay-archive, `okay/okay2/`). Both speak
 okay's names — `State.handle`/`set`/`modify`, `Writer.run`/`collect`,
 `Throws.runEither`, `Reader.run`, `Choose.choose`/`runChoice`, `Logic`,
 `Async(a)`, `pure`, `!.run` — so a program written here compiles

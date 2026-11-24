@@ -36,4 +36,4 @@ driven by a test with no terminal at all.
 |---|---|
 | [`docs/modules/okay-ui.md`](../docs/modules/okay-ui.md) | the pieces and the reasoning |
 | [`specs/ui.md`](../specs/ui.md) | the design and its decisions |
-| [`okay-ui-gtk/`](../okay-ui-gtk), [`okay-compose/`](../okay-compose) | other hosts behind the same seam |
+| [`okay-ui-gtk/`](../okay-ui-gtk), `okay-compose/` (archived) | other hosts behind the same seam |

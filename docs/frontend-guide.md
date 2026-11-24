@@ -265,7 +265,8 @@ okay-demo-e2e-browser, `sbt integrationTest`).
 platform's own language; it draws level L, claims nothing, and never
 changes when the application does:
 
-- `okay-compose/` — Kotlin, Compose Desktop today (Android is the
+- `okay-compose/` (archived 2026-11-24 to okay-effects/okay-archive,
+  `okay/okay-compose/`) — Kotlin, Compose Desktop (Android is the
   same composables once an SDK is on the build machine), the JDK's
   WebSocket, no okay dependency. `./gradlew :protocol:test` replays
   the conformance script; `./gradlew :app:run --args "<ws url>"`
@@ -288,6 +289,6 @@ held, every `out` produced. That is the whole conformance.
 | `okay-ui` | the tree, the diff, the loop, Form/Dialog/Nav, Protocol, Wire, Sessions, the terminal/React/DOM/Swing hosts |
 | `okay-ui-gtk` | the GTK 4 host (Scala Native) |
 | `okay-script` | Live pages, `live.js`, `installable` and the mobile files |
-| `okay-compose` | the Kotlin/Compose client |
+| okay-archive, `okay/okay-compose` | the Kotlin/Compose client (archived 2026-11-24) |
 | `docs/protocol/` | the rendered contract and the conformance script |
 | `specs/frontend.md`, `specs/ui.md`, `specs/ui-toolkit.md` | the decisions, with their measurements |

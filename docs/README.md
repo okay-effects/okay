@@ -85,19 +85,8 @@ JVM (JDK 21+, Loom), Scala.js and Scala Native.
   at runtime: routing by directory, sessions and typed forms, a live
   page, two languages, a login, and the container. Every command in
   it was executed before it was written down.
-- **[okay2: the core in Scala 2.13](okay2.md)** — not the facade
-  but the core itself written a second time: the freer tree, rows as
-  kind-`*` types, handlers in any order by a type-level witness,
-  `Cps`, State/Writer/Throws/Reader, with nothing of Scala 3 on the
-  classpath; interop with cats, fs2 and zio by interpreting the tree
-  in the target monad; the pure stream layer (chunks, stages,
-  pipelines, windows); the Async effect and the JVM platform under it
-  (Loom, the schedulers, supervised scopes); channels and sources
-  (merge by readiness, buffer); Resource, Once, multi-prompt Shift
-  with the evidence doors, replayable dialogues and the prompt stack
-  as a type, Choose/Logic, SharedOnce, provide/Module;
-  generators with fused chains;
-  what is different from Scala 3 and why, each measured.
+- **okay2, the core in Scala 2.13**, was archived on 2026-11-24 (okay-effects/okay-archive, `okay/okay2/`;
+  its history is under the tag `archive/2026-11-24`).
 - **[okay from Scala 2.13](scala2.md)** — for a codebase still on
   Scala 2: the build (two standard libraries, and in which order),
   `Prog` and `Eff` (several effects in one program, the row as an

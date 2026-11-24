@@ -9,5 +9,6 @@
       `new Array`) was verified on a transcription: 192 wrong pops as
       shipped, which is exactly our original sighting, and 0 fixed. No
       existing issue covers it. THE REMAINING STEP: send
-      `upstream/scalajs-arraydeque-null.md` when the operator says so,
+      `okay/upstream/scalajs-arraydeque-null.md` (okay-effects/okay-archive since
+      2026-11-24) when the operator says so,
       then cite the issue in the probe's comment. (2026-09-25)
