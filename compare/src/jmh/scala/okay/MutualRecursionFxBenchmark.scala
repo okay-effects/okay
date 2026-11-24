@@ -309,8 +309,8 @@ object MutualRecursionFxBenchmark {
     type Fx = State % Int + Writer % String
     /** the count after this level; the recursion ignores it */
     private def stepFx(n: Int): Int ! Fx =
-      val counted = State.modify[Int](_ + 1).at[Fx]
-      if n % 1000 == 0 then counted.flatMap(k => Writer.tell(s"level $n").at[Fx].map(_ => k)) else counted
+      val counted = State.modify[Int](_ + 1).into[Fx]
+      if n % 1000 == 0 then counted.flatMap(k => Writer.tell(s"level $n").into[Fx].map(_ => k)) else counted
     def even(n: Int): Boolean ! Fx =
       if n == 0 then pure(true) else stepFx(n).flatMap(_ => odd(n - 1))
     def odd(n: Int): Boolean ! Fx =

@@ -83,16 +83,16 @@ class StagedBenchmark {
   def freeHandNested(i: Int, acc: Int): Int ! Row =
     if i >= Iters then pure(acc)
     else
-      State.get[Int].at[Row].flatMap(a =>
-      State.set[Int](i).at[Row].flatMap(_ =>
-      Writer.tell("w").at[Row].flatMap(_ =>
-      State.get[Int].at[Row].flatMap(b =>
-      State.set[Int](i + 1).at[Row].flatMap(_ =>
-      Writer.tell("w").at[Row].flatMap(_ =>
-      State.get[Int].at[Row].flatMap(c =>
-      State.set[Int](i + 2).at[Row].flatMap(_ =>
-      Writer.tell("w").at[Row].flatMap(_ =>
-      State.get[Int].at[Row].flatMap(d => freeHandNested(i + 1, acc + a + b + c + d)))))))))))
+      State.get[Int].into[Row].flatMap(a =>
+      State.set[Int](i).into[Row].flatMap(_ =>
+      Writer.tell("w").into[Row].flatMap(_ =>
+      State.get[Int].into[Row].flatMap(b =>
+      State.set[Int](i + 1).into[Row].flatMap(_ =>
+      Writer.tell("w").into[Row].flatMap(_ =>
+      State.get[Int].into[Row].flatMap(c =>
+      State.set[Int](i + 2).into[Row].flatMap(_ =>
+      Writer.tell("w").into[Row].flatMap(_ =>
+      State.get[Int].into[Row].flatMap(d => freeHandNested(i + 1, acc + a + b + c + d)))))))))))
 
   @Benchmark
   def freeHandNestedRun(): Int =

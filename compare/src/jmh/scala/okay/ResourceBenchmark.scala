@@ -67,8 +67,8 @@ class ResourceBenchmark {
     var c = 0
     val prog = (1 to N).foldLeft(pure[Int, Resource + Produce](0)): (m, _) =>
       m.flatMap(x =>
-        Resource.acquire(x + 1)(_ => c += 1).at[Resource + Produce]
-          .flatMap(r => produce(r).at[Resource + Produce]))
+        Resource.acquire(x + 1)(_ => c += 1).into[Resource + Produce]
+          .flatMap(r => produce(r).into[Resource + Produce]))
     Resource.run[Int, Resource + Produce](prog).runWith + c
 
   /** the region form, RIGHT-nested by recursion */

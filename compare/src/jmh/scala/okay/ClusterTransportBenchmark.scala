@@ -80,7 +80,7 @@ class ClusterTransportBenchmark {
             }
             Writer.fold[String, Long, Unit, Writer % String + Async](
               through[Chunk[Byte], String, Async, Unit, Unit](c.bytes)(
-                okay.http.Http.framing.at[Take % Chunk[Byte] + (Writer % String + Async)])).map(_._1)
+                okay.http.Http.framing.into[Take % Chunk[Byte] + (Writer % String + Async)])).map(_._1)
           }).runWith
       }).runWith.ensuring(_ == expected)
 
@@ -121,21 +121,21 @@ class ClusterTransportBenchmark {
     // Async.Run instead of Async.Await
     type F = Writer % Chunk[Byte] + Async
     def go: Source[Chunk[Byte]] =
-      effect(Async.Run[Chunk[Byte] | Null] { () =>
+      perform(Async.Run[Chunk[Byte] | Null] { () =>
         val buf = new Array[Byte](8192)
         val n = in.read(buf)
         if n < 0 then null
         else scala.collection.immutable.ArraySeq.unsafeWrapArray(
           java.util.Arrays.copyOf(buf, n))
-      }).at[F].flatMap {
+      }).into[F].flatMap {
         case null => pure(())
         case c: Chunk[Byte] @unchecked =>
-          Writer.tell(c).at[F].flatMap(_ => go)
+          Writer.tell(c).into[F].flatMap(_ => go)
       }
     val sum = Async.run[Long, Async](
       Writer.fold[String, Long, Unit, Writer % String + Async](
         through[Chunk[Byte], String, Async, Unit, Unit](go)(
-          okay.http.Http.framing.at[Take % Chunk[Byte] + (Writer % String + Async)])).map(_._1)).runWith
+          okay.http.Http.framing.into[Take % Chunk[Byte] + (Writer % String + Async)])).map(_._1)).runWith
     done.get(30, TimeUnit.SECONDS)
     sock.close(); server.close()
     assert(sum == expected)
@@ -173,21 +173,21 @@ class ClusterTransportBenchmark {
     }
     type F = Writer % Chunk[Byte] + Async
     def go: Source[Chunk[Byte]] =
-      effect(Async.Run[Chunk[Byte] | Null] { () =>
+      perform(Async.Run[Chunk[Byte] | Null] { () =>
         val buf = new Array[Byte](8192)
         val n = in.read(buf)
         if n < 0 then null
         else scala.collection.immutable.ArraySeq.unsafeWrapArray(
           java.util.Arrays.copyOf(buf, n))
-      }).at[F].flatMap {
+      }).into[F].flatMap {
         case null => pure(())
         case c: Chunk[Byte] @unchecked =>
-          Writer.tell(c).at[F].flatMap(_ => go)
+          Writer.tell(c).into[F].flatMap(_ => go)
       }
     val sum = Async.run[Long, Async](
       Writer.fold[String, Long, Unit, Writer % String + Async](
         through[Chunk[Byte], String, Async, Unit, Unit](go)(
-          okay.http.Http.framing.at[Take % Chunk[Byte] + (Writer % String + Async)])).map(_._1)).runWith
+          okay.http.Http.framing.into[Take % Chunk[Byte] + (Writer % String + Async)])).map(_._1)).runWith
     done.get(30, TimeUnit.SECONDS)
     sock.close(); server.close()
     assert(sum == expected)

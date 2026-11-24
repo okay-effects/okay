@@ -9,7 +9,7 @@ import java.util.concurrent.TimeUnit
 /**
  * What `!.widen`'s walk cost a stage (widen-split): `through` over a
  * pure doubling stage joined to an `Async` row two ways — the stage
- * at the row directly (the floor), and widened to it (`.at[Row]`, the
+ * at the row directly (the floor), and widened to it (`.into[Row]`, the
  * kernel's word for what `!.widen` was). 10 000 elements, drained.
  * (The third lane, okay-freer's `!.normalize` walk, has no
  * counterpart on the kernel and is gone.)
@@ -34,8 +34,8 @@ class WidenBenchmark {
 
   /** the same stage written at the Async row — the floor */
   def doubleAt: Unit ! Row =
-    Take.await[Long].at[Row].flatMap {
-      case Some(x) => Writer.tell(x * 2).at[Row].flatMap(_ => doubleAt)
+    Take.await[Long].into[Row].flatMap {
+      case Some(x) => Writer.tell(x * 2).into[Row].flatMap(_ => doubleAt)
       case None => pure(())
     }
 
@@ -47,5 +47,5 @@ class WidenBenchmark {
 
   @Benchmark
   def throughWidened: Long =
-    Writer.foldUntil[Long, Long, Unit, Long, Writer % Long + Async](through(src)(double.at[Row]))(using summon, FoldUntil.long[Long, Long](0L)(_ + _)(_ => false)(identity)).runWith
+    Writer.foldUntil[Long, Long, Unit, Long, Writer % Long + Async](through(src)(double.into[Row]))(using summon, FoldUntil.long[Long, Long](0L)(_ + _)(_ => false)(identity)).runWith
 }

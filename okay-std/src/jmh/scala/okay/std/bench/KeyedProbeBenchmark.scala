@@ -29,9 +29,9 @@ class KeyedProbeBenchmark {
   private def oneBind(i: Int, acc: Int): okay.![Int, SW] =
     if i >= N then pure(acc)
     else (i % 3) match
-      case 0 => State.get[Int].at[SW].flatMap(x => oneBind(i + 1, acc + x))
-      case 1 => State.set[Int](i).at[SW].flatMap(x => oneBind(i + 1, acc + x))
-      case _ => Writer.tell("w").at[SW].flatMap(_ => oneBind(i + 1, acc + 1))
+      case 0 => State.get[Int].into[SW].flatMap(x => oneBind(i + 1, acc + x))
+      case 1 => State.set[Int](i).into[SW].flatMap(x => oneBind(i + 1, acc + x))
+      case _ => Writer.tell("w").into[SW].flatMap(_ => oneBind(i + 1, acc + 1))
 
   @Benchmark
   def root(): Int = State.run[Int, (Seq[String], Int)](0)(Writer.run[String, Int, SW](oneBind(0, 0)))._2._2

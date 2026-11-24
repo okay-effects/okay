@@ -37,9 +37,9 @@ class FusionBenchmark {
   def rightSW(i: Int, acc: Int): Int ! SW =
     if i >= N then pure(acc)
     else (i % 3) match
-      case 0 => State.get[Int].at[SW].flatMap(x => rightSW(i + 1, acc + x))
-      case 1 => State.set[Int](i).at[SW].flatMap(x => rightSW(i + 1, acc + x))
-      case _ => Writer.tell("w").at[SW].flatMap(_ => rightSW(i + 1, acc + 1))
+      case 0 => State.get[Int].into[SW].flatMap(x => rightSW(i + 1, acc + x))
+      case 1 => State.set[Int](i).into[SW].flatMap(x => rightSW(i + 1, acc + x))
+      case _ => Writer.tell("w").into[SW].flatMap(_ => rightSW(i + 1, acc + 1))
 
   // ---- a STATIC 10-op block inside a recursive loop: the same 1 000 operations as rightSW, ten per iteration,
   // spelled as explicit flatMaps
@@ -49,16 +49,16 @@ class FusionBenchmark {
   def blockFree(i: Int, acc: Int): Int ! SW =
     if i >= Iters then pure(acc)
     else
-      State.get[Int].at[SW].flatMap(a =>
-      State.set[Int](i).at[SW].flatMap(_ =>
-      Writer.tell("w").at[SW].flatMap(_ =>
-      State.get[Int].at[SW].flatMap(b =>
-      State.set[Int](i + 1).at[SW].flatMap(_ =>
-      Writer.tell("w").at[SW].flatMap(_ =>
-      State.get[Int].at[SW].flatMap(c =>
-      State.set[Int](i + 2).at[SW].flatMap(_ =>
-      Writer.tell("w").at[SW].flatMap(_ =>
-      State.get[Int].at[SW].flatMap(d =>
+      State.get[Int].into[SW].flatMap(a =>
+      State.set[Int](i).into[SW].flatMap(_ =>
+      Writer.tell("w").into[SW].flatMap(_ =>
+      State.get[Int].into[SW].flatMap(b =>
+      State.set[Int](i + 1).into[SW].flatMap(_ =>
+      Writer.tell("w").into[SW].flatMap(_ =>
+      State.get[Int].into[SW].flatMap(c =>
+      State.set[Int](i + 2).into[SW].flatMap(_ =>
+      Writer.tell("w").into[SW].flatMap(_ =>
+      State.get[Int].into[SW].flatMap(d =>
         blockFree(i + 1, acc + a + b + c + d)))))))))))
 
   var blockR: Int ! SW = scala.compiletime.uninitialized
@@ -75,15 +75,15 @@ class FusionBenchmark {
     sw = (0 until N).foldLeft(pure[Int, SW](0)): (m, i) =>
       m.flatMap: acc =>
         (i % 3) match
-          case 0 => State.get[Int].at[SW].map(acc + _)
-          case 1 => State.set[Int](i).at[SW].map(acc + _)
-          case _ => Writer.tell("w").at[SW].map(_ => acc + 1)
+          case 0 => State.get[Int].into[SW].map(acc + _)
+          case 1 => State.set[Int](i).into[SW].map(acc + _)
+          case _ => Writer.tell("w").into[SW].map(_ => acc + 1)
     tsw = (0 until N).foldLeft(pure[Int, TSW](0)): (m, i) =>
       m.flatMap: acc =>
         (i % 3) match
-          case 0 => State.get[Int].at[TSW].map(acc + _)
-          case 1 => State.set[Int](i).at[TSW].map(acc + _)
-          case _ => Writer.tell("w").at[TSW].map(_ => acc + 1)
+          case 0 => State.get[Int].into[TSW].map(acc + _)
+          case 1 => State.set[Int](i).into[TSW].map(acc + _)
+          case _ => Writer.tell("w").into[TSW].map(_ => acc + 1)
 
   // ---- two effects
 
@@ -129,5 +129,5 @@ class FusionBenchmark {
   def handledTSW(): Int =
     val w: (Seq[String], Int) ! (Throws % String + State % Int) = tsw.handle(Writer.log[String])
     val s: (Int, (Seq[String], Int)) ! Throws % String = w.handle(State(0))
-    s.handle(Throws.either[String]).run.toOption.get._2._2
+    s.handle(Throws.run[String]).run.toOption.get._2._2
 }

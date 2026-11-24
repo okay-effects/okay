@@ -158,7 +158,7 @@ class FairnessProbeBenchmark {
   def queue_okay_chunkNative(): Long =
     var sum = 0L
     Channel.bufferChunked(64, size = 256)(list).drained.runForeach(ch =>
-      effect[Async, Unit](Async.Run(() =>
+      perform[Async, Unit](Async.Run(() =>
         var i = 0
         while i < ch.length do { sum += ch(i); i += 1 }))).runWith
     sum

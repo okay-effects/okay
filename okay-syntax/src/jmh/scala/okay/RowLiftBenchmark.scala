@@ -59,20 +59,20 @@ class RowLiftBenchmark {
    * `Walk.view` to each operation, performed again at `G`. Trampolined:
    * the recursion is in the bind's continuation */
   extension [A, F[_]](p: A ! F)
-    def atWalk[G[_]](using w: Within[F, G]): A ! G = Walk.view(p) match
+    def atWalk[G[_]](using w: Within[F, G], k: KeyOf[F]): A ! G = Walk.view(p) match
       case Walk.Done(a) => pure[A, G](a)
-      case o: Walk.Op[F, x, A, F] => effect(o.op).at[G].flatMap((y: x) => o.resume(y).atWalk[G])
+      case o: Walk.Op[F, x, A, F] => perform(o.op).into[G].flatMap((y: x) => o.resume(y).atWalk[G])
 
   /** the floor: on the kernel no constructor builds at a wider row, so
    * the chain is built at the operation's own row and placed at R ONCE */
   @Benchmark
   def viaEffect(): Int =
-    var m: Int ! State % Int = effect[State % Int, Int](State.Get())
+    var m: Int ! State % Int = perform[State % Int, Int](State.Get())
     var i = 1
     while i < N do
-      m = m.flatMap(_ => effect[State % Int, Int](State.Get()))
+      m = m.flatMap(_ => perform[State % Int, Int](State.Get()))
       i += 1
-    State.run[Int, Int](0)(Writer.run(m.at[R]).map(_._2))._2
+    State.run[Int, Int](0)(Writer.run(m.into[R]).map(_._2))._2
 
   /** the program-level lift — the ergonomic one under test */
   @Benchmark
@@ -112,10 +112,10 @@ class RowLiftBenchmark {
    * the design holds exactly one asInstanceOf */
   @Benchmark
   def viaAt(): Int =
-    var m: Int ! R = State.get[Int].at[R]
+    var m: Int ! R = State.get[Int].into[R]
     var i = 1
     while i < N do
-      m = m.flatMap(_ => State.get[Int].at[R])
+      m = m.flatMap(_ => State.get[Int].into[R])
       i += 1
     State.run[Int, Int](0)(Writer.run(m).map(_._2))._2
 

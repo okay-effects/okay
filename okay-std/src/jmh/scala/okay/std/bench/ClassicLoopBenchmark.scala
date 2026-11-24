@@ -20,7 +20,7 @@ class ClassicLoopBenchmark {
 
   def loop(i: Int, acc: Int): Int ! R =
     if i == 0 then pure(acc)
-    else Reader.ask[Int].at[R].flatMap(x => Writer.tell("x").at[R].flatMap(_ => loop(i - 1, acc + x)))
+    else Reader.ask[Int].into[R].flatMap(x => Writer.tell("x").into[R].flatMap(_ => loop(i - 1, acc + x)))
 
   @Benchmark def classic(): Any = Writer.run[String, Int, Writer % String](Reader.run[Int, Int, R](1)(loop(n, 0))).run
 }

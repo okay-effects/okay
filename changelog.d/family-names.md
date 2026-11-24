@@ -21,3 +21,6 @@
   the old names (deprecation summaries only, no `[warn] --` diagnostic).
 - specs/stack-safety-okay.tsv names Stm.sim's `finish`/`loop` (deferred through `attempt`'s `defer`), which the
   gate's recscan found once okay-stm was touched; they were on master unnamed.
+
+Benchmarks (src/jmh of compare, okay-std, okay-syntax, okay-platform, okay-stream and others) on the new names too;
+`RowLiftBenchmark` takes the key its walk needs (`using KeyOf[F]`), broken since the keyed root.

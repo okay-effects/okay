@@ -52,9 +52,9 @@ class BuildShapeBenchmark {
   type SW = State % Int + Writer % String
 
   private def op(i: Int, acc: Int): Int ! SW = (i % 3) match
-    case 0 => State.get[Int].at[SW].map(acc + _)
-    case 1 => State.set[Int](i).at[SW].map(acc + _)
-    case _ => Writer.tell("w").at[SW].map(_ => acc + 1)
+    case 0 => State.get[Int].into[SW].map(acc + _)
+    case 1 => State.set[Int](i).into[SW].map(acc + _)
+    case _ => Writer.tell("w").into[SW].map(_ => acc + 1)
 
   @Benchmark
   def rowFoldLeft(): Int =
@@ -70,9 +70,9 @@ class BuildShapeBenchmark {
   private def oneBind(i: Int, acc: Int): Int ! SW =
     if i >= N then pure(acc)
     else (i % 3) match
-      case 0 => State.get[Int].at[SW].flatMap(x => oneBind(i + 1, acc + x))
-      case 1 => State.set[Int](i).at[SW].flatMap(x => oneBind(i + 1, acc + x))
-      case _ => Writer.tell("w").at[SW].flatMap(_ => oneBind(i + 1, acc + 1))
+      case 0 => State.get[Int].into[SW].flatMap(x => oneBind(i + 1, acc + x))
+      case 1 => State.set[Int](i).into[SW].flatMap(x => oneBind(i + 1, acc + x))
+      case _ => Writer.tell("w").into[SW].flatMap(_ => oneBind(i + 1, acc + 1))
 
   @Benchmark
   def rowOneBind(): Int =
@@ -102,9 +102,9 @@ class BuildShapeBenchmark {
   final case class Acc(n: Int)
 
   private def opAcc(i: Int, acc: Acc): Acc ! SW = (i % 3) match
-    case 0 => State.get[Int].at[SW].map(x => Acc(acc.n + x))
-    case 1 => State.set[Int](i).at[SW].map(x => Acc(acc.n + x))
-    case _ => Writer.tell("w").at[SW].map(_ => Acc(acc.n + 1))
+    case 0 => State.get[Int].into[SW].map(x => Acc(acc.n + x))
+    case 1 => State.set[Int](i).into[SW].map(x => Acc(acc.n + x))
+    case _ => Writer.tell("w").into[SW].map(_ => Acc(acc.n + 1))
 
   @Benchmark
   def rowFoldMAcc(): Int =
@@ -114,9 +114,9 @@ class BuildShapeBenchmark {
   private def oneBindAcc(i: Int, acc: Acc): Acc ! SW =
     if i >= N then pure(acc)
     else (i % 3) match
-      case 0 => State.get[Int].at[SW].flatMap(x => oneBindAcc(i + 1, Acc(acc.n + x)))
-      case 1 => State.set[Int](i).at[SW].flatMap(x => oneBindAcc(i + 1, Acc(acc.n + x)))
-      case _ => Writer.tell("w").at[SW].flatMap(_ => oneBindAcc(i + 1, Acc(acc.n + 1)))
+      case 0 => State.get[Int].into[SW].flatMap(x => oneBindAcc(i + 1, Acc(acc.n + x)))
+      case 1 => State.set[Int](i).into[SW].flatMap(x => oneBindAcc(i + 1, Acc(acc.n + x)))
+      case _ => Writer.tell("w").into[SW].flatMap(_ => oneBindAcc(i + 1, Acc(acc.n + 1)))
 
   @Benchmark
   def rowOneBindAcc(): Int =

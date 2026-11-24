@@ -54,9 +54,9 @@ class SourceChunkBenchmark {
   @Benchmark
   def chunkedCeiling(): Long =
     def chunker: Unit ! (Take % Long + (Writer % Chunk[Long] + Async)) =
-      Stage.chunked[Long](k).at[Take % Long + (Writer % Chunk[Long] + Async)]
+      Stage.chunked[Long](k).into[Take % Long + (Writer % Chunk[Long] + Async)]
     def flattener: Unit ! (Take % Chunk[Long] + (Writer % Long + Async)) =
-      Stage.unchunk[Long].at[Take % Chunk[Long] + (Writer % Long + Async)]
+      Stage.unchunk[Long].into[Take % Chunk[Long] + (Writer % Long + Async)]
     val ac: Source[Chunk[Long]] = through(left)(chunker)
     val bc: Source[Chunk[Long]] = through(right)(chunker)
     val flat: Source[Long] = through(ac merge bc)(flattener)

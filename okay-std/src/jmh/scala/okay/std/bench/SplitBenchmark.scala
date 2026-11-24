@@ -31,11 +31,11 @@ class SplitBenchmark {
   var sp: Int ! SR = scala.compiletime.uninitialized
 
   def writerProg(i: Int, acc: Int): Int ! WR =
-    if i >= N then pure(acc) else Writer.tell("w").at[WR].flatMap(_ => writerProg(i + 1, acc + 1))
+    if i >= N then pure(acc) else Writer.tell("w").into[WR].flatMap(_ => writerProg(i + 1, acc + 1))
   def stateProg(i: Int, acc: Int): Int ! SR =
     if i >= N then pure(acc)
-    else if i % 2 == 0 then State.get[Int].at[SR].flatMap(x => stateProg(i + 1, acc + x))
-    else State.set[Int](i).at[SR].flatMap(x => stateProg(i + 1, acc + x))
+    else if i % 2 == 0 then State.get[Int].into[SR].flatMap(x => stateProg(i + 1, acc + x))
+    else State.set[Int](i).into[SR].flatMap(x => stateProg(i + 1, acc + x))
 
   @Setup
   def up(): Unit =
@@ -59,9 +59,9 @@ class SplitBenchmark {
   def mixedProg(i: Int, acc: Int): Int ! SW =
     if i >= N then pure(acc)
     else (i % 3) match
-      case 0 => State.get[Int].at[SW].flatMap(x => mixedProg(i + 1, acc + x))
-      case 1 => State.set[Int](i).at[SW].flatMap(x => mixedProg(i + 1, acc + x))
-      case _ => Writer.tell("w").at[SW].flatMap(_ => mixedProg(i + 1, acc + 1))
+      case 0 => State.get[Int].into[SW].flatMap(x => mixedProg(i + 1, acc + x))
+      case 1 => State.set[Int](i).into[SW].flatMap(x => mixedProg(i + 1, acc + x))
+      case _ => Writer.tell("w").into[SW].flatMap(_ => mixedProg(i + 1, acc + 1))
 
   @Benchmark
   def mixedList(): Int = State.run[Int, (Seq[String], Int)](0)(Writer.run[String, Int, SW](mixed))._2._2

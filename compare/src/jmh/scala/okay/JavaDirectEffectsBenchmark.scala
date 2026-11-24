@@ -76,7 +76,7 @@ object JavaDirectEffectsBenchmark {
   enum Tick[+A] derives Effect:
     case Tock extends Tick[Int]
 
-  val answering: Handler[Tick, [A] =>> A] = Handler.answering[Tick]([X] => (t: Tick[X]) => t match
+  val answering: Handler[Tick, [A] =>> A] = Handler.tail[Tick]([X] => (t: Tick[X]) => t match
     case Tick.Tock => 1)
 
   /** `n` operations summed; each step deferred under the bind, so the recursion is trampolined */

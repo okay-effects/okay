@@ -50,7 +50,7 @@ class PerElementStepBenchmark {
   def elem_effectCallback(): Long =
     var sum = 0L
     Channel.buffer(1024)(list).drained.runForeach(x =>
-      effect[Async, Unit](Async.Run(() => sum += x))).runWith
+      perform[Async, Unit](Async.Run(() => sum += x))).runWith
     sum
 
   /**
@@ -67,7 +67,7 @@ class PerElementStepBenchmark {
   def elem_drainedChunks(): Long =
     var sum = 0L
     Channel.buffer(1024)(list).drainedChunks.runForeach(ch =>
-      effect[Async, Unit](Async.Run(() =>
+      perform[Async, Unit](Async.Run(() =>
         var i = 0
         while i < ch.length do { sum += ch(i); i += 1 }))).runWith
     sum
