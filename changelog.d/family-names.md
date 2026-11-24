@@ -16,9 +16,8 @@
 - okay's own modules, tests and the okay-std benchmarks moved to the new names (66184eef8): `Test/compile`
   is warning-free under `-deprecation`. Docs, AGENTS.md and the pinned examples follow;
   `TestFamilyNames` (okay-std) checks each new name and, in one `@nowarn` method, each old one.
-- Left as it is: `State.run` runs to a value here, unlike the family's handler `State.run`; the remaining
-  benchmarks (compare/, okay-syntax's, most of okay-std's) and example lines in docs/snippet-debt.txt keep
-  the old names (deprecation summaries only, no `[warn] --` diagnostic).
+- Left as it is: `State.run` runs to a value here, unlike the family's handler `State.run`; example lines in
+  docs/snippet-debt.txt keep the old names (a line edited there counts as new and unpinned).
 - specs/stack-safety-okay.tsv names Stm.sim's `finish`/`loop` (deferred through `attempt`'s `defer`), which the
   gate's recscan found once okay-stm was touched; they were on master unnamed.
 
